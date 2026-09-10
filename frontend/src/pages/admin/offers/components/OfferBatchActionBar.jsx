@@ -12,14 +12,14 @@ export default function OfferBatchActionBar({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-fade-in-up">
-      <div className="bg-slate-900/90 dark:bg-slate-800/95 text-white backdrop-blur-md px-5 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-4 text-xs sm:text-sm">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-fade-in-up font-sans">
+      <div className="bg-[#1a1a1a] text-white px-5 py-3 rounded-2xl shadow-2xl border border-[#241b15] flex items-center gap-4 text-xs sm:text-sm">
         {/* Count Badge */}
         <div className="flex items-center gap-2 pr-2 border-r border-slate-700">
-          <span className="w-6 h-6 rounded-full bg-amber-500 text-slate-900 font-black flex items-center justify-center text-xs">
+          <span className="w-6 h-6 rounded-full bg-[#d99a3d] text-[#1a1a1a] font-black flex items-center justify-center text-xs">
             {selectedCount}
           </span>
-          <span className="font-semibold text-slate-200">
+          <span className="font-bold text-[#faf8f5]">
             {selectedCount === 1 ? 'Campaign' : 'Campaigns'} selected
           </span>
         </div>
@@ -30,7 +30,7 @@ export default function OfferBatchActionBar({
           <button
             onClick={onBatchActivate}
             disabled={isProcessing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
           >
             <FiCheckCircle className="w-4 h-4" />
             <span>Activate</span>
@@ -40,7 +40,7 @@ export default function OfferBatchActionBar({
           <button
             onClick={onBatchDeactivate}
             disabled={isProcessing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
           >
             <FiXCircle className="w-4 h-4" />
             <span>Disable</span>
@@ -50,7 +50,7 @@ export default function OfferBatchActionBar({
           <button
             onClick={onBatchDelete}
             disabled={isProcessing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition-all disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all disabled:opacity-50 cursor-pointer shadow-xs"
           >
             <FiTrash2 className="w-4 h-4" />
             <span>Delete</span>

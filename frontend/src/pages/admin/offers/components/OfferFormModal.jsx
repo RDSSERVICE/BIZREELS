@@ -1,14 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  FiTag,
   FiUploadCloud,
   FiX,
-  FiCheck,
   FiRefreshCw,
-  FiCalendar,
   FiClock,
-  FiAlertCircle,
-  FiPercent,
   FiDollarSign,
   FiImage
 } from 'react-icons/fi';
@@ -77,7 +72,6 @@ export default function OfferFormModal({
         status: initialData.status || 'Draft'
       });
     } else {
-      // Default dates for new campaign: starts now, ends in 7 days
       const now = new Date();
       const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       setFormData({
@@ -103,7 +97,6 @@ export default function OfferFormModal({
     }
   }, [initialData, isEditing, isOpen]);
 
-  // Handle image upload via mediaApi
   const handleFileUpload = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -136,10 +129,7 @@ export default function OfferFormModal({
     }
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
+  const handleDragOver = (e) => e.preventDefault();
   const handleDrop = (e) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -165,7 +155,6 @@ export default function OfferFormModal({
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Financial & Duration Guardrails
     if (!formData.title.trim()) {
       toast.error('Please provide a campaign title.');
       return;
@@ -202,11 +191,11 @@ export default function OfferFormModal({
       title={isEditing ? 'Edit Campaign Details' : 'Create High-Impact Campaign'}
       maxWidth="max-w-3xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 py-1">
+      <form onSubmit={handleSubmit} className="space-y-6 py-1 font-sans">
         {/* Row 1: Title & Promo Code */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2 space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-black text-[#1a1a1a]">
               Campaign Title <span className="text-rose-500">*</span>
             </label>
             <input
@@ -215,19 +204,19 @@ export default function OfferFormModal({
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="e.g. Diwali Mega Blast 20% OFF"
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-amber-500/30"
+              className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-bold text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
             />
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-xs font-black text-[#1a1a1a]">
                 Promo Code
               </label>
               <button
                 type="button"
                 onClick={handleGenerateCode}
-                className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[10px] font-black text-[#1a1a1a] hover:text-[#d99a3d] flex items-center gap-1 cursor-pointer"
               >
                 <FiRefreshCw className="w-2.5 h-2.5" /> Auto-Gen
               </button>
@@ -237,14 +226,14 @@ export default function OfferFormModal({
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, '') })}
               placeholder="e.g. DIWALI20"
-              className="w-full px-3.5 py-2 font-mono uppercase bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-amber-500/30"
+              className="w-full px-3.5 py-2 font-mono uppercase bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-black text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
             />
           </div>
         </div>
 
         {/* Row 2: Description */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+          <label className="text-xs font-black text-[#1a1a1a]">
             Campaign Subtitle / Description <span className="text-rose-500">*</span>
           </label>
           <textarea
@@ -253,25 +242,25 @@ export default function OfferFormModal({
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             placeholder="Describe the offer, eligibility conditions, or special highlights..."
-            className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-amber-500/30"
+            className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-medium text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
           />
         </div>
 
         {/* Row 3: Discount Economics & Guardrails */}
-        <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
+        <div className="bg-[#fbf9f4] p-4 rounded-2xl border border-[#e3dccb] space-y-4 shadow-2xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <FiDollarSign className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-black text-[#1a1a1a] flex items-center gap-1.5">
+              <FiDollarSign className="w-4 h-4 text-[#d99a3d]" />
               Discount Economics & Guardrails
             </span>
-            <div className="inline-flex p-0.5 bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold">
+            <div className="inline-flex p-0.5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl text-xs font-bold">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, discountType: 'percentage' })}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   formData.discountType === 'percentage'
-                    ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400'
+                    ? 'bg-[#1a1a1a] text-[#d99a3d] font-black shadow-xs'
+                    : 'text-[#8c827a]'
                 }`}
               >
                 Percentage (%)
@@ -281,8 +270,8 @@ export default function OfferFormModal({
                 onClick={() => setFormData({ ...formData, discountType: 'fixed' })}
                 className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
                   formData.discountType === 'fixed'
-                    ? 'bg-white dark:bg-slate-700 text-amber-600 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400'
+                    ? 'bg-[#1a1a1a] text-[#d99a3d] font-black shadow-xs'
+                    : 'text-[#8c827a]'
                 }`}
               >
                 Flat Amount (₹)
@@ -293,7 +282,7 @@ export default function OfferFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Discount Value */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-xs font-bold text-[#1a1a1a]">
                 {formData.discountType === 'percentage' ? 'Discount Percentage (%)' : 'Flat Discount (₹)'}
               </label>
               <div className="relative">
@@ -304,9 +293,9 @@ export default function OfferFormModal({
                   required
                   value={formData.discountValue}
                   onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
-                  className="w-full pl-3.5 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100"
+                  className="w-full pl-3.5 pr-8 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-black text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#8c827a]">
                   {formData.discountType === 'percentage' ? '%' : '₹'}
                 </span>
               </div>
@@ -314,7 +303,7 @@ export default function OfferFormModal({
 
             {/* Min Order Amount */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-xs font-bold text-[#1a1a1a]">
                 Min. Order Value (₹)
               </label>
               <div className="relative">
@@ -324,15 +313,15 @@ export default function OfferFormModal({
                   value={formData.minOrderAmount}
                   onChange={(e) => setFormData({ ...formData, minOrderAmount: Number(e.target.value) })}
                   placeholder="0 = No minimum"
-                  className="w-full pl-3.5 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100"
+                  className="w-full pl-3.5 pr-8 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-black text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#8c827a]">₹</span>
               </div>
             </div>
 
             {/* Max Discount Cap */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-xs font-bold text-[#1a1a1a]">
                 Max Discount Cap (₹)
               </label>
               <div className="relative">
@@ -342,9 +331,9 @@ export default function OfferFormModal({
                   value={formData.maxDiscountLimit}
                   onChange={(e) => setFormData({ ...formData, maxDiscountLimit: e.target.value ? Number(e.target.value) : '' })}
                   placeholder="Blank = No cap"
-                  className="w-full pl-3.5 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100"
+                  className="w-full pl-3.5 pr-8 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-black text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">₹</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-[#8c827a]">₹</span>
               </div>
             </div>
           </div>
@@ -354,7 +343,7 @@ export default function OfferFormModal({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Target Audience */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-bold text-[#1a1a1a]">
               Target Audience
             </label>
             <div className="flex items-center gap-1.5 pt-0.5">
@@ -365,10 +354,10 @@ export default function OfferFormModal({
                     key={role}
                     type="button"
                     onClick={() => toggleRole(role)}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${
+                    className={`px-2.5 py-1.5 rounded-xl text-xs font-black capitalize transition-all cursor-pointer border ${
                       active
-                        ? 'bg-amber-500 text-slate-900 shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-750 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                        ? 'bg-[#1a1a1a] text-[#d99a3d] border-[#1a1a1a] shadow-2xs'
+                        : 'bg-[#f8f4ec] border-[#e3dccb] text-[#8c827a] hover:text-[#1a1a1a]'
                     }`}
                   >
                     {role}s
@@ -380,7 +369,7 @@ export default function OfferFormModal({
 
           {/* Usage Limit */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-bold text-[#1a1a1a]">
               Total Redemptions Limit
             </label>
             <input
@@ -389,13 +378,13 @@ export default function OfferFormModal({
               value={formData.usageLimit}
               onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value ? Number(e.target.value) : '' })}
               placeholder="Blank = Unlimited"
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100"
+              className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-bold text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
             />
           </div>
 
           {/* Per User Limit */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-bold text-[#1a1a1a]">
               Per Customer Limit
             </label>
             <input
@@ -403,7 +392,7 @@ export default function OfferFormModal({
               min="1"
               value={formData.perUserLimit}
               onChange={(e) => setFormData({ ...formData, perUserLimit: Number(e.target.value) || 1 })}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100"
+              className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-bold text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
             />
           </div>
         </div>
@@ -411,7 +400,7 @@ export default function OfferFormModal({
         {/* Row 5: Schedule & Duration with Live Helper */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-bold text-[#1a1a1a]">
               Start Date & Time <span className="text-rose-500">*</span>
             </label>
             <input
@@ -419,17 +408,17 @@ export default function OfferFormModal({
               required
               value={formData.startTime}
               onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100"
+              className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-semibold text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
             />
           </div>
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <label className="text-xs font-bold text-[#1a1a1a]">
                 End Date & Time <span className="text-rose-500">*</span>
               </label>
               {formData.startTime && formData.endTime && (
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
                   Duration: {formatDuration(formData.startTime, formData.endTime)}
                 </span>
               )}
@@ -439,37 +428,37 @@ export default function OfferFormModal({
               required
               value={formData.endTime}
               onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-100"
+              className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-semibold text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
             />
           </div>
         </div>
 
-        {/* Row 6: Cloudinary Artwork Banner Uploader */}
+        {/* Row 6: Artwork Banner Uploader */}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+          <label className="text-xs font-bold text-[#1a1a1a] flex items-center justify-between">
             <span>Campaign Artwork / Banner</span>
-            <span className="text-[10px] text-slate-400 font-normal">Recommended: 1200x600px banner</span>
+            <span className="text-[10px] text-[#8c827a] font-medium">Recommended: 1200x600px banner</span>
           </label>
 
           {formData.image ? (
-            <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 group max-h-40">
+            <div className="relative rounded-2xl overflow-hidden border border-[#e3dccb] group max-h-40 shadow-2xs">
               <img
                 src={formData.image}
                 alt="Campaign Preview"
                 className="w-full h-40 object-cover"
               />
-              <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+              <div className="absolute inset-0 bg-[#1a1a1a]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-3 py-1.5 rounded-xl bg-white/90 text-slate-900 text-xs font-bold hover:bg-white cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl bg-white text-[#1a1a1a] text-xs font-bold hover:bg-[#f8f4ec] cursor-pointer shadow-xs"
                 >
                   Change Artwork
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, image: '' })}
-                  className="p-1.5 rounded-xl bg-rose-600 text-white hover:bg-rose-500 cursor-pointer"
+                  className="p-2 rounded-xl bg-rose-600 text-white hover:bg-rose-500 cursor-pointer shadow-xs"
                   title="Remove image"
                 >
                   <FiX className="w-4 h-4" />
@@ -481,24 +470,24 @@ export default function OfferFormModal({
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center hover:border-amber-500/50 hover:bg-amber-50/20 dark:hover:bg-amber-950/10 transition-all cursor-pointer"
+              className="border-2 border-dashed border-[#e3dccb] bg-[#fbf9f4] rounded-2xl p-6 text-center hover:border-[#1a1a1a] transition-all cursor-pointer"
             >
               {uploadingImage ? (
                 <div className="space-y-2">
-                  <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                    Uploading to Cloudinary... ({uploadProgress}%)
+                  <div className="w-6 h-6 border-2 border-[#1a1a1a] border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-xs font-black text-[#1a1a1a]">
+                    Uploading artwork... ({uploadProgress}%)
                   </p>
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto">
+                  <div className="w-10 h-10 rounded-2xl bg-[#f8f4ec] text-[#d99a3d] border border-[#e3dccb] flex items-center justify-center mx-auto shadow-2xs">
                     <FiUploadCloud className="w-5 h-5" />
                   </div>
-                  <p className="text-xs font-bold text-slate-700 dark:text-slate-200">
-                    Drag and drop your campaign banner, or <span className="text-amber-600">browse</span>
+                  <p className="text-xs font-black text-[#1a1a1a]">
+                    Drag and drop campaign artwork, or <span className="underline text-[#d99a3d]">browse</span>
                   </p>
-                  <p className="text-[10px] text-slate-400">PNG, JPG, or WebP up to 5MB</p>
+                  <p className="text-[10px] text-[#8c827a]">PNG, JPG, or WebP up to 5MB</p>
                 </div>
               )}
             </div>
@@ -518,15 +507,15 @@ export default function OfferFormModal({
         </div>
 
         {/* Row 7: Initial Status & Priority */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-xs font-bold text-[#1a1a1a]">
               Campaign Lifecycle Status
             </label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-100 cursor-pointer"
+              className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-bold text-[#1a1a1a] cursor-pointer focus:outline-hidden focus:border-[#1a1a1a]"
             >
               <option value="Draft">Draft (Hidden from all users)</option>
               <option value="Scheduled">Scheduled (Queue for start date)</option>
@@ -535,31 +524,31 @@ export default function OfferFormModal({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Display Priority (Higher = Top of app feed)
+            <label className="text-xs font-bold text-[#1a1a1a]">
+              Feed Priority (Higher = Top of app feed)
             </label>
             <input
               type="number"
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) || 0 })}
-              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100"
+              className="w-full px-3.5 py-2 bg-white border border-[#e3dccb] rounded-xl text-xs sm:text-sm font-bold text-[#1a1a1a] focus:outline-hidden focus:border-[#1a1a1a]"
             />
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700/60">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#e3dccb]">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all cursor-pointer"
+            className="px-4 py-2 text-xs sm:text-sm font-bold text-[#1a1a1a] border border-[#e3dccb] bg-[#f8f4ec] hover:bg-white rounded-xl transition-all cursor-pointer shadow-2xs"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || uploadingImage}
-            className="px-5 py-2 rounded-xl text-xs sm:text-sm font-black text-slate-900 bg-linear-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-md hover:shadow-lg disabled:opacity-50 transition-all cursor-pointer"
+            className="px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black text-[#d99a3d] bg-[#1a1a1a] hover:bg-[#241b15] border border-[#1a1a1a] shadow-xs disabled:opacity-50 transition-all cursor-pointer"
           >
             {isSubmitting ? 'Saving Campaign...' : isEditing ? 'Update Campaign' : 'Create Campaign'}
           </button>

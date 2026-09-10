@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiGift, FiPlus, FiTag, FiClock, FiCheckCircle, FiArchive, FiShoppingBag } from 'react-icons/fi';
+import { FiGift, FiPlus, FiClock, FiCheckCircle, FiArchive, FiShoppingBag } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
+import AdminTabBar from '../../../features/admin/components/AdminTabBar';
 import { getSocket } from '../../../lib/socket';
 import {
   useGetOfferStatsQuery,
@@ -305,59 +306,35 @@ export default function AdminOffersPage() {
   };
 
   return (
-    <div className="space-y-6 pb-16">
-      {/* Page Header */}
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in pb-12">
+      {/* Page Header matching Admin Theme */}
       <AdminPageHeader
+        icon={FiGift}
         title="Promotions & Marketing Offers"
         subtitle="Orchestrate platform-wide flash sales, discounts, push notifications, and monitor vendor store campaigns."
-        actions={
-          <button
-            onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm text-slate-900 bg-linear-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-md hover:shadow-lg transition-all cursor-pointer"
-          >
-            <FiPlus className="w-4 h-4 stroke-[3]" />
-            <span>Create Campaign</span>
-          </button>
-        }
-      />
+      >
+        <button
+          onClick={handleOpenCreate}
+          className="px-4.5 py-2.5 rounded-xl bg-[#1a1a1a] hover:bg-[#241b15] text-[11px] sm:text-xs font-black text-[#d99a3d] border border-[#1a1a1a] shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+        >
+          <FiPlus className="w-4 h-4 stroke-[3]" />
+          <span>Create Campaign</span>
+        </button>
+      </AdminPageHeader>
 
-      {/* 1. Bento Executive KPI Banner */}
+      {/* 1. Bento Executive KPI Banner in Warm Bento-Brutalism Style */}
       <OfferKpiBanner stats={stats} isLoading={isLoadingStats} />
 
-      {/* 2. 5-Tab Scoping Navigation with Live Badges */}
-      <div className="flex items-center gap-2 border-b border-slate-200/80 dark:border-slate-700/80 overflow-x-auto no-scrollbar">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key);
-                setCurrentPage(1);
-                setSelectedIds([]);
-              }}
-              className={`group flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap cursor-pointer ${
-                isActive
-                  ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold transition-colors ${
-                  isActive
-                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* 2. Admin Tab Bar Navigation with Live Badges */}
+      <AdminTabBar
+        tabs={TABS}
+        activeTab={activeTab}
+        onTabChange={(key) => {
+          setActiveTab(key);
+          setCurrentPage(1);
+          setSelectedIds([]);
+        }}
+      />
 
       {/* 3. Search & Filter Bar */}
       <OfferFilterBar
