@@ -150,34 +150,34 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
     switch (type) {
       case 'order':
       case 'lead':
-        return <FiShoppingBag className="text-emerald-500" size={16} />;
+        return <FiShoppingBag className="text-emerald-600" size={16} />;
       case 'payment':
       case 'wallet':
-        return <FiDollarSign className="text-amber-500" size={16} />;
+        return <FiDollarSign className="text-[#d99a3d]" size={16} />;
       case 'kyc':
       case 'verification':
-        return <FiShield className="text-blue-500" size={16} />;
+        return <FiShield className="text-[#1a1a1a]" size={16} />;
       case 'message':
       case 'inquiry':
-        return <FiMessageSquare className="text-brand-purple" size={16} />;
+        return <FiMessageSquare className="text-[#d99a3d]" size={16} />;
       default:
-        return <FiBell className="text-brand-orange" size={16} />;
+        return <FiBell className="text-[#d99a3d]" size={16} />;
     }
   };
 
   const viewAllPath = role === 'admin' ? '/admin/notifications' : role === 'vendor' ? '/vendor/notifications' : role === 'creator' ? '/creator/notifications' : '/customer/notifications';
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative font-sans" ref={dropdownRef}>
       {/* Bell Trigger Button */}
       <button
         onClick={() => { setIsOpen(!isOpen); if (!isOpen) fetchNotifications(); }}
-        className="p-2 text-text-secondary hover:text-brand-purple hover:bg-surface-tertiary rounded-xl transition-all relative"
+        className="p-2 text-[#8c827a] hover:text-[#1a1a1a] hover:bg-[#f8f4ec] rounded-xl transition-all relative border border-transparent hover:border-[#e3dccb] cursor-pointer"
         title="Notifications"
       >
         <FiBell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] h-[18px] rounded-full bg-brand-pink text-white font-extrabold text-[10px] flex items-center justify-center shadow-md animate-pulse">
+          <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] h-[18px] rounded-full bg-[#1a1a1a] text-[#d99a3d] border border-[#d99a3d]/40 font-black text-[10px] flex items-center justify-center shadow-xs">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -185,14 +185,14 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="fixed inset-x-3 top-14 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 w-auto sm:w-80 md:w-96 bg-surface border border-border rounded-2xl shadow-2xl z-[100] overflow-hidden animate-scale-in max-h-[80vh] sm:max-h-none">
+        <div className="fixed inset-x-3 top-14 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 w-auto sm:w-80 md:w-96 bg-white border border-[#e3dccb] rounded-2xl shadow-xl z-[100] overflow-hidden animate-scale-in max-h-[80vh] sm:max-h-none">
           {/* Panel Header */}
-          <div className="p-4 border-b border-border bg-surface-tertiary flex items-center justify-between">
+          <div className="p-4 border-b border-[#e3dccb] bg-[#fbf9f4] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <FiBell className="text-brand-purple" size={16} />
-              <h4 className="text-xs font-bold text-text-primary font-display">Notifications</h4>
+              <FiBell className="text-[#d99a3d]" size={16} />
+              <h4 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wider">Notifications</h4>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-[#f8f4ec] border border-[#e3dccb] text-[#1a1a1a] text-[10px] font-black">
                   {unreadCount} unread
                 </span>
               )}
@@ -200,7 +200,7 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-[11px] font-semibold text-brand-purple hover:underline flex items-center gap-1"
+                className="text-[11px] font-bold text-[#1a1a1a] hover:text-[#d99a3d] hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <FiCheck size={12} /> Mark all read
               </button>
@@ -208,9 +208,9 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
           </div>
 
           {/* List of Notifications */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-border">
+          <div className="max-h-80 overflow-y-auto divide-y divide-[#f0eadc]">
             {notifications.length === 0 ? (
-              <div className="p-6 text-center text-xs text-text-tertiary">
+              <div className="p-6 text-center text-xs text-[#8c827a] font-medium">
                 No notifications right now.
               </div>
             ) : (
@@ -220,23 +220,23 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
                   <div
                     key={n._id || n.id || i}
                     onClick={() => handleNotificationClick(n)}
-                    className={`p-3.5 flex items-start gap-3 cursor-pointer transition hover:bg-surface-tertiary ${isUnread ? 'bg-brand-purple/5' : ''}`}
+                    className={`p-3.5 flex items-start gap-3 cursor-pointer transition hover:bg-[#fbf9f4] ${isUnread ? 'bg-[#fbf9f4]' : ''}`}
                   >
-                    <div className="p-2 rounded-xl bg-surface border border-border mt-0.5">
+                    <div className="p-2 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] mt-0.5 shadow-2xs shrink-0">
                       {getNotificationIcon(n.type)}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <h5 className={`text-xs truncate ${isUnread ? 'font-bold text-text-primary' : 'font-semibold text-text-secondary'}`}>
+                        <h5 className={`text-xs truncate ${isUnread ? 'font-black text-[#1a1a1a]' : 'font-bold text-[#4a423b]'}`}>
                           {n.title || 'System Alert'}
                         </h5>
-                        {isUnread && <span className="w-2 h-2 rounded-full bg-brand-pink flex-shrink-0" />}
+                        {isUnread && <span className="w-2 h-2 rounded-full bg-[#d99a3d] shrink-0" />}
                       </div>
-                      <p className="text-[11px] text-text-tertiary line-clamp-2 mt-0.5">
+                      <p className="text-[11px] text-[#8c827a] line-clamp-2 mt-0.5">
                         {n.body || n.message || 'Click to view details'}
                       </p>
-                      <span className="text-[9px] text-text-tertiary mt-1 block">
+                      <span className="text-[9px] text-[#8c827a] mt-1 block font-medium">
                         {n.createdAt || n.created_at ? new Date(n.createdAt || n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                       </span>
                     </div>
@@ -247,11 +247,11 @@ export default function NotificationBellDropdown({ role = 'customer' }) {
           </div>
 
           {/* Footer Link */}
-          <div className="p-3 border-t border-border bg-surface-tertiary text-center">
+          <div className="p-3 border-t border-[#e3dccb] bg-[#fbf9f4] text-center">
             <Link
               to={viewAllPath}
               onClick={() => setIsOpen(false)}
-              className="text-xs font-bold text-brand-purple hover:underline inline-flex items-center gap-1"
+              className="text-xs font-black text-[#1a1a1a] hover:text-[#d99a3d] inline-flex items-center gap-1 transition-colors"
             >
               View All Notifications →
             </Link>
