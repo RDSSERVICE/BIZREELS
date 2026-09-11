@@ -71,3 +71,12 @@ BizReels includes the following production features:
 * **Subscriber Checkout Add-Ons Selector**: Vendors and Creators can toggle available add-ons with visual checkmarks and real-time total updates (`Base Plan + Addons Total`).
 * **Multi-Gateway Subscription Purchases**: Supports instant Razorpay online payment and role-isolated Wallet balance payments with automated bonus quota crediting upon activation.
 
+## 12. Production-Grade Admin Reels Governance & Content Moderation
+* **Real-Time Video Platform Telemetry**: Live aggregation of total published catalog count, platform views, likes, comments, boosted reels, and active live streams.
+* **Dual-Tier Content Safety (AI + Manual Review)**: Automated Gemini AI flag detection coupled with a dedicated manual review queue for fast-track dispute resolutions and policy compliance auditing.
+* **Shoppable E-Commerce Linked Tagging**: Rich catalog table and modal inspection for reels linked to physical products, service bookings, or merchant store showcases with live price tags and store redirects.
+* **9:16 Video Player & Telemetry Inspector**: Split-view video player with playback, loop, audio controls, and metadata telemetry inspector.
+* **Multi-Item Batch Action Engine**: High-efficiency bulk operations allowing admins to bulk approve, bulk boost, bulk restore, or bulk takedown multiple selected reels simultaneously.
+* **Audit Logging & Real-Time Sync**: Every administrative action automatically creates an immutable audit trail (`AuditLog`) and triggers WebSocket events (`admin:update`, `reel:takedown`, `reel:boosted`) across all open admin sessions.
+
+

@@ -1,223 +1,316 @@
-import React, { useState } from 'react';
-import { FiFilm, FiZap, FiTrendingUp, FiAlertTriangle, FiTrash2, FiPlay, FiTv, FiEye } from 'react-icons/fi';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  FiFilm,
+  FiZap,
+  FiTrendingUp,
+  FiAlertTriangle,
+  FiTrash2,
+  FiTv,
+  FiClock
+} from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import AdminPageHeader from '../../../features/admin/components/AdminPageHeader';
 import AdminTabBar from '../../../features/admin/components/AdminTabBar';
-import AdminDataTable from '../../../features/admin/components/AdminDataTable';
-import AdminStatusBadge from '../../../features/admin/components/AdminStatusBadge';
-import AdminModal from '../../../features/admin/components/AdminModal';
 import {
+  useGetAdminReelStatsQuery,
   useListAdminReelsQuery,
   useTakedownReelMutation,
+  useRestoreReelMutation,
+  useModerateReelMutation,
   useToggleBoostReelMutation,
+  useBulkActionReelsMutation,
 } from '../../../features/admin/adminApi';
-
-const TABS = [
-  { key: 'all', label: 'Published Reels', icon: FiFilm },
-  { key: 'boosted', label: 'Boosted Reels', icon: FiZap },
-  { key: 'trending', label: 'Trending Reels', icon: FiTrendingUp },
-  { key: 'reported', label: 'Reported Reels', icon: FiAlertTriangle },
-  { key: 'deleted', label: 'Deleted Reels', icon: FiTrash2 },
-  { key: 'live', label: 'Live Videos', icon: FiTv },
-];
+import { getSocket } from '../../../lib/socket';
+import {
+  ReelKpiBanner,
+  ReelFilterBar,
+  ReelBatchActionBar,
+  ReelTable,
+  ReelPreviewModal,
+  ReelModerateModal
+} from './components';
 
 export default function AdminReelsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
-  const [playReel, setPlayReel] = useState(null);
+  const [postTypeFilter, setPostTypeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [previewReel, setPreviewReel] = useState(null);
+  const [moderateReelItem, setModerateReelItem] = useState(null);
 
-  const queryParams = {};
-  if (activeTab === 'boosted') queryParams.is_boosted = 'true';
-  if (activeTab === 'trending') queryParams.is_trending = 'true';
-  if (activeTab === 'reported') queryParams.is_reported = 'true';
-  if (activeTab === 'deleted') queryParams.is_deleted = 'true';
-  if (activeTab === 'live') queryParams.is_live = 'true';
+  // RTK Query endpoints
+  const { data: stats, isFetching: isFetchingStats, refetch: refetchStats } = useGetAdminReelStatsQuery();
 
-  const { data, isFetching } = useListAdminReelsQuery(queryParams, { refetchOnMountOrArgChange: true, refetchOnFocus: true });
+  const queryParams = useMemo(() => {
+    const q = {};
+    if (activeTab === 'boosted') q.is_boosted = 'true';
+    if (activeTab === 'review_queue' || activeTab === 'reported') q.is_reported = 'true';
+    if (activeTab === 'trending') q.is_trending = 'true';
+    if (activeTab === 'deleted') q.is_deleted = 'true';
+    if (activeTab === 'live') q.is_live = 'true';
+    return q;
+  }, [activeTab]);
+
+  const { data: listData, isFetching: isFetchingList, refetch: refetchList } = useListAdminReelsQuery(
+    queryParams,
+    { refetchOnMountOrArgChange: true, refetchOnFocus: true }
+  );
+
   const [takedownReel] = useTakedownReelMutation();
+  const [restoreReel] = useRestoreReelMutation();
+  const [moderateReel, { isLoading: isModerating }] = useModerateReelMutation();
   const [toggleBoost] = useToggleBoostReelMutation();
+  const [bulkActionReels, { isLoading: isBulkActioning }] = useBulkActionReelsMutation();
 
-  const items = data?.items || [];
+  // Real-time WebSocket synchronization
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
 
-  const filteredItems = items.filter((item) => {
-    // 1. Tab check backup
+    const handleUpdate = () => {
+      refetchList();
+      refetchStats();
+    };
+
+    socket.on('admin:update', handleUpdate);
+    socket.on('reel:takedown', handleUpdate);
+    socket.on('reel:restored', handleUpdate);
+    socket.on('reel:boosted', handleUpdate);
+
+    return () => {
+      socket.off('admin:update', handleUpdate);
+      socket.off('reel:takedown', handleUpdate);
+      socket.off('reel:restored', handleUpdate);
+      socket.off('reel:boosted', handleUpdate);
+    };
+  }, [refetchList, refetchStats]);
+
+  // Tab definitions with dynamic count badges
+  const tabs = useMemo(() => [
+    { key: 'all', label: 'Published Reels', icon: FiFilm, count: stats?.totalReels },
+    { key: 'boosted', label: 'Boosted', icon: FiZap, count: stats?.boostedCount },
+    { key: 'review_queue', label: 'Review Queue', icon: FiClock, count: stats?.reviewQueueCount },
+    { key: 'trending', label: 'Trending', icon: FiTrendingUp, count: stats?.trendingCount },
+    { key: 'reported', label: 'Flagged Content', icon: FiAlertTriangle, count: stats?.flaggedCount },
+    { key: 'deleted', label: 'Deleted', icon: FiTrash2, count: stats?.deletedCount },
+    { key: 'live', label: 'Live Broadcasts', icon: FiTv, count: stats?.liveCount },
+  ], [stats]);
+
+  const rawItems = listData?.items || [];
+
+  // Client-side filtering & sorting
+  const processedItems = useMemo(() => {
+    let result = [...rawItems];
+
+    // Filter by tab deletion integrity
     if (activeTab === 'deleted') {
-      if (!item.isDeleted) return false;
+      result = result.filter((i) => i.isDeleted);
     } else {
-      if (item.isDeleted) return false;
+      result = result.filter((i) => !i.isDeleted);
     }
 
-    // 2. Search local filter
+    // Filter by postType
+    if (postTypeFilter !== 'all') {
+      result = result.filter((i) => (i.postType || 'general').toLowerCase() === postTypeFilter);
+    }
+
+    // Search filter
     if (search.trim()) {
       const term = search.toLowerCase();
-      const captionMatch = (item.caption || '').toLowerCase().includes(term);
-      const creatorMatch = (item.creator_name || '').toLowerCase().includes(term);
-      if (!captionMatch && !creatorMatch) return false;
+      result = result.filter((i) => {
+        const captionMatch = (i.caption || '').toLowerCase().includes(term);
+        const creatorMatch = (i.creator_name || i.creator?.name || '').toLowerCase().includes(term);
+        const phoneMatch = (i.creator?.phone || '').includes(term);
+        const tagMatch = (i.hashtags || []).some((h) => h.toLowerCase().includes(term));
+        return captionMatch || creatorMatch || phoneMatch || tagMatch;
+      });
     }
 
-    return true;
-  });
+    // Sorting
+    result.sort((a, b) => {
+      if (sortBy === 'newest') return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      if (sortBy === 'oldest') return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      if (sortBy === 'views') return (b.views || 0) - (a.views || 0);
+      if (sortBy === 'likes') return (b.likesCount || 0) - (a.likesCount || 0);
+      if (sortBy === 'comments') return (b.commentsCount || 0) - (a.commentsCount || 0);
+      return 0;
+    });
 
-  const handleTakedown = async (id) => {
-    const isLive = activeTab === 'live';
-    const confirmMsg = isLive ? 'End this live broadcast stream?' : 'Delete/takedown this reel?';
+    return result;
+  }, [rawItems, activeTab, postTypeFilter, search, sortBy]);
+
+  // Selection handlers
+  const handleToggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (selectedIds.length === processedItems.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(processedItems.map((i) => i.id || i._id));
+    }
+  };
+
+  // Actions
+  const handleToggleBoost = async (reel) => {
+    const id = reel.id || reel._id;
+    try {
+      const res = await toggleBoost(id).unwrap();
+      toast.success(res.isBoosted ? 'Reel boosted for discovery' : 'Reel boost removed');
+    } catch (err) {
+      toast.error(err?.data?.message || 'Failed to toggle boost');
+    }
+  };
+
+  const handleTakedown = async (reel) => {
+    const id = reel.id || reel._id;
+    const isLive = reel.isLiveStream || activeTab === 'live';
+    const confirmMsg = isLive ? 'End this live broadcast immediately?' : 'Takedown and hide this reel from feeds?';
     if (!window.confirm(confirmMsg)) return;
     try {
       await takedownReel(id).unwrap();
-      toast.success(isLive ? 'Live stream ended!' : 'Reel taken down!');
+      toast.success(isLive ? 'Live broadcast ended' : 'Reel taken down successfully');
+      setSelectedIds((prev) => prev.filter((i) => i !== id));
     } catch (err) {
-      toast.error(err?.data?.message || 'Action failed');
+      toast.error(err?.data?.message || 'Takedown failed');
     }
   };
 
-  const handleToggleBoost = async (id) => {
+  const handleRestore = async (id) => {
+    if (!window.confirm('Restore this reel back to the public catalog?')) return;
     try {
-      const res = await toggleBoost(id).unwrap();
-      toast.success(res.isBoosted ? 'Reel boosted!' : 'Boost removed');
+      await restoreReel(id).unwrap();
+      toast.success('Reel restored successfully');
+      setSelectedIds((prev) => prev.filter((i) => i !== id));
     } catch (err) {
-      toast.error(err?.data?.message || 'Action failed');
+      toast.error(err?.data?.message || 'Restore failed');
     }
   };
 
-  const columns = [
-    {
-      key: 'caption',
-      label: 'Reel Content',
-      render: (val, row) => (
-        <div className="flex items-center gap-3">
-          <div
-            onClick={() => {
-              if (row.isLiveStream) {
-                toast.error('Cannot preview active live broadcast streams');
-              } else {
-                setPlayReel(row);
-              }
-            }}
-            className="w-12 h-16 rounded-xl bg-black flex items-center justify-center text-white relative cursor-pointer group overflow-hidden border border-border flex-shrink-0"
-          >
-            {row.isLiveStream ? (
-              <div className="flex flex-col items-center justify-center gap-1 w-full h-full bg-red-500/10">
-                <FiTv className="w-5 h-5 text-red-500 animate-pulse" />
-                <span className="text-[7px] bg-red-500 text-white font-black px-1 rounded uppercase tracking-wider scale-90">Live</span>
-              </div>
-            ) : row.thumbnailUrl ? (
-              <img src={row.thumbnailUrl} alt={val} className="w-full h-full object-cover" />
-            ) : (
-              <FiFilm className="w-5 h-5 opacity-70" />
-            )}
-            {!row.isLiveStream && (
-              <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/50 transition-all">
-                <FiPlay className="w-4 h-4 text-white fill-white" />
-              </div>
-            )}
-          </div>
-          <div className="min-w-0">
-            <span className="font-bold text-text-primary block truncate max-w-[220px]">{val || 'No caption'}</span>
-            <span className="text-[10px] text-text-tertiary">by {row.creator_name || 'Creator'}</span>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'views',
-      label: 'Views / Viewers',
-      render: (val, row) => (
-        <span className="font-bold text-text-primary">
-          {val ? val.toLocaleString() : '0'}{row.isLiveStream ? ' watching' : ''}
-        </span>
-      ),
-    },
-    {
-      key: 'likesCount',
-      label: 'Likes',
-      render: (val) => <span className="text-brand-pink font-bold">♥ {val || 0}</span>,
-    },
-    {
-      key: 'isBoosted',
-      label: 'Boosted',
-      render: (val, row) => (
-        <span className={`text-xs font-bold ${val ? 'text-amber-500' : 'text-text-tertiary'}`}>
-          {row.isLiveStream ? 'N/A' : (val ? '⚡ Boosted' : 'No')}
-        </span>
-      ),
-    },
-    {
-      key: 'createdAt',
-      label: 'Uploaded / Started',
-      render: (val) => <span className="text-text-tertiary">{val ? new Date(val).toLocaleDateString() : '—'}</span>,
-    },
-  ];
+  const handleModerateSubmit = async (id, payload) => {
+    try {
+      await moderateReel({ id, ...payload }).unwrap();
+      toast.success(payload.status === 'rejected' ? 'Reel rejected & taken down' : 'Reel approved successfully');
+      setModerateReelItem(null);
+      if (previewReel && (previewReel.id === id || previewReel._id === id)) {
+        setPreviewReel(null);
+      }
+    } catch (err) {
+      toast.error(err?.data?.message || 'Moderation action failed');
+    }
+  };
+
+  const handleBatchAction = async (action) => {
+    if (!selectedIds.length) return;
+    const actionLabel = action.replace('bulk_', '');
+    if (!window.confirm(`Apply ${actionLabel} to ${selectedIds.length} selected reels?`)) return;
+    try {
+      const res = await bulkActionReels({ reelIds: selectedIds, action }).unwrap();
+      toast.success(res.message || `Batch ${actionLabel} applied`);
+      setSelectedIds([]);
+    } catch (err) {
+      toast.error(err?.data?.message || 'Bulk action failed');
+    }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto flex flex-col gap-5 pb-16 animate-in fade-in duration-150">
+      {/* Page Header */}
       <AdminPageHeader
         icon={FiFilm}
-        title="Reel Management"
-        subtitle="Moderate reels, view video previews, manage boosted and trending content"
+        title="Reels & Video Catalog"
+        subtitle="Comprehensive video catalog governance, e-commerce tagging, automated AI audits, and manual moderation."
       />
 
-      <AdminTabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
-
-      <AdminDataTable
-        columns={columns}
-        data={filteredItems}
-        loading={isFetching}
-        searchPlaceholder="Search reels by caption or creator..."
-        searchValue={search}
-        onSearch={setSearch}
-        emptyMessage="No reels found in this view."
-        testId="reels-table"
-        actions={(row) => (
-          <>
-            {!row.isLiveStream && (
-              <button
-                onClick={() => setPlayReel(row)}
-                className="p-1.5 rounded-lg hover:bg-brand-purple/10 text-text-tertiary hover:text-brand-purple transition-all"
-                title="Play Video"
-              >
-                <FiPlay className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {!row.isLiveStream && (
-              <button
-                onClick={() => handleToggleBoost(row.id)}
-                className={`p-1.5 rounded-lg transition-all ${row.isBoosted ? 'bg-amber-500/10 text-amber-500' : 'hover:bg-amber-500/10 text-text-tertiary hover:text-amber-500'}`}
-                title={row.isBoosted ? 'Remove Boost' : 'Boost Reel'}
-              >
-                <FiZap className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {!row.isDeleted && (
-              <button
-                onClick={() => handleTakedown(row.id)}
-                className="p-1.5 rounded-lg hover:bg-red-500/10 text-text-tertiary hover:text-red-500 transition-all"
-                title={row.isLiveStream ? "End Live Stream" : "Delete Reel"}
-              >
-                <FiTrash2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </>
-        )}
+      {/* KPI Bento Grid Banner */}
+      <ReelKpiBanner
+        stats={stats}
+        isFetching={isFetchingStats}
+        activeTab={activeTab}
+        onSelectTab={(tabKey) => {
+          setActiveTab(tabKey);
+          setSelectedIds([]);
+        }}
       />
 
-      {/* Video Player Preview Modal */}
-      <AdminModal isOpen={!!playReel} onClose={() => setPlayReel(null)} title="Reel Preview" maxWidth="max-w-md">
-        {playReel && (
-          <div className="space-y-4">
-            <div className="aspect-[9/16] bg-black rounded-2xl overflow-hidden relative border border-border flex items-center justify-center">
-              {playReel.videoUrl ? (
-                <video src={playReel.videoUrl} controls autoPlay className="w-full h-full object-cover" />
-              ) : (
-                <div className="text-white text-xs text-center p-4">Video URL missing or invalid format</div>
-              )}
-            </div>
-            <div className="bg-[#f8f4ec] p-3.5 rounded-2xl border border-[#e3dccb] text-xs space-y-1 shadow-2xs">
-              <span className="font-bold text-[#1a1a1a] block">{playReel.caption || 'No caption'}</span>
-              <span className="text-slate-400 block font-medium">Creator: <strong className="text-[#1a1a1a]">{playReel.creator_name}</strong></span>
-            </div>
-          </div>
-        )}
-      </AdminModal>
+      {/* Navigation Tab Bar */}
+      <AdminTabBar
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(key) => {
+          setActiveTab(key);
+          setSelectedIds([]);
+        }}
+      />
+
+      {/* Filter, Search & Export Bar */}
+      <ReelFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        postTypeFilter={postTypeFilter}
+        onPostTypeChange={setPostTypeFilter}
+        sortBy={sortBy}
+        onSortByChange={setSortBy}
+        totalCount={rawItems.length}
+        filteredCount={processedItems.length}
+        onRefresh={() => {
+          refetchList();
+          refetchStats();
+        }}
+        isFetching={isFetchingList}
+        allItems={processedItems}
+      />
+
+      {/* Reels Catalog Data Table */}
+      <ReelTable
+        items={processedItems}
+        isFetching={isFetchingList}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onToggleSelectAll={handleToggleSelectAll}
+        onPreview={setPreviewReel}
+        onModerate={setModerateReelItem}
+        onToggleBoost={handleToggleBoost}
+        onTakedown={handleTakedown}
+        onRestore={handleRestore}
+        activeTab={activeTab}
+      />
+
+      {/* Floating Batch Operations Bar */}
+      <ReelBatchActionBar
+        selectedIds={selectedIds}
+        onClearSelection={() => setSelectedIds([])}
+        onBatchAction={handleBatchAction}
+        isLoading={isBulkActioning}
+      />
+
+      {/* Split Video Player & Telemetry Preview Modal */}
+      {previewReel && (
+        <ReelPreviewModal
+          reel={previewReel}
+          onClose={() => setPreviewReel(null)}
+          onToggleBoost={handleToggleBoost}
+          onModerate={(reel) => {
+            setModerateReelItem(reel);
+          }}
+          onTakedown={handleTakedown}
+          onRestore={handleRestore}
+        />
+      )}
+
+      {/* Moderation Review & Policy Enforcement Modal */}
+      {moderateReelItem && (
+        <ReelModerateModal
+          reel={moderateReelItem}
+          onClose={() => setModerateReelItem(null)}
+          onSubmit={handleModerateSubmit}
+          isLoading={isModerating}
+        />
+      )}
     </div>
   );
 }

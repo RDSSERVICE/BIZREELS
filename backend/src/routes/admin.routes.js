@@ -5,6 +5,7 @@ const adminPhoneService = require('../services/admin-phone.service');
 const nudgeService = require('../services/nudge.service');
 const settingsService = require('../services/settings.service');
 const commissionService = require('../services/commission.service');
+const { adminReelService } = require('../services/reel');
 const { PaymentTransaction, WalletTransaction } = require('../models/Phase4');
 const Deal = require('../models/Deal');
 const { AuditLog } = require('../models/Misc');
@@ -510,103 +511,40 @@ router.post('/listings/:listing_id/restore', requireAuth, requireAdmin, catchAsy
 }));
 
 // ============================================================ REELS OPERATIONS
+router.get('/reels/stats', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const stats = await adminReelService.getAdminReelStats();
+  res.json(stats);
+}));
+
 router.get('/reels', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { status, is_boosted, is_trending, is_reported, is_deleted, is_live } = req.query;
-
-  if (is_live === 'true') {
-    const LiveStream = require('../models/LiveStream');
-    const liveStreams = await LiveStream.find({ status: 'live' })
-      .populate('host', 'name phone')
-      .sort({ createdAt: -1 });
-
-    return res.json({
-      items: liveStreams.map(l => ({
-        id: l._id.toString(),
-        caption: l.title || 'Live Broadcast',
-        videoUrl: null,
-        thumbnailUrl: null,
-        creator_name: l.host?.name || 'Unknown',
-        views: l.viewersCount || 0,
-        likesCount: l.likesCount || 0,
-        commentsCount: 0,
-        isBoosted: false,
-        isDeleted: false,
-        isLiveStream: true,
-        createdAt: l.createdAt,
-      })),
-    });
-  }
-
-  const Reel = require('../models/Reel');
-  const q = {};
-
-  let query = Reel.find(q);
-
-  if (is_deleted === 'true') {
-    query = query.setOptions({ includeSoftDeleted: true }).where({ isDeleted: true });
-  }
-
-  if (is_boosted === 'true') {
-    query = query.where({ isBoosted: true });
-  }
-
-  if (is_trending === 'true') {
-    query = query.where('views').gt(10);
-  }
-
-  if (is_reported === 'true') {
-    query = query.where({
-      $or: [
-        { 'aiModeration.passed': false },
-        { 'adminReview.status': 'pending' }
-      ]
-    });
-  }
-
-  const reels = await query.populate('creator', 'name phone').sort({ createdAt: -1 }).limit(50);
-
-  res.json({
-    items: reels.map(r => ({
-      id: r._id.toString(),
-      caption: r.caption,
-      videoUrl: r.videoUrl,
-      thumbnailUrl: r.thumbnailUrl,
-      creator_name: r.creator?.name || 'Unknown',
-      views: r.views || 0,
-      likesCount: r.likesCount || 0,
-      commentsCount: r.commentsCount || 0,
-      isBoosted: r.isBoosted || false,
-      isDeleted: r.isDeleted || false,
-      createdAt: r.createdAt,
-    })),
-  });
+  const result = await adminReelService.listAdminReels(req.query);
+  res.json(result);
 }));
 
 router.post('/reels/:reel_id/takedown', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const Reel = require('../models/Reel');
-  const LiveStream = require('../models/LiveStream');
+  const result = await adminReelService.takedownReel(req.params.reel_id, req.body.reason, req.user);
+  res.json(result);
+}));
 
-  const reelResult = await Reel.updateOne(
-    { _id: req.params.reel_id },
-    { $set: { isDeleted: true, deletedAt: new Date() } }
-  ).setOptions({ includeSoftDeleted: true });
+router.post('/reels/:reel_id/restore', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminReelService.restoreReel(req.params.reel_id, req.user);
+  res.json(result);
+}));
 
-  if (reelResult.matchedCount === 0) {
-    await LiveStream.updateOne(
-      { _id: req.params.reel_id },
-      { $set: { status: 'ended' } }
-    );
-  }
-
-  res.json({ ok: true });
+router.post('/reels/:reel_id/moderate', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminReelService.moderateReel(req.params.reel_id, req.body, req.user);
+  res.json(result);
 }));
 
 router.post('/reels/:reel_id/boost', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const Reel = require('../models/Reel');
-  const r = await Reel.findById(req.params.reel_id);
-  if (!r) throw ApiError.notFound('Reel not found');
-  await Reel.updateOne({ _id: req.params.reel_id }, { $set: { isBoosted: !r.isBoosted } });
-  res.json({ ok: true, isBoosted: !r.isBoosted });
+  const result = await adminReelService.toggleBoostReel(req.params.reel_id, req.user);
+  res.json(result);
+}));
+
+router.post('/reels/bulk-action', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { reelIds, action } = req.body;
+  const result = await adminReelService.bulkUpdateReels(reelIds, action, req.user);
+  res.json(result);
 }));
 
 // ============================================================ BOOST PLANS

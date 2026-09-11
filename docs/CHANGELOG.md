@@ -4,6 +4,30 @@ All notable changes to the BizReels local social commerce platform will be docum
 
 ---
 
+## [1.4.0] - 2026-09-11
+
+### Added
+* **Production-Grade Admin Reels Governance & Modular Architecture**:
+  * **Modular Reel Subservice Layer (`backend/src/services/reel/`)**:
+    * Implemented `admin.reel.service.js` encapsulating live telemetric aggregations, multi-criteria server-side query filters, soft takedowns, restores, boost management, and atomic bulk operations.
+    * Added clean facade pattern (`backend/src/services/reel/index.js`) and refactored `admin.routes.js` to eliminate inline queries and delegate cleanly to the service layer.
+    * Integrated formal `AuditLog` persistence and real-time WebSocket event broadcasts (`reel:takedown`, `reel:restored`, `reel:boosted`, `admin:update`).
+  * **New Administrative Reels API Endpoints**:
+    * `GET /admin/reels/stats`: Live platform aggregation returning total catalog count, trending count, views, likes, comments, boosted reels, and review queue depth.
+    * `GET /admin/reels`: Multi-criteria catalog query supporting server-side regex search, postType filters, and creator/listing population.
+    * `POST /admin/reels/:id/takedown` & `POST /admin/reels/:id/restore`: Soft deletion and instant restoration with audit logging.
+    * `POST /admin/reels/:id/moderate`: Policy moderation review recording formal approval/rejection with preset violation categories.
+    * `POST /admin/reels/:id/boost`: Discovery boost toggle with 7-day expiration handling.
+    * `POST /admin/reels/bulk-action`: Atomic batch execution for bulk takedown, bulk restore, bulk boost, and bulk approve.
+  * **Modular Frontend Component Hierarchy (`frontend/src/pages/admin/reels/components/`)**:
+    * Refactored monolithic page into focused subcomponents: `ReelKpiBanner`, `ReelFilterBar`, `ReelBatchActionBar`, `ReelTable`, `ReelPreviewModal`, `ReelModerateModal`, and `reelUtils.js`.
+    * Main `AdminReelsPage.jsx` maintained as a clean, declarative orchestrator under 200 lines.
+    * Integrated real-time count badges into `AdminTabBar` reflecting live database stats without polling.
+  * **Strict Warm Bento-Brutalism Theme Alignment**:
+    * Completely eradicated legacy cool purple, blue, and pink styling in favor of the website design tokens (`#fbf9f4`, `#f8f4ec`, `#e3dccb`, `#1a1a1a`, `#d99a3d`, `Archivo Black` / `Outfit` typography).
+
+---
+
 ## [1.3.0] - 2026-09-07
 
 ### Added

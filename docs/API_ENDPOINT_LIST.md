@@ -123,3 +123,17 @@
 | `GET` | `/feed/` | Public / Auth | Geo-proximity blended feed of listings and video reels |
 | `GET` | `/feed/reels` | Public / Auth | 5-Tier personalized video recommendation feed |
 | `GET` | `/feed/home-trending` | Public | High-performance cached trending products and featured cards |
+
+---
+
+## 12. Admin Video Reels & Moderation (`/admin/reels`)
+
+| Method | Endpoint | Authorization | Description |
+|---|---|---|---|
+| `GET` | `/admin/reels/stats` | Admin | Live platform aggregation (total, views, likes, comments, boosted, review queue) |
+| `GET` | `/admin/reels` | Admin | Filtered & paginated catalog (`status`, `postType`, `is_boosted`, `is_reported`, `is_deleted`, `q`) |
+| `POST` | `/admin/reels/:id/takedown` | Admin | Soft takedown reel or end live stream with audit log |
+| `POST` | `/admin/reels/:id/restore` | Admin | Restore soft-deleted reel back to feed |
+| `POST` | `/admin/reels/:id/moderate` | Admin | Content safety audit (`status: 'approved'|'rejected'`, violation reasons, comments) |
+| `POST` | `/admin/reels/:id/boost` | Admin | Toggle administrative discovery boost |
+| `POST` | `/admin/reels/bulk-action` | Admin | Batch actions (`bulk_takedown`, `bulk_restore`, `bulk_boost`, `bulk_approve`) |

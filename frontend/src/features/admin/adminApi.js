@@ -171,16 +171,40 @@ const adminApi = apiSlice.injectEndpoints({
     }),
 
     // ---- Reels ----
+    getAdminReelStats: builder.query({
+      query: () => '/admin/reels/stats',
+      providesTags: ['Reels'],
+    }),
     listAdminReels: builder.query({
       query: (params = {}) => ({ url: '/admin/reels', params }),
       providesTags: ['Reels'],
     }),
     takedownReel: builder.mutation({
-      query: (id) => ({ url: `/admin/reels/${id}/takedown`, method: 'POST' }),
+      query: (arg) => {
+        const id = typeof arg === 'string' ? arg : arg?.id;
+        const reason = typeof arg === 'object' ? arg?.reason : undefined;
+        return {
+          url: `/admin/reels/${id}/takedown`,
+          method: 'POST',
+          body: { reason },
+        };
+      },
+      invalidatesTags: ['Reels', 'AdminOverview'],
+    }),
+    restoreReel: builder.mutation({
+      query: (id) => ({ url: `/admin/reels/${id}/restore`, method: 'POST' }),
+      invalidatesTags: ['Reels', 'AdminOverview'],
+    }),
+    moderateReel: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/admin/reels/${id}/moderate`, method: 'POST', body }),
       invalidatesTags: ['Reels', 'AdminOverview'],
     }),
     toggleBoostReel: builder.mutation({
       query: (id) => ({ url: `/admin/reels/${id}/boost`, method: 'POST' }),
+      invalidatesTags: ['Reels', 'AdminOverview'],
+    }),
+    bulkActionReels: builder.mutation({
+      query: (body) => ({ url: '/admin/reels/bulk-action', method: 'POST', body }),
       invalidatesTags: ['Reels', 'AdminOverview'],
     }),
 
@@ -658,9 +682,13 @@ export const {
   useTakedownListingMutation,
   useRestoreListingMutation,
   useBulkApproveListingsMutation,
+  useGetAdminReelStatsQuery,
   useListAdminReelsQuery,
   useTakedownReelMutation,
+  useRestoreReelMutation,
+  useModerateReelMutation,
   useToggleBoostReelMutation,
+  useBulkActionReelsMutation,
   useListBoostPlansQuery,
   useCreateBoostPlanMutation,
   useUpdateBoostPlanMutation,
