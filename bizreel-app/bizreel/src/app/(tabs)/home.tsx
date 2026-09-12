@@ -666,38 +666,40 @@ export default function HomeScreen() {
                             )}
                           </View>
 
-                          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                            <TouchableOpacity
-                              style={styles.chatSmallBtn}
-                              onPress={() => {
-                                const recipientId = item.vendor?._id || item.vendor?.id || item.vendor_id || item.user_id;
-                                const vendorName = item.vendor?.businessName || item.vendor?.name || 'Seller';
-                                if (!recipientId) {
-                                  Alert.alert('Seller Info', 'Seller details not available for this item.');
-                                  return;
-                                }
-                                router.push({
-                                  pathname: '/messages/[id]' as any,
-                                  params: {
-                                    id: `direct_${recipientId}`,
-                                    recipientId,
-                                    name: vendorName,
-                                    avatar: item.vendor?.avatarUrl || '',
-                                  },
-                                } as any);
-                              }}>
-                              <Ionicons name="chatbubble-ellipses-outline" size={14} color={YELLOW} />
-                            </TouchableOpacity>
+                          {!isVendor && !isCreator && (
+                            <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                              <TouchableOpacity
+                                style={styles.chatSmallBtn}
+                                onPress={() => {
+                                  const recipientId = item.vendor?._id || item.vendor?.id || item.vendor_id || item.user_id;
+                                  const vendorName = item.vendor?.businessName || item.vendor?.name || 'Seller';
+                                  if (!recipientId) {
+                                    Alert.alert('Seller Info', 'Seller details not available for this item.');
+                                    return;
+                                  }
+                                  router.push({
+                                    pathname: '/messages/[id]' as any,
+                                    params: {
+                                      id: `direct_${recipientId}`,
+                                      recipientId,
+                                      name: vendorName,
+                                      avatar: item.vendor?.avatarUrl || '',
+                                    },
+                                  } as any);
+                                }}>
+                                <Ionicons name="chatbubble-ellipses-outline" size={14} color={YELLOW} />
+                              </TouchableOpacity>
 
-                            <TouchableOpacity
-                              style={styles.addCartBtn}
-                              onPress={() =>
-                                addToCartMutation.mutate({ listing_id: item._id || item.id, quantity: 1 })
-                              }
-                              disabled={addToCartMutation.isPending}>
-                              <Ionicons name="add" size={18} color={BLACK} />
-                            </TouchableOpacity>
-                          </View>
+                              <TouchableOpacity
+                                style={styles.addCartBtn}
+                                onPress={() =>
+                                  addToCartMutation.mutate({ listing_id: item._id || item.id, quantity: 1 })
+                                }
+                                disabled={addToCartMutation.isPending}>
+                                <Ionicons name="add" size={18} color={BLACK} />
+                              </TouchableOpacity>
+                            </View>
+                          )}
                         </View>
                       </View>
                     </TouchableOpacity>

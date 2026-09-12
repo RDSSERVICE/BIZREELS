@@ -148,6 +148,20 @@ export default function ListingDetailsScreen() {
   const vendorPhone = vendorObj.phone || vendorObj.whatsapp || vendorObj.vendorProfile?.whatsapp || vendorObj.vendorProfile?.phone || '';
   const isService = listing.type === 'service';
 
+  const currentUserId = user?._id || (user as any)?.id;
+  const isVendorRole = Boolean(
+    (user as any)?.activeRole === 'vendor' ||
+      (user as any)?.role === 'vendor' ||
+      (user as any)?.current_role === 'vendor' ||
+      (user as any)?.activeRole === 'creator'
+  );
+  const isOwner = Boolean(
+    currentUserId &&
+      (currentUserId.toString() === vendorId?.toString() ||
+        (vendorObj && (vendorObj._id?.toString() === currentUserId.toString() || vendorObj.id?.toString() === currentUserId.toString())))
+  );
+  const hideCustomerActions = isOwner || isVendorRole;
+
   const priceCandidates = [
     listing.sellingPrice,
     listing.salePrice,
@@ -314,15 +328,19 @@ export default function ListingDetailsScreen() {
           {listing.title}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <TouchableOpacity style={styles.iconBtn} onPress={handleToggleSave}>
-            <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={20} color={YELLOW} />
-          </TouchableOpacity>
+          {!hideCustomerActions && (
+            <TouchableOpacity style={styles.iconBtn} onPress={handleToggleSave}>
+              <Ionicons name={isSaved ? 'bookmark' : 'bookmark-outline'} size={20} color={YELLOW} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
             <Ionicons name="share-social-outline" size={20} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/cart')}>
-            <Ionicons name="cart-outline" size={20} color="#fff" />
-          </TouchableOpacity>
+          {!hideCustomerActions && (
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/cart')}>
+              <Ionicons name="cart-outline" size={20} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -367,22 +385,24 @@ export default function ListingDetailsScreen() {
           )}
 
           {/* Quick Action Contact Pills Strip */}
-          <View style={styles.actionPillsStrip}>
-            <TouchableOpacity style={styles.actionPillWhatsApp} onPress={handleWhatsApp}>
-              <Ionicons name="logo-whatsapp" size={16} color="#fff" />
-              <Text style={styles.actionPillTextWhite}>WhatsApp</Text>
-            </TouchableOpacity>
+          {!hideCustomerActions && (
+            <View style={styles.actionPillsStrip}>
+              <TouchableOpacity style={styles.actionPillWhatsApp} onPress={handleWhatsApp}>
+                <Ionicons name="logo-whatsapp" size={16} color="#fff" />
+                <Text style={styles.actionPillTextWhite}>WhatsApp</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionPillCall} onPress={handleCall}>
-              <Ionicons name="call" size={16} color={BLACK} />
-              <Text style={styles.actionPillTextBlack}>Call Seller</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.actionPillCall} onPress={handleCall}>
+                <Ionicons name="call" size={16} color={BLACK} />
+                <Text style={styles.actionPillTextBlack}>Call Seller</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionPillInquire} onPress={() => setInquiryModalVisible(true)}>
-              <Ionicons name="chatbubble-ellipses" size={16} color={YELLOW} />
-              <Text style={styles.actionPillTextYellow}>Inquire</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity style={styles.actionPillInquire} onPress={() => setInquiryModalVisible(true)}>
+                <Ionicons name="chatbubble-ellipses" size={16} color={YELLOW} />
+                <Text style={styles.actionPillTextYellow}>Inquire</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Clickable Vendor Store Card */}
           {vendorObj && (
