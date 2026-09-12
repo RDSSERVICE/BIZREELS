@@ -42,10 +42,15 @@ module.exports = {
   deleteCreator: creatorService.deleteCreator,
 
   // Listing Moderation & Test Data
+  getListingStats: listingService.getAdminListingStats,
+  getAdminListingStats: listingService.getAdminListingStats,
   listListings: listingService.listListingsAdmin,
   listListingsAdmin: listingService.listListingsAdmin,
   takedownListing: listingService.takedownListing,
   restoreListing: listingService.restoreListing,
+  moderateListing: listingService.moderateListing,
+  toggleBoostListing: listingService.toggleBoostListing,
+  bulkUpdateListings: listingService.bulkUpdateListings,
   purgeTestData: listingService.purgeTestData,
 
   // Platform Analytics & Metrics

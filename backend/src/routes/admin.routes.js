@@ -481,12 +481,13 @@ router.get('/users/:user_id/login-history', requireAuth, requireAdmin, catchAsyn
 }));
 
 // ============================================================ LISTINGS OPERATIONS
-router.get('/listings', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const { status, flagged, cursor } = req.query;
-  const isFlagged = flagged !== undefined ? flagged === 'true' : null;
-  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit || 30, 10)));
+router.get('/listings/stats', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const stats = await adminService.getListingStats();
+  res.json(stats);
+}));
 
-  const result = await adminService.listListings(status || null, isFlagged, cursor || null, limit);
+router.get('/listings', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.listListings(req.query);
   res.json(result);
 }));
 
@@ -495,18 +496,34 @@ router.post('/listings/bulk-approve', requireAuth, requireAdmin, catchAsync(asyn
   if (!Array.isArray(listing_ids) || listing_ids.length === 0) {
     throw ApiError.badRequest('listing_ids array required');
   }
-  const Listing = require('../models/Listing');
-  await Listing.updateMany({ _id: { $in: listing_ids } }, { $set: { status: 'active', is_takendown: false } });
-  res.json({ ok: true, count: listing_ids.length });
+  const result = await adminService.bulkUpdateListings(listing_ids, 'bulk_approve', {}, req.user);
+  res.json(result);
+}));
+
+router.post('/listings/bulk-action', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { listing_ids, action, payload } = req.body;
+  const result = await adminService.bulkUpdateListings(listing_ids, action, payload || {}, req.user);
+  res.json(result);
 }));
 
 router.post('/listings/:listing_id/takedown', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const result = await adminService.takedownListing(req.params.listing_id);
+  const { reason, comments } = req.body || {};
+  const result = await adminService.takedownListing(req.params.listing_id, reason || 'Policy Violation', req.user, comments || '');
   res.json(result);
 }));
 
 router.post('/listings/:listing_id/restore', requireAuth, requireAdmin, catchAsync(async (req, res) => {
-  const result = await adminService.restoreListing(req.params.listing_id);
+  const result = await adminService.restoreListing(req.params.listing_id, req.user);
+  res.json(result);
+}));
+
+router.post('/listings/:listing_id/moderate', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.moderateListing(req.params.listing_id, req.body || {}, req.user);
+  res.json(result);
+}));
+
+router.post('/listings/:listing_id/boost', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const result = await adminService.toggleBoostListing(req.params.listing_id, req.user);
   res.json(result);
 }));
 

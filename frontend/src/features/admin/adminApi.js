@@ -147,6 +147,10 @@ const adminApi = apiSlice.injectEndpoints({
 
 
     // ---- Listings ----
+    getAdminListingStats: builder.query({
+      query: () => '/admin/listings/stats',
+      providesTags: ['AdminListingsStats'],
+    }),
     listAdminListings: builder.query({
       query: (params = {}) => ({ url: '/admin/listings', params }),
       providesTags: (result) =>
@@ -158,16 +162,36 @@ const adminApi = apiSlice.injectEndpoints({
           : [{ type: 'AdminListings', id: 'LIST' }],
     }),
     takedownListing: builder.mutation({
-      query: (id) => ({ url: `/admin/listings/${id}/takedown`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminOverview'],
+      query: (arg) => {
+        const id = typeof arg === 'string' ? arg : arg?.id;
+        const body = typeof arg === 'object' ? { reason: arg?.reason, comments: arg?.comments } : {};
+        return { url: `/admin/listings/${id}/takedown`, method: 'POST', body };
+      },
+      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminListingsStats', 'AdminOverview'],
     }),
     restoreListing: builder.mutation({
       query: (id) => ({ url: `/admin/listings/${id}/restore`, method: 'POST' }),
-      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }],
+      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminListingsStats', 'AdminOverview'],
+    }),
+    moderateListing: builder.mutation({
+      query: ({ id, ...body }) => ({ url: `/admin/listings/${id}/moderate`, method: 'POST', body }),
+      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminListingsStats', 'AdminOverview'],
+    }),
+    toggleBoostListing: builder.mutation({
+      query: (id) => ({ url: `/admin/listings/${id}/boost`, method: 'POST' }),
+      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminListingsStats'],
     }),
     bulkApproveListings: builder.mutation({
       query: (listing_ids) => ({ url: '/admin/listings/bulk-approve', method: 'POST', body: { listing_ids } }),
-      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminOverview'],
+      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminListingsStats', 'AdminOverview'],
+    }),
+    bulkActionListings: builder.mutation({
+      query: ({ listing_ids, action, payload }) => ({
+        url: '/admin/listings/bulk-action',
+        method: 'POST',
+        body: { listing_ids, action, payload },
+      }),
+      invalidatesTags: [{ type: 'AdminListings', id: 'LIST' }, 'AdminListingsStats', 'AdminOverview'],
     }),
 
     // ---- Reels ----
@@ -678,10 +702,14 @@ export const {
   useAddUserRoleMutation,
   useRemoveUserRoleMutation,
   useGetLoginHistoryQuery,
+  useGetAdminListingStatsQuery,
   useListAdminListingsQuery,
   useTakedownListingMutation,
   useRestoreListingMutation,
+  useModerateListingMutation,
+  useToggleBoostListingMutation,
   useBulkApproveListingsMutation,
+  useBulkActionListingsMutation,
   useGetAdminReelStatsQuery,
   useListAdminReelsQuery,
   useTakedownReelMutation,
