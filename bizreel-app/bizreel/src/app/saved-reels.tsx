@@ -47,11 +47,18 @@ export default function SavedReelsScreen() {
     setLoading(true);
     try {
       if (activeTab === 'reels') {
-        const { data } = await api.get('/reels/saved');
-        const list = data?.data?.reels || data?.reels || data?.data || [];
+        const res = await api
+          .get('/reels/saved')
+          .catch(() => api.get('/users/me/saved-reels'))
+          .catch(() => api.get('/users/me/activities?type=saved-reels'));
+        const data = res?.data;
+        const list = data?.data?.reels || data?.data || data?.reels || data?.items || [];
         setSavedReels(Array.isArray(list) ? list : []);
       } else {
-        const { data } = await api.get('/users/me/saved');
+        const res = await api
+          .get('/users/me/saved')
+          .catch(() => api.get('/users/me/activities?type=saved-products'));
+        const data = res?.data;
         const list = data?.data || data?.savedListings || data?.saved_items || data || [];
         setSavedListings(Array.isArray(list) ? list : []);
       }

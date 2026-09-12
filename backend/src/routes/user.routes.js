@@ -610,25 +610,26 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
     }
   }
 
-  // Calculate saved reels count reliably from both User profile and Interaction collection
-  const userDoc = await User.findById(uid).select('customerProfile.savedReels').lean().catch(() => null);
-  const profileSavedReelIds = (userDoc?.customerProfile?.savedReels || []).map((id) => id.toString());
+  // Calculate saved reels count reliably from both User profile and Interaction collection across Reel and Listing models
+  const userDoc = await User.findById(uid).select('customerProfile.savedReels customerProfile.savedListings').lean().catch(() => null);
+  const profileSavedReels = (userDoc?.customerProfile?.savedReels || []).map((id) => id?.toString()).filter(Boolean);
+  const profileSavedListings = (userDoc?.customerProfile?.savedListings || []).map((id) => id?.toString()).filter(Boolean);
 
   const reelInteractions = await Interaction.find({
-    $or: [{ user_id: uid, type: 'save_reel' }, { user_id: req.user._id, type: 'save_reel' }],
-    reel_id: { $ne: null }
-  }).select('reel_id').lean().catch(() => []);
+    $or: [{ user_id: uid }, { user_id: req.user._id }],
+    type: { $in: ['save_reel', 'save', 'save_image'] }
+  }).select('reel_id listing_id').lean().catch(() => []);
 
-  const interactionReelIds = reelInteractions.map((i) => i.reel_id?.toString()).filter(Boolean);
-  const combinedReelIdsForCount = Array.from(new Set([...profileSavedReelIds, ...interactionReelIds].filter(Boolean)));
+  const interactionIds = reelInteractions.flatMap((i) => [i.reel_id?.toString(), i.listing_id?.toString()]).filter(Boolean);
+  const combinedReelIdsForCount = Array.from(new Set([...profileSavedReels, ...profileSavedListings, ...interactionIds].filter(Boolean)));
+  const candidateObjectIdsForCount = combinedReelIdsForCount
+    .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    .map((id) => new mongoose.Types.ObjectId(id));
 
   const ReelModel = require('../models/Reel');
-  const savedReels = combinedReelIdsForCount.length > 0
-    ? await ReelModel.countDocuments({
-        _id: { $in: combinedReelIdsForCount },
-        is_deleted: { $ne: true },
-        isDeleted: { $ne: true }
-      }).catch(() => 0)
+  const savedReels = candidateObjectIdsForCount.length > 0
+    ? (await ReelModel.countDocuments({ _id: { $in: candidateObjectIdsForCount }, is_deleted: { $ne: true }, isDeleted: { $ne: true } }).catch(() => 0)) +
+      (await Listing.countDocuments({ _id: { $in: candidateObjectIdsForCount }, is_deleted: { $ne: true }, isDeleted: { $ne: true }, $or: [{ type: 'reel' }, { postType: 'reel' }, { videoUrl: { $exists: true, $ne: '' } }, { video_url: { $exists: true, $ne: '' } }] }).catch(() => 0))
     : 0;
 
   const savedImages = counts.save_image;
@@ -711,45 +712,95 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
     results = listings.map(l => ({ ...l, id: l._id.toString() }));
   } 
   else if (type === 'saved-reels') {
+    const userDoc = await User.findById(uid)
+      .select('customerProfile.savedReels customerProfile.savedListings')
+      .lean();
+
+    const profileSavedReels = (userDoc?.customerProfile?.savedReels || []).map((id) => id?.toString()).filter(Boolean);
+    const profileSavedListings = (userDoc?.customerProfile?.savedListings || []).map((id) => id?.toString()).filter(Boolean);
+
     const inters = await Interaction.find({
       $or: [{ user_id: uid }, { user_id: req.user._id }],
-      type: 'save_reel',
-      reel_id: { $ne: null }
-    }).select('reel_id');
-    const interReelIds = inters.map(i => i.reel_id?.toString());
+      type: { $in: ['save_reel', 'save', 'save_image'] }
+    }).select('reel_id listing_id').lean();
 
-    const userDoc = await User.findById(uid).select('customerProfile.savedReels').lean();
-    const userProfileReelIds = (userDoc?.customerProfile?.savedReels || []).map(id => id.toString());
-    const combinedReelIds = [...new Set([...interReelIds, ...userProfileReelIds].filter(Boolean))];
+    const interactionIds = inters
+      .flatMap((i) => [i.reel_id?.toString(), i.listing_id?.toString()])
+      .filter(Boolean);
 
-    const query = {
-      _id: { $in: combinedReelIds },
-      is_deleted: { $ne: true },
-      isDeleted: { $ne: true }
-    };
-    if (search) {
-      query.caption = { $regex: new RegExp(search, 'i') };
+    const allCandidateIds = Array.from(new Set([
+      ...profileSavedReels,
+      ...profileSavedListings,
+      ...interactionIds
+    ]));
+
+    const candidateObjectIds = allCandidateIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    if (candidateObjectIds.length === 0) {
+      results = [];
+      total = 0;
+    } else {
+      const [reelDocs, listingReelDocs] = await Promise.all([
+        Reel.find({
+          _id: { $in: candidateObjectIds },
+          is_deleted: { $ne: true },
+          isDeleted: { $ne: true }
+        })
+          .populate('creator user_id vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+          .populate('targetListing')
+          .sort({ createdAt: -1 })
+          .lean(),
+        Listing.find({
+          _id: { $in: candidateObjectIds },
+          is_deleted: { $ne: true },
+          isDeleted: { $ne: true },
+          $or: [
+            { type: 'reel' },
+            { postType: 'reel' },
+            { videoUrl: { $exists: true, $ne: '' } },
+            { video_url: { $exists: true, $ne: '' } }
+          ]
+        })
+          .populate('vendor user', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+          .sort({ createdAt: -1 })
+          .lean()
+      ]);
+
+      const formattedListingReels = listingReelDocs.map(l => ({
+        ...l,
+        _id: l._id,
+        id: l._id.toString(),
+        caption: l.title || l.caption || l.name,
+        videoUrl: l.videoUrl || l.video_url || l.videos?.[0] || l.mediaUrls?.[0],
+        thumbnailUrl: l.thumbnailUrl || l.thumbnail || l.images?.[0] || l.imageUrl,
+        creator: l.vendor || l.user,
+        likesCount: l.likes || l.likes_count || 0,
+        savesCount: l.saves || l.saves_count || 0,
+        viewsCount: l.views || l.views_count || 0,
+      }));
+
+      const reelMap = new Map();
+      [...reelDocs, ...formattedListingReels].forEach(r => {
+        const rid = (r._id || r.id)?.toString();
+        if (rid && !reelMap.has(rid)) {
+          reelMap.set(rid, r);
+        }
+      });
+
+      const allSavedReels = Array.from(reelMap.values());
+      total = allSavedReels.length;
+
+      const paged = allSavedReels.slice(skip, skip + limitNum);
+      results = paged.map(r => ({
+        ...r,
+        id: (r._id || r.id).toString(),
+        isSaved: true,
+        is_saved: true,
+        hasSaved: true
+      }));
     }
-
-    const [totalCount, reels] = await Promise.all([
-      Reel.countDocuments(query),
-      Reel.find(query)
-        .populate('creator user_id vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
-        .populate('targetListing')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean()
-    ]);
-    total = totalCount;
-
-    results = reels.map(r => ({
-      ...r,
-      id: r._id.toString(),
-      isSaved: true,
-      is_saved: true,
-      hasSaved: true
-    }));
   }
   else if (type === 'saved-images') {
     const inters = await Interaction.find({ user_id: uid, type: 'save_image', listing_id: { $ne: null } }).select('listing_id');

@@ -250,47 +250,104 @@ class ReelController {
   getSavedReels = asyncHandler(async (req, res) => {
     const Interaction = require('../models/Interaction');
     const Reel = require('../models/Reel');
+    const Listing = require('../models/Listing');
     const User = require('../models/User');
+    const mongoose = require('mongoose');
 
     const uidStr = req.user._id.toString();
     const uidObj = req.user._id;
 
-    const userDoc = await User.findById(uidObj).select('customerProfile.savedReels').lean();
-    const profileSavedIds = (userDoc?.customerProfile?.savedReels || []).map((id) => id.toString());
+    const userDoc = await User.findById(uidObj)
+      .select('customerProfile.savedReels customerProfile.savedListings')
+      .lean();
+
+    const profileSavedReels = (userDoc?.customerProfile?.savedReels || []).map((id) => id?.toString()).filter(Boolean);
+    const profileSavedListings = (userDoc?.customerProfile?.savedListings || []).map((id) => id?.toString()).filter(Boolean);
 
     const interactions = await Interaction.find({
       $or: [
-        { user_id: uidStr, type: 'save_reel' },
-        { user_id: uidObj, type: 'save_reel' },
-        { user_id: uidStr, type: 'save' },
-        { user_id: uidObj, type: 'save' },
+        { user_id: uidStr },
+        { user_id: uidObj },
       ],
-      reel_id: { $ne: null }
-    }).select('reel_id');
+      type: { $in: ['save_reel', 'save', 'save_image'] }
+    }).select('reel_id listing_id').lean();
 
-    const interactionReelIds = interactions.map((i) => i.reel_id?.toString()).filter(Boolean);
+    const interactionIds = interactions
+      .flatMap((i) => [i.reel_id?.toString(), i.listing_id?.toString()])
+      .filter(Boolean);
 
-    const allSavedReelIds = Array.from(new Set([...profileSavedIds, ...interactionReelIds]));
+    const allCandidateIds = Array.from(new Set([
+      ...profileSavedReels,
+      ...profileSavedListings,
+      ...interactionIds
+    ]));
 
-    const reels = await Reel.find({
-      _id: { $in: allSavedReelIds },
-      is_deleted: { $ne: true },
-      isDeleted: { $ne: true },
-    })
-      .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city category')
-      .sort({ createdAt: -1 })
-      .lean();
+    const candidateObjectIds = allCandidateIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    if (candidateObjectIds.length === 0) {
+      return ApiResponse.ok(res, 'Saved reels retrieved successfully.', { reels: [] });
+    }
+
+    const [reelDocs, listingReelDocs] = await Promise.all([
+      Reel.find({
+        _id: { $in: candidateObjectIds },
+        is_deleted: { $ne: true },
+        isDeleted: { $ne: true },
+      })
+        .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city category')
+        .sort({ createdAt: -1 })
+        .lean(),
+      Listing.find({
+        _id: { $in: candidateObjectIds },
+        is_deleted: { $ne: true },
+        isDeleted: { $ne: true },
+        $or: [
+          { type: 'reel' },
+          { postType: 'reel' },
+          { videoUrl: { $exists: true, $ne: '' } },
+          { video_url: { $exists: true, $ne: '' } }
+        ]
+      })
+        .populate('vendor user', 'name businessName phone phone_number avatarUrl city category')
+        .sort({ createdAt: -1 })
+        .lean(),
+    ]);
+
+    const formattedListingReels = listingReelDocs.map(l => ({
+      ...l,
+      _id: l._id,
+      id: l._id.toString(),
+      caption: l.title || l.caption || l.name,
+      videoUrl: l.videoUrl || l.video_url || l.videos?.[0] || l.mediaUrls?.[0],
+      thumbnailUrl: l.thumbnailUrl || l.thumbnail || l.images?.[0] || l.imageUrl,
+      creator: l.vendor || l.user,
+      likesCount: l.likes || l.likes_count || 0,
+      savesCount: l.saves || l.saves_count || 0,
+      viewsCount: l.views || l.views_count || 0,
+    }));
+
+    const reelMap = new Map();
+    [...reelDocs, ...formattedListingReels].forEach(r => {
+      const rid = (r._id || r.id)?.toString();
+      if (rid && !reelMap.has(rid)) {
+        reelMap.set(rid, r);
+      }
+    });
+
+    const allReels = Array.from(reelMap.values());
 
     const interactionService = require('../services/interaction.service');
     const followService = require('../services/follow.service');
-    const reelIds = reels.map(r => r._id?.toString() || r.id).filter(Boolean);
+    const reelIds = allReels.map(r => r._id?.toString() || r.id).filter(Boolean);
     const [state, followedIdsList] = await Promise.all([
       interactionService.userInteractionState(uidObj, reelIds).catch(() => ({})),
       followService.followingIds(uidObj).catch(() => []),
     ]);
     const followedSet = new Set((followedIdsList || []).map(id => id?.toString()).filter(Boolean));
 
-    const enrichedReels = reels.map(r => {
+    const enrichedReels = allReels.map(r => {
       const rid = r._id?.toString() || r.id;
       const s = state[rid] || { liked: false, saved: true };
       const creatorIdStr = (r.creator?._id || r.creator || r.user_id?._id || r.user_id)?.toString();
