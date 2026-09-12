@@ -181,7 +181,7 @@ export default function SavedReelsScreen() {
             return (
               <TouchableOpacity
                 style={styles.gridItem}
-                onPress={() => router.push(`/(tabs)?reelId=${id}` as any)}>
+                onPress={() => router.push({ pathname: '/(tabs)/' as any, params: { reelId: id } })}>
                 {resolvedThumb ? (
                   <Image source={{ uri: resolvedThumb }} style={styles.gridThumb} contentFit="cover" />
                 ) : (

@@ -121,9 +121,19 @@ export default function ReelsFeedScreen() {
   const prefetchNext = usePrefetchNextReelsPage();
   const reels = flattenReels(data?.pages);
 
-  // Single featured/selected reel fallback if target reel is not present in default feed page
+  // Single featured/selected reel state — used when reelId param points to a reel not in the current feed page
   const [featuredReel, setFeaturedReel] = useState<Reel | null>(null);
   const scrolledReelIdRef = useRef<string | null>(null);
+
+  // Helper to match target reelId cleanly (handles _id / id / reel_id differences)
+  const matchesTargetReel = useCallback((r: Reel, targetId?: string) => {
+    if (!targetId || !r) return false;
+    const strTarget = String(targetId);
+    const rId = r._id ? String(r._id) : '';
+    const rAltId = (r as any).id ? String((r as any).id) : '';
+    const rReelId = (r as any).reel_id ? String((r as any).reel_id) : '';
+    return rId === strTarget || rAltId === strTarget || rReelId === strTarget;
+  }, []);
 
   useEffect(() => {
     if (!params?.reelId) {
@@ -131,7 +141,7 @@ export default function ReelsFeedScreen() {
       scrolledReelIdRef.current = null;
       return;
     }
-    const exists = reels.some((r) => r._id === params.reelId || (r as any).id === params.reelId);
+    const exists = reels.some((r) => matchesTargetReel(r, params.reelId));
     if (!exists) {
       api
         .get(`/reels/${params.reelId}`)
@@ -150,21 +160,30 @@ export default function ReelsFeedScreen() {
         })
         .catch(() => {});
     }
-  }, [params?.reelId, reels]);
+  }, [params?.reelId, reels, matchesTargetReel]);
 
   const displayReels = useMemo(() => {
-    if (featuredReel && !reels.some((r) => (r._id || (r as any).id) === (featuredReel._id || (featuredReel as any).id))) {
+    if (featuredReel && !reels.some((r) => matchesTargetReel(r, featuredReel._id || (featuredReel as any).id))) {
       return [featuredReel, ...reels];
     }
     return reels;
-  }, [featuredReel, reels]);
+  }, [featuredReel, reels, matchesTargetReel]);
+
+  // Reset scroll ref when screen gains focus with a new reelId
+  useFocusEffect(
+    useCallback(() => {
+      if (params?.reelId && scrolledReelIdRef.current !== params.reelId) {
+        scrolledReelIdRef.current = null;
+      }
+    }, [params?.reelId])
+  );
 
   // Scroll to specific reel when navigated with reelId parameter ONCE
   useEffect(() => {
     if (!params?.reelId || displayReels.length === 0) return;
     if (scrolledReelIdRef.current === params.reelId) return;
 
-    const targetIndex = displayReels.findIndex((r) => r._id === params.reelId || (r as any).id === params.reelId);
+    const targetIndex = displayReels.findIndex((r) => matchesTargetReel(r, params.reelId));
     if (targetIndex !== -1) {
       scrolledReelIdRef.current = params.reelId;
       setActiveIndex(targetIndex);
@@ -172,7 +191,7 @@ export default function ReelsFeedScreen() {
         flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
       }, 100);
     }
-  }, [params?.reelId, displayReels]);
+  }, [params?.reelId, displayReels, matchesTargetReel]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
