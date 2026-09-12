@@ -238,9 +238,12 @@ export default function ListingDetailsScreen() {
 
   const handleShare = async () => {
     try {
+      const targetId = listing._id || listing.id || id;
+      const shareUrl = `https://bizreels.in/customer/search?id=${targetId}`;
       await Share.share({
         title: listing.title,
-        message: `Check out "${listing.title}" (₹${price}) on BizReels!`,
+        message: `Check out "${listing.title}" (₹${price}) on BizReels! 👉 ${shareUrl}`,
+        url: shareUrl,
       });
     } catch {}
   };

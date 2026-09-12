@@ -322,7 +322,7 @@ export default function SearchListingsPage() {
     if (itemId) {
       api.post(`/v1/listings/${itemId}/share`).catch(() => {});
     }
-    const shareUrl = `${window.location.origin}/customer/search?productId=${itemId}`;
+    const shareUrl = `https://bizreels.in/customer/search?id=${itemId}`;
     const shareData = {
       title: item.title || 'BizReels Listing',
       text: `Check out "${item.title}" on BizReels!`,

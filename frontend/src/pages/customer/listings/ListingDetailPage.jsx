@@ -498,8 +498,8 @@ export default function ListingDetailPage() {
   };
 
   const handleShare = async () => {
-    const shareUrl = window.location.href;
     const targetId = item?._id || item?.id || id;
+    const shareUrl = `https://bizreels.in/customer/search?id=${targetId}`;
     if (targetId) {
       api.post(`/v1/listings/${targetId}/share`).catch(() => {});
     }

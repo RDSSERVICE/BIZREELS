@@ -167,7 +167,19 @@ export default function VendorCatalogScreen() {
   }
 
   function handleShare(item: any) {
-    Alert.alert('Share Listing', `Listing URL copied: https://api.bizreels.in/listings/${item._id}`);
+    const targetId = item._id || item.id;
+    const shareUrl = `https://bizreels.in/customer/search?id=${targetId}`;
+    import('react-native').then(({ Share }) => {
+      Share.share({
+        title: item.title,
+        message: `Check out "${item.title}" on BizReels! 👉 ${shareUrl}`,
+        url: shareUrl,
+      }).catch(() => {
+        Alert.alert('Share Listing', `Listing URL: ${shareUrl}`);
+      });
+    }).catch(() => {
+      Alert.alert('Share Listing', `Listing URL: ${shareUrl}`);
+    });
   }
 
   function handleDelete(id: string, title: string) {

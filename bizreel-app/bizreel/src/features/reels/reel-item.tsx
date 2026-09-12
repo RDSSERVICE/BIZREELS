@@ -383,7 +383,8 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
 
   async function handleShareButton() {
     try {
-      const shareUrl = `https://api.bizreels.in/reels/${reel._id}`;
+      const targetId = reel.linkedListingId || (reel as any).listing_id || reel._id;
+      const shareUrl = `https://bizreels.in/customer/search?id=${targetId}`;
       const captionText = reel.caption ? `\n"${reel.caption.trim()}"` : '';
       const shareMessage = `Check out this reel by ${reel.creatorName || 'a creator'} on BIZREELS!${captionText}\n\n👉 ${shareUrl}`;
 
@@ -391,6 +392,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
         {
           message: shareMessage,
           title: `BIZREELS — ${reel.creatorName || 'Reel'}`,
+          url: shareUrl,
         },
         {
           dialogTitle: `Share Reel by ${reel.creatorName || 'Creator'}`,
