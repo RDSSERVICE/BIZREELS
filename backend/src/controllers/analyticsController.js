@@ -75,9 +75,28 @@ class AnalyticsController {
       Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'click_to_call' }).catch(() => 0),
       Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'whatsapp_contact' }).catch(() => 0),
       Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'chat_inquiry' }).catch(() => 0),
-      Inquiry.countDocuments({ $or: [{ vendorId: userId }, { vendor_id: userId }, { vendorId: userIdStr }] }).catch(() => 0),
-      ChatThread ? ChatThread.countDocuments({ $or: [{ participantIds: userIdStr }, { vendorId: userIdStr }, { vendor: userId }] }).catch(() => 0) : 0,
-      Interaction.countDocuments({ type: 'save_reel' }).catch(() => 0),
+      Inquiry.countDocuments({
+        $or: [
+          { vendor: userId },
+          { vendor: userIdStr },
+          { vendorId: userId },
+          { vendor_id: userId },
+          { vendorId: userIdStr },
+        ],
+        isDeleted: { $ne: true },
+      }).catch(() => 0),
+      ChatThread
+        ? ChatThread.countDocuments({
+            $or: [
+              { participants: userIdStr },
+              { participants: userId },
+              { participantIds: userIdStr },
+              { vendorId: userIdStr },
+              { vendor: userId },
+            ],
+          }).catch(() => 0)
+        : 0,
+      Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'save_reel' }).catch(() => 0),
       Analytics.countDocuments({ targetId: userId, type: { $in: ['call_vendor', 'click_to_call'] } }).catch(() => 0),
       Analytics.countDocuments({ targetId: userId, type: { $in: ['whatsapp_vendor', 'whatsapp_contact'] } }).catch(() => 0),
       ListingEvent ? ListingEvent.countDocuments({ vendor_id: targetUserMatch, event_type: { $in: ['call_click', 'contact_click'] } }).catch(() => 0) : 0,
@@ -86,13 +105,14 @@ class AnalyticsController {
 
     const callsCount = Math.max(callInters, analyticsCalls, listingEventsCall);
     const whatsappCount = Math.max(waInters, analyticsWa, listingEventsWa);
-    const chatsCount = Math.max(chatInters, chatThreadsCount);
+    const chatsCount = Math.max(chatThreadsCount, chatInters);
+    const totalInquiries = Math.max(inquiriesCount, chatsCount);
 
     return ApiResponse.ok(res, 'Vendor analytics loaded.', {
       callsCount,
       whatsappCount,
       chatsCount,
-      inquiriesCount: Math.max(inquiriesCount, chatsCount),
+      inquiriesCount: totalInquiries,
       savedReelsCount,
     });
   });

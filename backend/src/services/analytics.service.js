@@ -9,6 +9,7 @@ const Follow = require('../models/Follow');
 const Quote = require('../models/Quote');
 const { Review } = require('../models/Phase4');
 const { ListingEvent } = require('../models/Misc');
+const { ChatThread } = require('../models/Chat');
 const ApiError = require('../utils/ApiError');
 const mongoose = require('mongoose');
 
@@ -278,15 +279,27 @@ const overview = async (vendorId, rangeKey = '30d') => {
   const baseReelsStats = reelsStatsAgg[0] || {};
 
   // Compute vendor-specific totals
+  const chatThreadsCount = ChatThread
+    ? await ChatThread.countDocuments({
+        $or: [
+          { participants: vendorIdStr },
+          { participants: vendorObjId },
+          { participantIds: vendorIdStr },
+          { vendorId: vendorIdStr },
+          { vendor: vendorObjId },
+        ],
+      }).catch(() => 0)
+    : 0;
+
   const totalViews = Math.max(
     eventCounts.view || 0,
     (baseListingStats.views || 0) + (baseReelsStats.views || 0)
   );
 
   const chatsStarted = Math.max(
+    chatThreadsCount,
     eventCounts.chat_start || 0,
-    interactionCounts.chat_inquiry || 0,
-    inquiriesCount || 0
+    interactionCounts.chat_inquiry || 0
   );
 
   const waClicks = (eventCounts.wa_click || 0) + (interactionCounts.whatsapp_contact || 0) + (interactionCounts.click_to_call || 0);
