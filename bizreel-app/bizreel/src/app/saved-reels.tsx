@@ -144,6 +144,7 @@ export default function SavedReelsScreen() {
         </View>
       ) : activeTab === 'reels' ? (
         <FlatList
+          key="saved-reels-grid-3"
           data={savedReels}
           keyExtractor={(item) => item._id || item.id || Math.random().toString()}
           numColumns={3}
@@ -219,6 +220,7 @@ export default function SavedReelsScreen() {
         />
       ) : (
         <FlatList
+          key="saved-listings-list-1"
           data={savedListings}
           keyExtractor={(item) => item._id || item.id || Math.random().toString()}
           contentContainerStyle={styles.listContainer}
