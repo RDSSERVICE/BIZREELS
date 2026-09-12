@@ -146,6 +146,26 @@ export default function VendorCatalogScreen() {
       });
   }
 
+  async function handleStockUpdate(lid: string) {
+    if (!stockInput && stockInput !== '0') return;
+    const num = parseInt(stockInput, 10);
+    if (isNaN(num)) return;
+    setUpdatingStock(true);
+    try {
+      await api.patch(`/listings/${lid}`, { stock: num });
+      Alert.alert('Stock Updated', `Inventory quantity updated to ${num}.`);
+      refetch();
+      if (selectedAnalyticsItem) {
+        setSelectedAnalyticsItem((prev: any) => (prev ? { ...prev, stock: num } : null));
+      }
+      setStockInput('');
+    } catch (err) {
+      Alert.alert('Update Failed', 'Failed to update stock count.');
+    } finally {
+      setUpdatingStock(false);
+    }
+  }
+
   function handleShare(item: any) {
     Alert.alert('Share Listing', `Listing URL copied: https://api.bizreels.in/listings/${item._id}`);
   }
