@@ -479,8 +479,8 @@ export default function PublicVendorProfileScreen() {
                       style={styles.reelThumbCard}
                       onPress={() =>
                         router.push({
-                          pathname: '/reel/[id]',
-                          params: { id: reel._id || reel.id, videoUrl: reel.videoUrl || '' },
+                          pathname: '/(tabs)',
+                          params: { reelId: reel._id || (reel as any).id },
                         } as any)
                       }>
                       <Image source={{ uri: thumb }} style={styles.reelThumbImage} contentFit="cover" />

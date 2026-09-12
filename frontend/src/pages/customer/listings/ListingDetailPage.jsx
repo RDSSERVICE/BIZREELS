@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   FiArrowLeft, FiMapPin, FiStar, FiHeart, FiBookmark, FiShare2,
   FiPhone, FiMessageSquare, FiShoppingCart, FiClock, FiCheckCircle,
@@ -73,6 +74,18 @@ export default function ListingDetailPage() {
   const [item, setItem] = useState(passedListing || null);
   const [loading, setLoading] = useState(!passedListing);
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
+
+  const authUser = useSelector((state) => state.auth?.user);
+  const activeRole = authUser?.activeRole || authUser?.current_role || authUser?.role;
+  const isVendor = activeRole === 'vendor' || activeRole === 'creator';
+  const isOwner = Boolean(
+    authUser?._id &&
+      (item?.vendor?._id === authUser._id ||
+        item?.vendor === authUser._id ||
+        item?.vendorId === authUser._id ||
+        item?.creator === authUser._id)
+  );
+  const hideCustomerActions = isVendor || isOwner;
 
   // Interaction States
   const [isSaved, setIsSaved] = useState(
@@ -905,25 +918,27 @@ export default function ListingDetailPage() {
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-[#e3dccb] space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={handleAddToCart}
-                    className="py-3.5 px-4 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <FiShoppingCart size={18} />
-                    <span>Add to Cart</span>
-                  </button>
+                {!hideCustomerActions && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={handleAddToCart}
+                      className="py-3.5 px-4 rounded-xl bg-[#d99a3d] hover:bg-[#c0862b] text-[#1a1a1a] text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <FiShoppingCart size={18} />
+                      <span>Add to Cart</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowOrderForm(!showOrderForm)}
-                    className="py-3.5 px-4 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer border border-[#241b15]"
-                  >
-                    {isService ? <FiTool size={18} /> : <FiPackage size={18} />}
-                    <span>{showOrderForm ? 'Close Form' : (isService ? 'Book Service' : 'Buy Now / Direct Order')}</span>
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowOrderForm(!showOrderForm)}
+                      className="py-3.5 px-4 rounded-xl bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-sm font-black transition shadow-md flex items-center justify-center gap-2 cursor-pointer border border-[#241b15]"
+                    >
+                      {isService ? <FiTool size={18} /> : <FiPackage size={18} />}
+                      <span>{showOrderForm ? 'Close Form' : (isService ? 'Book Service' : 'Buy Now / Direct Order')}</span>
+                    </button>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -1478,39 +1493,41 @@ export default function ListingDetailPage() {
             </div>
 
             {/* Add Review Form */}
-            <form onSubmit={handleAddReview} className="md:col-span-5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl p-4 space-y-3">
-              <h4 className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Write a Review</h4>
-              
-              <div className="flex items-center gap-1 text-amber-500">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setReviewRating(star)}
-                    className="p-1 cursor-pointer hover:scale-110 transition"
-                  >
-                    <FiStar size={18} className={star <= reviewRating ? 'fill-current' : 'opacity-30'} />
-                  </button>
-                ))}
-              </div>
+            {!hideCustomerActions && (
+              <form onSubmit={handleAddReview} className="md:col-span-5 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl p-4 space-y-3">
+                <h4 className="text-xs font-extrabold text-[#1a1a1a] uppercase tracking-wider">Write a Review</h4>
+                
+                <div className="flex items-center gap-1 text-amber-500">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className="p-1 cursor-pointer hover:scale-110 transition"
+                    >
+                      <FiStar size={18} className={star <= reviewRating ? 'fill-current' : 'opacity-30'} />
+                    </button>
+                  ))}
+                </div>
 
-              <textarea
-                rows={3}
-                required
-                placeholder="Share your experience with this product or vendor..."
-                value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                className="w-full p-2.5 rounded-lg border border-[#e3dccb] bg-white text-xs font-medium focus:outline-none focus:border-[#d99a3d]"
-              />
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Share your experience with this product or vendor..."
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value)}
+                  className="w-full p-2.5 rounded-lg border border-[#e3dccb] bg-white text-xs font-medium focus:outline-none focus:border-[#d99a3d]"
+                />
 
-              <button
-                type="submit"
-                disabled={submittingReview}
-                className="w-full py-2 bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
-              >
-                {submittingReview ? 'Submitting...' : 'Submit Review'}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="w-full py-2 bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] text-xs font-bold rounded-lg transition cursor-pointer disabled:opacity-50"
+                >
+                  {submittingReview ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>

@@ -255,9 +255,38 @@ class ReelController {
       isDeleted: { $ne: true },
     })
       .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return ApiResponse.ok(res, 'Saved reels retrieved successfully.', { reels });
+    const interactionService = require('../services/interaction.service');
+    const followService = require('../services/follow.service');
+    const reelIds = reels.map(r => r._id?.toString() || r.id).filter(Boolean);
+    const [state, followedIdsList] = await Promise.all([
+      interactionService.userInteractionState(req.user._id, reelIds).catch(() => ({})),
+      followService.followingIds(req.user._id).catch(() => []),
+    ]);
+    const followedSet = new Set((followedIdsList || []).map(id => id?.toString()).filter(Boolean));
+
+    const enrichedReels = reels.map(r => {
+      const rid = r._id?.toString() || r.id;
+      const s = state[rid] || { liked: false, saved: true };
+      const creatorIdStr = (r.creator?._id || r.creator || r.user_id?._id || r.user_id)?.toString();
+      const isFollowingCreator = creatorIdStr ? followedSet.has(creatorIdStr) : false;
+      return {
+        ...r,
+        viewer_state: { liked: Boolean(s.liked), saved: true, following: isFollowingCreator },
+        isLiked: Boolean(s.liked),
+        is_liked: Boolean(s.liked),
+        hasLiked: Boolean(s.liked),
+        isSaved: true,
+        is_saved: true,
+        hasSaved: true,
+        isFollowing: isFollowingCreator,
+        is_following: isFollowingCreator,
+      };
+    });
+
+    return ApiResponse.ok(res, 'Saved reels retrieved successfully.', { reels: enrichedReels });
   });
 
   // ── Get Single Reel by ID ─────────────────────────────────
@@ -271,6 +300,32 @@ class ReelController {
 
     if (!reel || reel.is_deleted || reel.isDeleted) {
       return ApiResponse.notFound(res, 'Reel video not found or has been removed.');
+    }
+
+    if (req.user?._id) {
+      try {
+        const interactionService = require('../services/interaction.service');
+        const followService = require('../services/follow.service');
+        const [state, followedIdsList] = await Promise.all([
+          interactionService.userInteractionState(req.user._id, [reel._id]),
+          followService.followingIds(req.user._id).catch(() => []),
+        ]);
+        const s = state[reel._id.toString()] || { liked: false, saved: false };
+        const creatorId = (reel.creator?._id || reel.creator || reel.user_id?._id || reel.user_id)?.toString();
+        const isFollowing = creatorId ? (followedIdsList || []).map(id => id?.toString()).includes(creatorId) : false;
+
+        reel.viewer_state = { ...s, following: isFollowing };
+        reel.isLiked = Boolean(s.liked);
+        reel.is_liked = Boolean(s.liked);
+        reel.hasLiked = Boolean(s.liked);
+        reel.isSaved = Boolean(s.saved);
+        reel.is_saved = Boolean(s.saved);
+        reel.hasSaved = Boolean(s.saved);
+        reel.isFollowing = isFollowing;
+        reel.is_following = isFollowing;
+      } catch (err) {
+        console.error('Error enriching single reel interaction state:', err);
+      }
     }
 
     return ApiResponse.ok(res, 'Single reel fetched successfully.', { reel });

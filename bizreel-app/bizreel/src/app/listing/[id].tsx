@@ -75,6 +75,18 @@ export default function ListingDetailsScreen() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const { user, status: authStatus } = useAuth();
+  const activeRole = user?.activeRole || user?.current_role || (user as any)?.role || 'customer';
+  const isVendor = activeRole === 'vendor' || activeRole === 'creator';
+  const isOwner = Boolean(
+    user?._id &&
+      (listing?.vendorId === user._id ||
+        listing?.vendor?._id === user._id ||
+        listing?.vendor === user._id ||
+        listing?.creator === user._id)
+  );
+  const hideCustomerActions = isVendor || isOwner;
+
   // Calculate distance if coordinates available
   useEffect(() => {
     if (!listing) return;
@@ -154,8 +166,6 @@ export default function ListingDetailsScreen() {
   const originalPrice = Number(listing.actualPrice || listing.regularPrice || listing.originalPrice || 0);
   const hasDiscount = originalPrice > price && price > 0;
   const discountPercent = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
-
-  const { user, status: authStatus } = useAuth();
 
   function ensureAuth(actionDesc: string, callback: () => void) {
     if (authStatus !== 'authed' || !user) {
@@ -476,15 +486,17 @@ export default function ListingDetailsScreen() {
           <View style={styles.section}>
             <View style={styles.reviewHeaderRow}>
               <Text style={styles.sectionTitle}>Customer Ratings & Reviews</Text>
-              <TouchableOpacity onPress={() => setReviewModalVisible(true)}>
-                <Text style={styles.writeReviewText}>+ Write Review</Text>
-              </TouchableOpacity>
+              {!hideCustomerActions && (
+                <TouchableOpacity onPress={() => setReviewModalVisible(true)}>
+                  <Text style={styles.writeReviewText}>+ Write Review</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             {reviewsLoading ? (
               <ActivityIndicator size="small" color={YELLOW} />
             ) : !reviews || reviews.length === 0 ? (
-              <Text style={styles.emptyReviewText}>No reviews yet. Be the first to rate!</Text>
+              <Text style={styles.emptyReviewText}>No reviews yet.</Text>
             ) : (
               reviews.map((rev: any) => (
                 <View key={rev._id} style={styles.reviewCard}>
@@ -510,29 +522,31 @@ export default function ListingDetailsScreen() {
       </ScrollView>
 
       {/* Bottom Action Footer */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <TouchableOpacity
-          style={[styles.actionBtn, styles.cartBtn]}
-          onPress={handleAddToCart}
-          disabled={addToCartMutation.isPending}>
-          {addToCartMutation.isPending ? (
-            <ActivityIndicator color={BLACK} />
-          ) : (
-            <>
-              <Ionicons name="cart-outline" size={16} color={BLACK} />
-              <Text style={styles.cartBtnText}>Add to Cart</Text>
-            </>
-          )}
-        </TouchableOpacity>
+      {!hideCustomerActions && (
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.cartBtn]}
+            onPress={handleAddToCart}
+            disabled={addToCartMutation.isPending}>
+            {addToCartMutation.isPending ? (
+              <ActivityIndicator color={BLACK} />
+            ) : (
+              <>
+                <Ionicons name="cart-outline" size={16} color={BLACK} />
+                <Text style={styles.cartBtnText}>Add to Cart</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.actionBtn, styles.buyBtn]}
-          onPress={handleBuyNow}
-          disabled={addToCartMutation.isPending}>
-          <Ionicons name="flash-outline" size={16} color={BLACK} />
-          <Text style={styles.buyBtnText}>{isService ? 'Book Service Now' : 'Buy Now'}</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.buyBtn]}
+            onPress={handleBuyNow}
+            disabled={addToCartMutation.isPending}>
+            <Ionicons name="flash-outline" size={16} color={BLACK} />
+            <Text style={styles.buyBtnText}>{isService ? 'Book Service Now' : 'Buy Now'}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Inquiry Quote Modal */}
       <Modal

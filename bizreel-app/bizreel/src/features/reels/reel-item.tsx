@@ -164,32 +164,55 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
     callback();
   }
 
-  const [isMuted, setIsMuted] = useState(false);
-  const [isLiked, setIsLiked] = useState(reel.isLiked);
-  const [isSaved, setIsSaved] = useState(
-    Boolean(reel.isSaved || (reel as any).is_saved || (reel as any).hasSaved || (reel as any).viewer_state?.saved)
+  const initialLiked = Boolean(
+    reel.isLiked || (reel as any).is_liked || (reel as any).hasLiked || (reel as any).viewer_state?.liked
   );
+  const initialSaved = Boolean(
+    reel.isSaved || (reel as any).is_saved || (reel as any).hasSaved || (reel as any).viewer_state?.saved
+  );
+  const initialFollowing = Boolean(
+    reel.isFollowing ||
+      (reel as any).is_following ||
+      (reel as any).viewer_following ||
+      (reel as any).viewer_state?.following
+  );
+
+  const [isMuted, setIsMuted] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialLiked);
+  const [isSaved, setIsSaved] = useState(initialSaved);
   const [likeCount, setLikeCount] = useState(reel.likesCount);
   const [isPaused, setIsPaused] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [showPauseIcon, setShowPauseIcon] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [isFollowing, setIsFollowing] = useState(
-    Boolean(reel.isFollowing || (reel as any).is_following || (reel as any).viewer_following)
-  );
+  const [isFollowing, setIsFollowing] = useState(initialFollowing);
 
   useEffect(() => {
-    setIsLiked(reel.isLiked);
+    setIsLiked(
+      Boolean(
+        reel.isLiked || (reel as any).is_liked || (reel as any).hasLiked || (reel as any).viewer_state?.liked
+      )
+    );
     setIsSaved(
-      Boolean(reel.isSaved || (reel as any).is_saved || (reel as any).hasSaved || (reel as any).viewer_state?.saved)
+      Boolean(
+        reel.isSaved || (reel as any).is_saved || (reel as any).hasSaved || (reel as any).viewer_state?.saved
+      )
     );
     setLikeCount(reel.likesCount);
     setIsFollowing(
-      Boolean(reel.isFollowing || (reel as any).is_following || (reel as any).viewer_following)
+      Boolean(
+        reel.isFollowing ||
+          (reel as any).is_following ||
+          (reel as any).viewer_following ||
+          (reel as any).viewer_state?.following
+      )
     );
   }, [
     reel.isLiked,
+    (reel as any).is_liked,
+    (reel as any).hasLiked,
+    (reel as any).viewer_state?.liked,
     reel.isSaved,
     (reel as any).is_saved,
     (reel as any).hasSaved,
@@ -198,6 +221,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
     reel.isFollowing,
     (reel as any).is_following,
     (reel as any).viewer_following,
+    (reel as any).viewer_state?.following,
   ]);
   const [directBuyModalOpen, setDirectBuyModalOpen] = useState(false);
 
@@ -705,10 +729,17 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
               ensureAuth('follow creators', () => {
                 const next = !isFollowing;
                 setIsFollowing(next);
-                const targetUserId = (reel as any).creatorId || (reel as any).creator;
-                if (targetUserId) {
-                  if (next) followUserMutation.mutate(targetUserId);
-                  else unfollowUserMutation.mutate(targetUserId);
+                const rawCreator =
+                  (reel as any).creator ||
+                  (reel as any).creatorId ||
+                  (reel as any).vendor ||
+                  (reel as any).vendor_id ||
+                  (reel as any).user_id;
+                const rawTargetId = typeof rawCreator === 'object' ? rawCreator?._id || rawCreator?.id : rawCreator;
+                const targetUserIdStr = rawTargetId ? String(rawTargetId) : null;
+                if (targetUserIdStr) {
+                  if (next) followUserMutation.mutate(targetUserIdStr);
+                  else unfollowUserMutation.mutate(targetUserIdStr);
                 }
               });
             }}>

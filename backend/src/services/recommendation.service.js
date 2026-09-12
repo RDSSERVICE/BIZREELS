@@ -500,24 +500,32 @@ class RecommendationService {
       } catch (err) { }
     }
 
-    let likedReelIds = new Set();
+    let interactionState = {};
+    let followedSet = new Set();
+
     if (userId && mongoose.Types.ObjectId.isValid(userId)) {
       try {
-        const ReelLike = require('../models/ReelLike');
-        const reelIds = reels.map(r => r._id);
-        const likes = await ReelLike.find({
-          userId: new mongoose.Types.ObjectId(userId),
-          reelId: { $in: reelIds },
-        }).lean();
-        likedReelIds = new Set(likes.map(l => l.reelId.toString()));
-      } catch (err) { }
+        const interactionService = require('./interaction.service');
+        const followService = require('./follow.service');
+        const reelIds = reels.map((r) => r._id?.toString() || r.id).filter(Boolean);
+
+        const [state, followedIdsList] = await Promise.all([
+          interactionService.userInteractionState(userId, reelIds).catch(() => ({})),
+          followService.followingIds(userId).catch(() => []),
+        ]);
+        interactionState = state || {};
+        followedSet = new Set((followedIdsList || []).map((id) => id?.toString()).filter(Boolean));
+      } catch (err) {
+        logger.error('Failed to fetch user interaction state in _enrichReels:', err);
+      }
     }
 
-    return reels.map(r => {
+    return reels.map((r) => {
       const c = creatorMap[r.creator?.toString()] || {};
-      const targetListingObj = r.targetListing && typeof r.targetListing === 'object'
-        ? r.targetListing
-        : (listingMap[r.targetListing?.toString()] || null);
+      const targetListingObj =
+        r.targetListing && typeof r.targetListing === 'object'
+          ? r.targetListing
+          : listingMap[r.targetListing?.toString()] || null;
 
       const priceCandidates = [
         targetListingObj?.price,
@@ -527,8 +535,15 @@ class RecommendationService {
         r.salePrice,
         r.sellingPrice,
       ];
-      const validPriceNum = priceCandidates.map(p => Number(p)).find(p => !isNaN(p) && p > 0);
+      const validPriceNum = priceCandidates.map((p) => Number(p)).find((p) => !isNaN(p) && p > 0);
       const exactPrice = validPriceNum || Number(r.price || 0);
+
+      const rid = r._id?.toString() || r.id;
+      const creatorIdStr = (c._id || r.creator)?.toString();
+      const s = interactionState[rid] || { liked: false, saved: false };
+      const isFollowingCreator = creatorIdStr ? followedSet.has(creatorIdStr) : false;
+      const likedState = Boolean(s.liked);
+      const savedState = Boolean(s.saved);
 
       return {
         ...r,
@@ -550,8 +565,20 @@ class RecommendationService {
         creatorName: c.name || 'BizReels Creator',
         creatorAvatar: c.avatarUrl || c.profile_pic || null,
         creatorRole: c.activeRole || c.role || 'vendor',
-        location: r.location && (r.location.coordinates?.[0] !== 0 || r.location.coordinates?.[1] !== 0) ? r.location : (c.location || r.location),
-        isLiked: likedReelIds.has(r._id.toString()),
+        location:
+          r.location && (r.location.coordinates?.[0] !== 0 || r.location.coordinates?.[1] !== 0)
+            ? r.location
+            : c.location || r.location,
+        viewer_state: { liked: likedState, saved: savedState, following: isFollowingCreator },
+        isLiked: likedState,
+        is_liked: likedState,
+        hasLiked: likedState,
+        isSaved: savedState,
+        is_saved: savedState,
+        hasSaved: savedState,
+        isFollowing: isFollowingCreator,
+        is_following: isFollowingCreator,
+        viewer_following: isFollowingCreator,
       };
     });
   }

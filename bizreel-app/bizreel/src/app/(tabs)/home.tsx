@@ -516,8 +516,8 @@ export default function HomeScreen() {
                       style={styles.reelHighlightCard}
                       onPress={() =>
                         router.push({
-                          pathname: '/reel/[id]',
-                          params: { id: reel._id, videoUrl: reel.videoUrl || reel.mediaUrls?.[0] || '' },
+                          pathname: '/(tabs)',
+                          params: { reelId: reel._id || (reel as any).id },
                         } as any)
                       }>
                       {reelThumb ? (

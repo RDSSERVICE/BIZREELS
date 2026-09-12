@@ -32,6 +32,7 @@ import { flattenReels, usePrefetchNextReelsPage, useReelsFeed } from '@/features
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { ReelItem } from '@/features/reels/reel-item';
 import type { Reel } from '@/features/reels/types';
+import { api } from '@/lib/api';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -120,17 +121,58 @@ export default function ReelsFeedScreen() {
   const prefetchNext = usePrefetchNextReelsPage();
   const reels = flattenReels(data?.pages);
 
-  // Scroll to specific reel when navigated with reelId parameter
+  // Single featured/selected reel fallback if target reel is not present in default feed page
+  const [featuredReel, setFeaturedReel] = useState<Reel | null>(null);
+  const scrolledReelIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!params?.reelId || reels.length === 0) return;
-    const targetIndex = reels.findIndex((r) => r._id === params.reelId);
-    if (targetIndex !== -1 && targetIndex !== activeIndex) {
+    if (!params?.reelId) {
+      setFeaturedReel(null);
+      scrolledReelIdRef.current = null;
+      return;
+    }
+    const exists = reels.some((r) => r._id === params.reelId || (r as any).id === params.reelId);
+    if (!exists) {
+      api
+        .get(`/reels/${params.reelId}`)
+        .catch(() => api.get(`/reels/public/${params.reelId}`))
+        .then((res) => {
+          const fetched = res?.data?.data?.reel || res?.data?.data || res?.data?.reel || res?.data;
+          if (fetched && (fetched._id || fetched.id)) {
+            const enriched: Reel = {
+              ...fetched,
+              isLiked: Boolean(fetched.isLiked || fetched.is_liked || fetched.hasLiked || fetched.viewer_state?.liked),
+              isSaved: Boolean(fetched.isSaved || fetched.is_saved || fetched.hasSaved || fetched.viewer_state?.saved),
+              isFollowing: Boolean(fetched.isFollowing || fetched.is_following || fetched.viewer_following || fetched.viewer_state?.following),
+            };
+            setFeaturedReel(enriched);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [params?.reelId, reels]);
+
+  const displayReels = useMemo(() => {
+    if (featuredReel && !reels.some((r) => (r._id || (r as any).id) === (featuredReel._id || (featuredReel as any).id))) {
+      return [featuredReel, ...reels];
+    }
+    return reels;
+  }, [featuredReel, reels]);
+
+  // Scroll to specific reel when navigated with reelId parameter ONCE
+  useEffect(() => {
+    if (!params?.reelId || displayReels.length === 0) return;
+    if (scrolledReelIdRef.current === params.reelId) return;
+
+    const targetIndex = displayReels.findIndex((r) => r._id === params.reelId || (r as any).id === params.reelId);
+    if (targetIndex !== -1) {
+      scrolledReelIdRef.current = params.reelId;
       setActiveIndex(targetIndex);
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({ index: targetIndex, animated: true });
       }, 100);
     }
-  }, [params?.reelId, reels]);
+  }, [params?.reelId, displayReels]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -140,7 +182,7 @@ export default function ReelsFeedScreen() {
 
       const currentPage = Math.floor(index / 3) + 1;
       const totalPages = data?.pages[data.pages.length - 1]?.meta.totalPages ?? 1;
-      const isNearEnd = index >= reels.length - 2;
+      const isNearEnd = index >= displayReels.length - 2;
 
       if (isNearEnd && hasNextPage) {
         fetchNextPage();
@@ -149,7 +191,7 @@ export default function ReelsFeedScreen() {
         prefetchNext(currentPage, hasNextPage);
       }
     },
-    [data, reels.length, hasNextPage, fetchNextPage, prefetchNext]
+    [data, displayReels.length, hasNextPage, fetchNextPage, prefetchNext]
   );
 
   const viewabilityConfig = useRef({
@@ -314,7 +356,7 @@ export default function ReelsFeedScreen() {
             <Text style={styles.retryText}>Try Again</Text>
           </Pressable>
         </View>
-      ) : reels.length === 0 ? (
+      ) : displayReels.length === 0 ? (
         <View style={styles.center}>
           <Ionicons name="search-outline" size={48} color="rgba(255,255,255,0.4)" />
           <Text style={styles.emptyTitle}>
@@ -329,7 +371,7 @@ export default function ReelsFeedScreen() {
       ) : (
         <FlatList
           ref={flatListRef}
-          data={reels}
+          data={displayReels}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           pagingEnabled

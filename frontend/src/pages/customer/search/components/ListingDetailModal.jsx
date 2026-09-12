@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   FiMapPin, FiStar, FiHeart, FiBookmark, FiShare2, FiPhone,
   FiMessageSquare, FiShoppingCart, FiClock, FiCheckCircle,
@@ -79,6 +80,18 @@ export default function ListingDetailModal({
   onOpenBookService,
 }) {
   const isService = selectedItem?.type === 'service';
+
+  const authUser = useSelector((state) => state.auth?.user);
+  const activeRole = authUser?.activeRole || authUser?.current_role || authUser?.role;
+  const isVendor = activeRole === 'vendor' || activeRole === 'creator';
+  const isOwner = Boolean(
+    authUser?._id &&
+      (selectedItem?.vendor?._id === authUser._id ||
+        selectedItem?.vendor === authUser._id ||
+        selectedItem?.vendorId === authUser._id ||
+        selectedItem?.creator === authUser._id)
+  );
+  const hideCustomerActions = isVendor || isOwner;
 
   const [selectedImgIdx, setSelectedImgIdx] = useState(0);
   const [showOrderForm, setShowOrderForm] = useState(false);
@@ -433,31 +446,33 @@ export default function ListingDetailModal({
                   <span className="truncate">Chat / Inquiry</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isService) {
-                      if (onOpenBookService) onOpenBookService(selectedItem);
-                    } else {
-                      setShowOrderForm(!showOrderForm);
-                    }
-                  }}
-                  className="py-2.5 px-2 rounded-xl bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
-                >
-                  {isService ? <FiClock size={13} /> : <FiShoppingCart size={13} />}
-                  <span className="truncate">
-                    {isService
-                      ? 'Book Service'
-                      : showOrderForm ? 'Hide Order' : 'Order Now'}
-                  </span>
-                </button>
+                {!hideCustomerActions && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isService) {
+                        if (onOpenBookService) onOpenBookService(selectedItem);
+                      } else {
+                        setShowOrderForm(!showOrderForm);
+                      }
+                    }}
+                    className="py-2.5 px-2 rounded-xl bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs cursor-pointer"
+                  >
+                    {isService ? <FiClock size={13} /> : <FiShoppingCart size={13} />}
+                    <span className="truncate">
+                      {isService
+                        ? 'Book Service'
+                        : showOrderForm ? 'Hide Order' : 'Order Now'}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         {/* ── DIRECT VENDOR PAYMENT & ORDER/BOOKING REQUEST FORM ── */}
-        {showOrderForm && (
+        {!hideCustomerActions && showOrderForm && (
           <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-4 animate-fade-in">
             <div className="flex items-center justify-between border-b border-[#e3dccb] pb-2.5">
               <div>

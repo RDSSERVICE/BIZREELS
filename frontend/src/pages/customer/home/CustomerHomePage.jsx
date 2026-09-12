@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -266,6 +266,30 @@ export default function CustomerHomePage() {
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerStartIndex, setImageViewerStartIndex] = useState(0);
 
+  const [searchParams] = useSearchParams();
+  const paramReelId = searchParams.get('reelId');
+
+  useEffect(() => {
+    if (paramReelId && reels.length > 0) {
+      const idx = reels.findIndex(r => (r._id || r.id)?.toString() === paramReelId);
+      if (idx !== -1) {
+        setReelViewerStartIndex(idx);
+        setReelViewerOpen(true);
+      } else {
+        api.get(`/v1/reels/${paramReelId}`)
+          .then((res) => {
+            const fetched = res.data?.data?.reel || res.data?.data || res.data?.reel || res.data;
+            if (fetched && (fetched._id || fetched.id)) {
+              setReels((prev) => [fetched, ...prev.filter(r => (r._id || r.id)?.toString() !== (fetched._id || fetched.id)?.toString())]);
+              setReelViewerStartIndex(0);
+              setReelViewerOpen(true);
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [paramReelId, reels.length]);
+
   // Home Feed Search & Filter State
   const [filters, setFilters] = useState({
     searchQuery: '',
@@ -300,7 +324,11 @@ export default function CustomerHomePage() {
         { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
       );
     }
-  }, [user]);
+    // Reset local interaction maps on user session change
+    setLikedMap({});
+    setSavedMap({});
+    setFollowingMap({});
+  }, [user?._id || user?.id]);
 
   const fetchFollowings = async () => {
     try {
@@ -402,8 +430,8 @@ export default function CustomerHomePage() {
           initialSaves[itemId] = isSaved;
         }
       });
-      setLikedMap((prev) => ({ ...initialLikes, ...prev }));
-      setSavedMap((prev) => ({ ...initialSaves, ...prev }));
+      setLikedMap((prev) => ({ ...prev, ...initialLikes }));
+      setSavedMap((prev) => ({ ...prev, ...initialSaves }));
     } catch (err) {
       toast.error('Failed to load feed data');
     } finally {

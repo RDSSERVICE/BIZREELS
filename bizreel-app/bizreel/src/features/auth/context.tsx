@@ -148,7 +148,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
   }, [signOut]);
 
-  /** Called immediately after login/register — caches profile for instant persistence */
   const setUser = useCallback((newUser: AuthUser) => {
     if (newUser) {
       const effectiveRole = newUser.activeRole || newUser.current_role || (newUser as any).role || 'customer';
@@ -158,7 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setUserState(newUser);
     setStatus('authed');
-  }, []);
+    queryClient.invalidateQueries();
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ status, user, setUser, signOut }}>

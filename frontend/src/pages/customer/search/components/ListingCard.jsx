@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   FiMapPin, FiStar, FiShoppingBag, FiTool, FiHeart,
   FiBookmark, FiShare2, FiPhone, FiPhoneCall, FiMessageSquare, FiPackage,
@@ -23,6 +24,9 @@ export default function ListingCard({
   onCall,
 }) {
   const navigate = useNavigate();
+  const authUser = useSelector((state) => state.auth?.user);
+  const activeRole = authUser?.activeRole || authUser?.current_role || authUser?.role;
+  const isVendor = activeRole === 'vendor' || activeRole === 'creator';
   const itemId = item._id || item.id;
   const vendorObj = item.vendor || item.vendorId || {};
   const vendorName = vendorObj.shopName || vendorObj.businessName || vendorObj.name || item.vendorName || 'Verified Vendor';
@@ -296,7 +300,7 @@ export default function ListingCard({
               className="col-span-8 py-2 px-3 rounded-lg bg-[#1a1a1a] hover:bg-[#d99a3d] hover:text-[#1a1a1a] text-white text-xs font-bold transition-all duration-200 flex items-center justify-center gap-1.5 shadow-xs cursor-pointer truncate"
             >
               {isService ? <FiTool size={13} /> : <FiPackage size={13} />}
-              <span className="truncate">{isService ? 'Book Service' : 'View & Order'}</span>
+              <span className="truncate">{isVendor ? 'View Details' : (isService ? 'Book Service' : 'View & Order')}</span>
             </button>
           </div>
         </div>
