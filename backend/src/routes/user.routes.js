@@ -610,7 +610,27 @@ router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
     }
   }
 
-  const savedReels = counts.save_reel;
+  // Calculate saved reels count reliably from both User profile and Interaction collection
+  const userDoc = await User.findById(uid).select('customerProfile.savedReels').lean().catch(() => null);
+  const profileSavedReelIds = (userDoc?.customerProfile?.savedReels || []).map((id) => id.toString());
+
+  const reelInteractions = await Interaction.find({
+    $or: [{ user_id: uid, type: 'save_reel' }, { user_id: req.user._id, type: 'save_reel' }],
+    reel_id: { $ne: null }
+  }).select('reel_id').lean().catch(() => []);
+
+  const interactionReelIds = reelInteractions.map((i) => i.reel_id?.toString()).filter(Boolean);
+  const combinedReelIdsForCount = Array.from(new Set([...profileSavedReelIds, ...interactionReelIds].filter(Boolean)));
+
+  const ReelModel = require('../models/Reel');
+  const savedReels = combinedReelIdsForCount.length > 0
+    ? await ReelModel.countDocuments({
+        _id: { $in: combinedReelIdsForCount },
+        is_deleted: { $ne: true },
+        isDeleted: { $ne: true }
+      }).catch(() => 0)
+    : 0;
+
   const savedImages = counts.save_image;
   const clickToCalled = counts.click_to_call;
   const whatsappContacted = counts.whatsapp_contact;
@@ -657,7 +677,11 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
 
   if (type === 'saved-products' || type === 'saved-services') {
     const listingType = type === 'saved-products' ? 'product' : 'service';
-    const inters = await Interaction.find({ user_id: uid, type: 'save', listing_id: { $ne: null } }).select('listing_id');
+    const inters = await Interaction.find({
+      $or: [{ user_id: uid }, { user_id: req.user._id }],
+      type: 'save',
+      listing_id: { $ne: null }
+    }).select('listing_id');
     const interListingIds = inters.map(i => i.listing_id);
 
     const userDoc = await User.findById(uid).select('customerProfile.savedListings').lean();
@@ -687,14 +711,22 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
     results = listings.map(l => ({ ...l, id: l._id.toString() }));
   } 
   else if (type === 'saved-reels') {
-    const inters = await Interaction.find({ user_id: uid, type: 'save_reel', reel_id: { $ne: null } }).select('reel_id');
-    const interReelIds = inters.map(i => i.reel_id);
+    const inters = await Interaction.find({
+      $or: [{ user_id: uid }, { user_id: req.user._id }],
+      type: 'save_reel',
+      reel_id: { $ne: null }
+    }).select('reel_id');
+    const interReelIds = inters.map(i => i.reel_id?.toString());
 
     const userDoc = await User.findById(uid).select('customerProfile.savedReels').lean();
     const userProfileReelIds = (userDoc?.customerProfile?.savedReels || []).map(id => id.toString());
     const combinedReelIds = [...new Set([...interReelIds, ...userProfileReelIds].filter(Boolean))];
 
-    const query = { _id: { $in: combinedReelIds }, isDeleted: { $ne: true } };
+    const query = {
+      _id: { $in: combinedReelIds },
+      is_deleted: { $ne: true },
+      isDeleted: { $ne: true }
+    };
     if (search) {
       query.caption = { $regex: new RegExp(search, 'i') };
     }
@@ -702,7 +734,7 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
     const [totalCount, reels] = await Promise.all([
       Reel.countDocuments(query),
       Reel.find(query)
-        .populate('creator', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+        .populate('creator user_id vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
         .populate('targetListing')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -711,7 +743,13 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
     ]);
     total = totalCount;
 
-    results = reels.map(r => ({ ...r, id: r._id.toString() }));
+    results = reels.map(r => ({
+      ...r,
+      id: r._id.toString(),
+      isSaved: true,
+      is_saved: true,
+      hasSaved: true
+    }));
   }
   else if (type === 'saved-images') {
     const inters = await Interaction.find({ user_id: uid, type: 'save_image', listing_id: { $ne: null } }).select('listing_id');

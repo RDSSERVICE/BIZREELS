@@ -164,11 +164,14 @@ class ReelController {
     const userModel = require('../models/User');
     const Interaction = require('../models/Interaction');
     const Reel = require('../models/Reel');
+    const cache = require('../utils/cache');
 
     const reel = await Reel.findById(id);
     if (!reel) {
       return ApiResponse.error(res, 'Reel not found', 404);
     }
+
+    const uidStr = req.user._id.toString();
 
     const user = await userModel.findByIdAndUpdate(
       req.user._id,
@@ -176,15 +179,22 @@ class ReelController {
       { returnDocument: 'after' }
     ).select('-password -__v');
 
-    const existing = await Interaction.findOne({ user_id: req.user._id.toString(), reel_id: id, type: 'save_reel' });
+    const existing = await Interaction.findOne({
+      $or: [{ user_id: uidStr }, { user_id: req.user._id }],
+      reel_id: id,
+      type: 'save_reel',
+    });
     if (!existing) {
       await Interaction.create({
-        user_id: req.user._id.toString(),
+        user_id: uidStr,
         reel_id: id,
         type: 'save_reel',
       });
       await Reel.updateOne({ _id: id }, { $inc: { savesCount: 1 } });
     }
+
+    // Invalidate activity counts cache for current user
+    cache.deleteCache(`user:activity-counts:${uidStr}`).catch(() => {});
 
     return ApiResponse.ok(res, 'Reel saved successfully.', { user, active: true });
   });
@@ -195,6 +205,9 @@ class ReelController {
     const userModel = require('../models/User');
     const Interaction = require('../models/Interaction');
     const Reel = require('../models/Reel');
+    const cache = require('../utils/cache');
+
+    const uidStr = req.user._id.toString();
 
     const user = await userModel.findByIdAndUpdate(
       req.user._id,
@@ -202,11 +215,15 @@ class ReelController {
       { returnDocument: 'after' }
     ).select('-password -__v');
 
-    const existing = await Interaction.findOne({ user_id: req.user._id.toString(), reel_id: id, type: 'save_reel' });
-    if (existing) {
-      await Interaction.deleteOne({ _id: existing._id });
-      await Reel.updateOne({ _id: id }, { $inc: { savesCount: -1 } });
-    }
+    await Interaction.deleteMany({
+      $or: [{ user_id: uidStr }, { user_id: req.user._id }],
+      reel_id: id,
+      type: 'save_reel',
+    });
+    await Reel.updateOne({ _id: id }, { $inc: { savesCount: -1 } });
+
+    // Invalidate activity counts cache for current user
+    cache.deleteCache(`user:activity-counts:${uidStr}`).catch(() => {});
 
     return ApiResponse.ok(res, 'Reel removed from saved.', { user, active: false });
   });
@@ -235,14 +252,20 @@ class ReelController {
     const Reel = require('../models/Reel');
     const User = require('../models/User');
 
-    const userDoc = await User.findById(req.user._id).select('customerProfile.savedReels').lean();
+    const uidStr = req.user._id.toString();
+    const uidObj = req.user._id;
+
+    const userDoc = await User.findById(uidObj).select('customerProfile.savedReels').lean();
     const profileSavedIds = (userDoc?.customerProfile?.savedReels || []).map((id) => id.toString());
 
     const interactions = await Interaction.find({
       $or: [
-        { user_id: req.user._id.toString(), type: 'save_reel' },
-        { user_id: req.user._id, type: 'save_reel' },
+        { user_id: uidStr, type: 'save_reel' },
+        { user_id: uidObj, type: 'save_reel' },
+        { user_id: uidStr, type: 'save' },
+        { user_id: uidObj, type: 'save' },
       ],
+      reel_id: { $ne: null }
     }).select('reel_id');
 
     const interactionReelIds = interactions.map((i) => i.reel_id?.toString()).filter(Boolean);
@@ -254,7 +277,7 @@ class ReelController {
       is_deleted: { $ne: true },
       isDeleted: { $ne: true },
     })
-      .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city')
+      .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city category')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -262,8 +285,8 @@ class ReelController {
     const followService = require('../services/follow.service');
     const reelIds = reels.map(r => r._id?.toString() || r.id).filter(Boolean);
     const [state, followedIdsList] = await Promise.all([
-      interactionService.userInteractionState(req.user._id, reelIds).catch(() => ({})),
-      followService.followingIds(req.user._id).catch(() => []),
+      interactionService.userInteractionState(uidObj, reelIds).catch(() => ({})),
+      followService.followingIds(uidObj).catch(() => []),
     ]);
     const followedSet = new Set((followedIdsList || []).map(id => id?.toString()).filter(Boolean));
 

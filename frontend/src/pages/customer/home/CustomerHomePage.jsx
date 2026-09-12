@@ -476,7 +476,11 @@ export default function CustomerHomePage() {
 
     setSavedMap((prev) => ({ ...prev, [stringId]: newSaved }));
     try {
-      const isReel = customPostType === 'reel' || (item?.postType === 'reel') || (activeTab === 'reels');
+      const isReel =
+        customPostType === 'reel' ||
+        item?.postType === 'reel' ||
+        activeTab === 'reels' ||
+        Boolean(item?.videoUrl || item?.video_url || item?.video || item?.mediaUrls?.[0]?.includes?.('.mp4'));
       if (isReel) {
         if (!newSaved) {
           await api.post(`/v1/reels/${stringId}/unsave`);
