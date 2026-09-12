@@ -77,15 +77,26 @@ router.post('/reset-password', authLimiter, authValidation.resetPassword, valida
 router.post('/refresh-token', authController.refreshToken);
 router.post('/refresh', authController.refreshToken);
 
+// Helper function to resolve exact OAuth Callback URL
+function getOAuthCallbackUrl(req, isApp = false) {
+  const host = req.get('host');
+  const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+  let rawProto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  if (typeof rawProto === 'string' && rawProto.includes(',')) {
+    rawProto = rawProto.split(',')[0].trim();
+  }
+  const protocol = isLocal ? rawProto : 'https';
+  const path = isApp ? '/api/v1/auth/app/google/callback' : '/api/v1/auth/google/callback';
+  return `${protocol}://${host}${path}`;
+}
+
 // Google OAuth (General / Web)
 router.get(
   '/google',
   (req, res, next) => {
     const config = require('../config');
     const redirectUri = req.query.redirect_uri || req.query.redirect || req.query.state || '';
-    const host = req.get('host');
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const callbackURL = config.google.callbackUrl || `${protocol}://${host}/api/v1/auth/google/callback`;
+    const callbackURL = config.google.callbackUrl || getOAuthCallbackUrl(req, false);
     passport.authenticate('google', {
       scope: ['profile', 'email'],
       session: false,
@@ -99,9 +110,7 @@ router.get(
   '/google/callback',
   (req, res, next) => {
     const config = require('../config');
-    const host = req.get('host');
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const callbackURL = config.google.callbackUrl || `${protocol}://${host}/api/v1/auth/google/callback`;
+    const callbackURL = config.google.callbackUrl || getOAuthCallbackUrl(req, false);
     const targetState = req.query.state || req.query.redirect_uri || '';
 
     passport.authenticate('google', { session: false, callbackURL }, (err, user, info) => {
@@ -127,9 +136,7 @@ router.get(
   '/app/google',
   (req, res, next) => {
     const redirectUri = req.query.redirect_uri || req.query.redirect || req.query.state || 'bizreel://auth/callback';
-    const host = req.get('host');
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const callbackURL = `${protocol}://${host}/api/v1/auth/app/google/callback`;
+    const callbackURL = getOAuthCallbackUrl(req, true);
     passport.authenticate('google', {
       scope: ['profile', 'email'],
       session: false,
@@ -142,9 +149,7 @@ router.get(
 router.get(
   '/app/google/callback',
   (req, res, next) => {
-    const host = req.get('host');
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    const callbackURL = `${protocol}://${host}/api/v1/auth/app/google/callback`;
+    const callbackURL = getOAuthCallbackUrl(req, true);
     const targetState = req.query.state || 'bizreel://auth/callback';
 
     passport.authenticate('google', { session: false, callbackURL }, (err, user, info) => {

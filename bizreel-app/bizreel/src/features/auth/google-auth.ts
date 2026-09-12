@@ -1,6 +1,7 @@
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 
+import { getBaseUrl } from '@/lib/api';
 import { tokenStore } from '@/lib/storage';
 import { fetchCurrentUser } from './api';
 
@@ -11,7 +12,7 @@ export async function performGoogleAuth(
 ): Promise<{ success: boolean; user?: any; message?: string }> {
   try {
     const redirectUrl = Linking.createURL('/auth/callback');
-    const baseUrl = process.env.EXPO_PUBLIC_API_URL || 'https://bizreels-backend.onrender.com/api/v1';
+    const baseUrl = getBaseUrl();
     const authUrl = `${baseUrl}/auth/app/google?redirect_uri=${encodeURIComponent(redirectUrl)}`;
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
