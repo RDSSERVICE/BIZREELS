@@ -748,7 +748,7 @@ router.get('/me/activities', requireAuth, catchAsync(async (req, res) => {
           is_deleted: { $ne: true },
           isDeleted: { $ne: true }
         })
-          .populate('creator user_id vendor', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
+          .populate('creator', 'name avatarUrl profile_pic roles vendorProfile rating_avg rating_count')
           .populate('targetListing')
           .sort({ createdAt: -1 })
           .lean(),

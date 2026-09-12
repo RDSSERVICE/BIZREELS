@@ -296,7 +296,8 @@ class ReelController {
         is_deleted: { $ne: true },
         isDeleted: { $ne: true },
       })
-        .populate('user_id creator vendor', 'name businessName phone phone_number avatarUrl city category')
+        .populate('creator', 'name businessName phone phone_number avatarUrl profile_pic roles vendorProfile rating_avg rating_count city category')
+        .populate('targetListing')
         .sort({ createdAt: -1 })
         .lean(),
       Listing.find({
