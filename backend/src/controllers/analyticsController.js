@@ -117,6 +117,85 @@ class AnalyticsController {
     });
   });
 
+  // ── Get Vendor Lead & Contact Summary (Separate Dedicated API) ─────────────
+  getVendorLeadSummary = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    const userIdStr = userId.toString();
+
+    const Analytics = require('../models/Analytics');
+    const Inquiry = require('../models/Inquiry');
+    const Interaction = require('../models/Interaction');
+    let ChatThread = null;
+    try {
+      ChatThread = require('../models/Chat').ChatThread;
+    } catch (_) {}
+    let ListingEvent = null;
+    try {
+      ListingEvent = require('../models/Misc').ListingEvent;
+    } catch (_) {}
+
+    const targetUserMatch = { $in: [userIdStr, userId] };
+
+    // 1. Query Chat Threads for Vendor Inbox
+    const chatThreads = ChatThread
+      ? await ChatThread.find({
+          $or: [
+            { participants: userIdStr },
+            { participants: userId },
+            { participantIds: userIdStr },
+            { vendorId: userIdStr },
+            { vendor: userId },
+          ],
+        }).lean().catch(() => [])
+      : [];
+
+    let unreadChatsCount = 0;
+    for (const thread of chatThreads) {
+      if (thread.unread_count && typeof thread.unread_count === 'object') {
+        unreadChatsCount += Number(thread.unread_count[userIdStr] || thread.unread_count[userId] || 0);
+      }
+    }
+
+    // 2. Query Direct Inquiries for Vendor Inbox
+    const inquiries = await Inquiry.find({
+      $or: [
+        { vendor: userId },
+        { vendor: userIdStr },
+        { vendorId: userId },
+        { vendor_id: userId },
+        { vendorId: userIdStr },
+      ],
+      isDeleted: { $ne: true },
+    }).lean().catch(() => []);
+
+    // 3. Query Interaction & Listing Event Counts
+    const [callInters, waInters, chatInters, listingEventsCall, listingEventsWa, analyticsCalls, analyticsWa] = await Promise.all([
+      Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'click_to_call' }).catch(() => 0),
+      Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'whatsapp_contact' }).catch(() => 0),
+      Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'chat_inquiry' }).catch(() => 0),
+      ListingEvent ? ListingEvent.countDocuments({ vendor_id: targetUserMatch, event_type: { $in: ['call_click', 'contact_click'] } }).catch(() => 0) : 0,
+      ListingEvent ? ListingEvent.countDocuments({ vendor_id: targetUserMatch, event_type: 'wa_click' }).catch(() => 0) : 0,
+      Analytics.countDocuments({ targetId: userId, type: { $in: ['call_vendor', 'click_to_call'] } }).catch(() => 0),
+      Analytics.countDocuments({ targetId: userId, type: { $in: ['whatsapp_vendor', 'whatsapp_contact'] } }).catch(() => 0),
+    ]);
+
+    const callsCount = Math.max(callInters, analyticsCalls, listingEventsCall);
+    const whatsappCount = Math.max(waInters, analyticsWa, listingEventsWa);
+    const chatsCount = Math.max(chatThreads.length, chatInters);
+    const inquiriesCount = Math.max(inquiries.length, chatsCount);
+
+    return ApiResponse.ok(res, 'Vendor database lead & contact summary loaded.', {
+      callsCount,
+      whatsappCount,
+      chatsCount,
+      inquiriesCount,
+      unreadChatsCount,
+      chatThreadsCount: chatThreads.length,
+      directInquiriesCount: inquiries.length,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // ── Get Creator Dashboard Analytics ───────────────────────
   getCreatorAnalytics = asyncHandler(async (req, res) => {
     const userId = req.user._id;

@@ -88,17 +88,19 @@ export default function ProfileScreen() {
       if (u?.activeRole === 'vendor' || u?.current_role === 'vendor' || u?.role === 'vendor') {
         Promise.all([
           api.get('/analytics/vendor').catch(() => ({ data: {} })),
+          api.get('/analytics/vendor-lead-summary').catch(() => ({ data: {} })),
           api.get('/vendor/analytics/overview?range=30d').catch(() => ({ data: {} })),
         ])
-          .then(([leadsRes, overviewRes]) => {
+          .then(([leadsRes, leadSummaryRes, overviewRes]) => {
             const leads = leadsRes.data?.data || leadsRes.data || {};
+            const summary = leadSummaryRes.data?.data || leadSummaryRes.data || {};
             const rawOverview = overviewRes.data?.data || overviewRes.data || {};
             const kpis = rawOverview.kpis || rawOverview || {};
 
-            const calls = Math.max(Number(leads.callsCount || 0), Number(kpis.phoneCalls || 0), Number(kpis.callsCount || 0));
-            const wa = Math.max(Number(leads.whatsappCount || 0), Number(kpis.whatsappClicks || 0), Number(kpis.whatsappCount || 0), Number(kpis.wa_clicks || 0));
-            const chats = Math.max(Number(leads.chatsCount || 0), Number(kpis.chatsCount || 0), Number(kpis.chats_started || 0), Number(kpis.unique_chatters || 0));
-            const inquiries = Math.max(Number(leads.inquiriesCount || 0), Number(kpis.inquiriesCount || 0), Number(kpis.leads || 0), chats);
+            const calls = Math.max(Number(leads.callsCount || 0), Number(summary.callsCount || 0), Number(kpis.phoneCalls || 0));
+            const wa = Math.max(Number(leads.whatsappCount || 0), Number(summary.whatsappCount || 0), Number(kpis.whatsappClicks || 0));
+            const chats = Math.max(Number(leads.chatsCount || 0), Number(summary.chatsCount || 0), Number(summary.chatThreadsCount || 0), Number(kpis.chatsCount || 0));
+            const inquiries = Math.max(Number(leads.inquiriesCount || 0), Number(summary.inquiriesCount || 0), Number(summary.directInquiriesCount || 0), chats);
 
             setVendorAnalytics({
               callsCount: calls,
