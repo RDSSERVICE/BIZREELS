@@ -68,23 +68,30 @@ export default function VendorDashboardScreen() {
       const [overviewRes, leadsRes, analyticsRes, walletRes] = await Promise.all([
         api.get('/vendor/analytics/overview?range=30d').catch(() => ({ data: {} })),
         api.get('/inquiries').catch(() => ({ data: {} })),
-        api.get('/analytics/vendor').catch(() => ({ data: {} })),
+        api.get('/analytics/vendor-lead-summary').catch(() => ({ data: {} })),
         api.get('/wallet/balance').catch(() => ({ data: {} })),
       ]);
 
-      const overview = overviewRes.data?.data || overviewRes.data || {};
+      const rawOverview = overviewRes.data?.data || overviewRes.data || {};
+      const kpis = rawOverview.kpis || {};
       const inquiriesList = leadsRes.data?.data || leadsRes.data || [];
-      const analyticsLeads = analyticsRes.data?.data || analyticsRes.data || {};
+      const leadSummary = analyticsRes.data?.data || analyticsRes.data || {};
       const walletData = walletRes.data?.data || walletRes.data || {};
 
-      const productsCount = overview.totalListings || overview.activeListings || 0;
-      const servicesCount = overview.totalServices || 0;
-      const reelsCount = overview.reelsStats?.totalReels || 0;
-      const totalViewsCount = overview.views || 0;
-      const followersCount = (user as any)?.followers_count || overview.followers || 0;
-      const enquiriesCount = analyticsLeads.inquiriesCount || (Array.isArray(inquiriesList) ? inquiriesList.length : 0);
-      const ordersCount = overview.ordersCount || 0;
-      const salesAmount = overview.revenue || 0;
+      const productsCount = Number(rawOverview.totalProducts ?? kpis.products_total ?? rawOverview.activeListings ?? kpis.listings_active ?? 0);
+      const servicesCount = Number(rawOverview.totalServices ?? kpis.services_total ?? 0);
+      const reelsCount = Number(rawOverview.totalReels ?? kpis.reels_total ?? rawOverview.reelsStats?.totalReels ?? 0);
+      const totalViewsCount = Number(rawOverview.views ?? kpis.views ?? 0);
+      const followersCount = Number((user as any)?.followers_count || rawOverview.followers || kpis.followers || (user as any)?.followersCount || 0);
+      const enquiriesCount = Math.max(
+        Number(leadSummary.inquiriesCount || 0),
+        Number(leadSummary.directInquiriesCount || 0),
+        Number(kpis.inquiriesCount || 0),
+        Number(rawOverview.leadEnquiries || 0),
+        Array.isArray(inquiriesList) ? inquiriesList.length : 0
+      );
+      const ordersCount = Number(rawOverview.ordersCount ?? kpis.total_orders ?? kpis.ordersCount ?? 0);
+      const salesAmount = Number(rawOverview.revenue ?? kpis.total_revenue ?? kpis.revenue ?? 0);
 
       setMetrics({
         totalProducts: productsCount,

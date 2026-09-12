@@ -368,6 +368,21 @@ const overview = async (vendorId, rangeKey = '30d') => {
 
   return {
     range: rangeKey,
+    totalProducts: productsCount,
+    totalServices: servicesCount,
+    totalListings,
+    activeListings,
+    totalReels: reelsCount,
+    views: totalViews,
+    followers: effectiveFollowers,
+    leadEnquiries: Math.max(inquiriesCount, chatsStarted),
+    ordersCount: totalOrdersCount,
+    revenue: totalRevenue,
+    reelsStats: {
+      totalReels: reelsCount,
+      views: baseReelsStats.views || 0,
+      likes: baseReelsStats.likes || 0,
+    },
     kpis: {
       views: totalViews,
       chats_started: chatsStarted,
