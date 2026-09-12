@@ -105,6 +105,12 @@ export async function fetchMyReels(): Promise<any[]> {
   return Array.isArray(items) ? items : [];
 }
 
+export async function fetchSavedReels(): Promise<any[]> {
+  const { data } = await api.get('/reels/saved');
+  const items = data.data?.reels || data.reels || data.data || data || [];
+  return Array.isArray(items) ? items : [];
+}
+
 export async function createReel(payload: {
   videoUrl: string;
   thumbnailUrl?: string;

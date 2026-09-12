@@ -541,6 +541,12 @@ router.patch('/me/interests', requireAuth, catchAsync(async (req, res) => {
   });
 }));
 
+// ── Saved Reels Alias Endpoint ───────────────────────────────────────
+router.get('/me/saved-reels', requireAuth, (req, res, next) => {
+  const reelController = require('../controllers/reelController');
+  return reelController.getSavedReels(req, res, next);
+});
+
 // ── Activity Counts (Analytics for Activities Dashboard) ───────────────
 router.get('/me/activity-counts', requireAuth, catchAsync(async (req, res) => {
   const uid = req.user._id.toString();
