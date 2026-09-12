@@ -149,18 +149,6 @@ export default function ListingDetailsScreen() {
   const isService = listing.type === 'service';
 
   const currentUserId = user?._id || (user as any)?.id;
-  const isVendorRole = Boolean(
-    (user as any)?.activeRole === 'vendor' ||
-      (user as any)?.role === 'vendor' ||
-      (user as any)?.current_role === 'vendor' ||
-      (user as any)?.activeRole === 'creator'
-  );
-  const isOwner = Boolean(
-    currentUserId &&
-      (currentUserId.toString() === vendorId?.toString() ||
-        (vendorObj && (vendorObj._id?.toString() === currentUserId.toString() || vendorObj.id?.toString() === currentUserId.toString())))
-  );
-  const hideCustomerActions = isOwner || isVendorRole;
 
   const priceCandidates = [
     listing.sellingPrice,
