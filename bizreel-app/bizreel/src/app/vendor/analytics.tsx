@@ -105,6 +105,17 @@ export default function VendorAnalyticsScreen() {
     fetchTimeseries();
   }, [range, metric]);
 
+  useEffect(() => {
+    if (listingId && listings.length > 0) {
+      const matched = listings.find(
+        (l) => (l.listing_id || l._id || l.id)?.toString() === listingId.toString()
+      );
+      if (matched) {
+        openRoiModal(matched);
+      }
+    }
+  }, [listingId, listings]);
+
   const handleSimulate = async () => {
     setSimulating(true);
     try {

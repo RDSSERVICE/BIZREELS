@@ -11,7 +11,9 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Modal,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -58,6 +60,7 @@ export default function VendorCatalogScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<'latest' | 'price_low' | 'price_high'>('latest');
   const [hiddenIds, setHiddenIds] = useState<string[]>([]);
+  const [selectedAnalyticsItem, setSelectedAnalyticsItem] = useState<any>(null);
 
   function handleAddItem() {
     if (!isVerified) {
@@ -373,18 +376,7 @@ export default function VendorCatalogScreen() {
                   <View style={styles.actionsRow}>
                     <TouchableOpacity
                       style={styles.actionIconBtn}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/vendor/analytics' as any,
-                          params: {
-                            listingId: item._id,
-                            title: item.title,
-                            price: price,
-                            views: itemAny.views || itemAny.viewsCount || 0,
-                            likes: itemAny.likes || itemAny.likesCount || 0,
-                          },
-                        } as any)
-                      }>
+                      onPress={() => setSelectedAnalyticsItem(item)}>
                       <Ionicons name="stats-chart" size={15} color={YELLOW} />
                     </TouchableOpacity>
 
@@ -433,6 +425,183 @@ export default function VendorCatalogScreen() {
           }}
         />
       )}
+
+      {/* ── PARTICULAR ITEM ANALYTICS MODAL ── */}
+      <Modal
+        visible={Boolean(selectedAnalyticsItem)}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setSelectedAnalyticsItem(null)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setSelectedAnalyticsItem(null)} />
+          {selectedAnalyticsItem && (
+            <View style={styles.modalContent}>
+              {/* Modal Header */}
+              <View style={styles.modalHeader}>
+                <View style={styles.modalTitleRow}>
+                  <Ionicons name="stats-chart" size={18} color={YELLOW} />
+                  <Text style={styles.modalTitle}>PRODUCT PERFORMANCE ANALYTICS</Text>
+                </View>
+                <TouchableOpacity onPress={() => setSelectedAnalyticsItem(null)} style={styles.closeBtn}>
+                  <Ionicons name="close" size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
+                {/* Selected Item Summary Card */}
+                <View style={styles.itemSummaryCard}>
+                  {getListingImage(selectedAnalyticsItem) ? (
+                    <Image source={{ uri: getListingImage(selectedAnalyticsItem)! }} style={styles.itemSummaryImage} contentFit="cover" />
+                  ) : (
+                    <View style={styles.itemSummaryFallback}>
+                      <Ionicons name="cube-outline" size={24} color="rgba(255,255,255,0.4)" />
+                    </View>
+                  )}
+                  <View style={styles.itemSummaryInfo}>
+                    <Text style={styles.itemSummaryTitle} numberOfLines={2}>
+                      {selectedAnalyticsItem.title}
+                    </Text>
+                    <Text style={styles.itemSummarySub}>
+                      {selectedAnalyticsItem.category || 'General'} {selectedAnalyticsItem.subcategory ? `• ${selectedAnalyticsItem.subcategory}` : ''}
+                    </Text>
+                    <View style={styles.itemSummaryPriceRow}>
+                      <Text style={styles.itemSummaryPrice}>
+                        ₹{(selectedAnalyticsItem.salePrice || selectedAnalyticsItem.price || 0).toLocaleString('en-IN')}
+                      </Text>
+                      <View style={[styles.statusBadge, hiddenIds.includes(selectedAnalyticsItem._id) && styles.statusBadgeDraft]}>
+                        <Text style={[styles.statusBadgeText, hiddenIds.includes(selectedAnalyticsItem._id) && styles.statusBadgeTextDraft]}>
+                          {hiddenIds.includes(selectedAnalyticsItem._id) ? 'HIDDEN' : 'ACTIVE'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Real-time Performance Metrics Grid */}
+                <Text style={styles.sectionHeaderTitle}>REAL-TIME PERFORMANCE METRICS</Text>
+                <View style={styles.metricsGrid}>
+                  <View style={styles.metricCard}>
+                    <View style={styles.metricCardHeader}>
+                      <Ionicons name="eye-outline" size={16} color="#38BDF8" />
+                      <Text style={styles.metricCardLabel}>VIEWS</Text>
+                    </View>
+                    <Text style={styles.metricCardVal}>
+                      {(selectedAnalyticsItem.views || selectedAnalyticsItem.viewsCount || 0).toLocaleString('en-IN')}
+                    </Text>
+                    <Text style={styles.metricCardSub}>Customer impressions</Text>
+                  </View>
+
+                  <View style={styles.metricCard}>
+                    <View style={styles.metricCardHeader}>
+                      <Ionicons name="heart-outline" size={16} color="#EC4899" />
+                      <Text style={styles.metricCardLabel}>LIKES & SAVES</Text>
+                    </View>
+                    <Text style={styles.metricCardVal}>
+                      {(selectedAnalyticsItem.likes || selectedAnalyticsItem.likesCount || 0) + (selectedAnalyticsItem.saves_count || 0)}
+                    </Text>
+                    <Text style={styles.metricCardSub}>Bookmarked by buyers</Text>
+                  </View>
+
+                  <View style={styles.metricCard}>
+                    <View style={styles.metricCardHeader}>
+                      <Ionicons name="chatbubbles-outline" size={16} color={YELLOW} />
+                      <Text style={styles.metricCardLabel}>INQUIRIES</Text>
+                    </View>
+                    <Text style={styles.metricCardVal}>
+                      {selectedAnalyticsItem.inquiriesCount || selectedAnalyticsItem.calls || selectedAnalyticsItem.wa_clicks || 0}
+                    </Text>
+                    <Text style={styles.metricCardSub}>Buyer chats & calls</Text>
+                  </View>
+
+                  <View style={styles.metricCard}>
+                    <View style={styles.metricCardHeader}>
+                      <Ionicons name="bag-handle-outline" size={16} color="#10B981" />
+                      <Text style={styles.metricCardLabel}>ORDERS & DEALS</Text>
+                    </View>
+                    <Text style={styles.metricCardVal}>
+                      {selectedAnalyticsItem.orders_count || selectedAnalyticsItem.deals || 0}
+                    </Text>
+                    <Text style={styles.metricCardSub}>Purchases & deals</Text>
+                  </View>
+                </View>
+
+                {/* Conversion Rate Box */}
+                <View style={styles.conversionBox}>
+                  <View style={styles.conversionLeft}>
+                    <Ionicons name="trending-up-outline" size={22} color="#10B981" />
+                    <View>
+                      <Text style={styles.conversionTitle}>ESTIMATED CONVERSION RATE</Text>
+                      <Text style={styles.conversionSub}>Orders vs views ratio</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.conversionVal}>
+                    {(((selectedAnalyticsItem.orders_count || 0) / Math.max(1, selectedAnalyticsItem.views || selectedAnalyticsItem.viewsCount || 1)) * 100).toFixed(1)}%
+                  </Text>
+                </View>
+
+                {/* Boost ROI Promotion Status Box */}
+                <View style={styles.boostRoiBox}>
+                  <View style={styles.boostRoiHeader}>
+                    <Ionicons name="sparkles" size={16} color={YELLOW} />
+                    <Text style={styles.boostRoiTitle}>PRODUCT BOOST & PROMOTION</Text>
+                  </View>
+                  <Text style={styles.boostRoiDesc}>
+                    {selectedAnalyticsItem.isBoosted
+                      ? '⚡ This product is actively boosted! Appearing in top search results & home feed highlights.'
+                      : '🚀 Boost this product to get up to 5x higher customer views & direct buyer inquiries!'}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.boostBtn}
+                    onPress={() => {
+                      const itemToBoost = selectedAnalyticsItem;
+                      setSelectedAnalyticsItem(null);
+                      router.push({
+                        pathname: '/vendor/subscription' as any,
+                        params: { boostItemId: itemToBoost._id },
+                      } as any);
+                    }}>
+                    <Ionicons name="flash" size={14} color={BLACK} />
+                    <Text style={styles.boostBtnText}>
+                      {selectedAnalyticsItem.isBoosted ? 'EXTEND PRODUCT BOOST' : 'BOOST THIS PRODUCT NOW'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Quick Action Footer inside Modal */}
+                <View style={styles.modalActionRow}>
+                  <TouchableOpacity
+                    style={styles.modalEditBtn}
+                    onPress={() => {
+                      const editId = selectedAnalyticsItem._id;
+                      setSelectedAnalyticsItem(null);
+                      router.push({
+                        pathname: '/vendor/listings/create' as any,
+                        params: { editId },
+                      } as any);
+                    }}>
+                    <Ionicons name="create-outline" size={14} color={YELLOW} />
+                    <Text style={styles.modalEditBtnText}>EDIT PRODUCT</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.modalFullAnalyticsBtn}
+                    onPress={() => {
+                      const targetId = selectedAnalyticsItem._id;
+                      setSelectedAnalyticsItem(null);
+                      router.push({
+                        pathname: '/vendor/analytics' as any,
+                        params: { listingId: targetId },
+                      } as any);
+                    }}>
+                    <Ionicons name="analytics-outline" size={14} color="#fff" />
+                    <Text style={styles.modalFullAnalyticsBtnText}>STORE ANALYTICS ›</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -838,5 +1007,252 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+
+  /* Item Analytics Modal Styles */
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContent: {
+    backgroundColor: DARK_CARD,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  itemSummaryCard: {
+    flexDirection: 'row',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 8,
+    padding: 12,
+    gap: 12,
+    marginBottom: 16,
+  },
+  itemSummaryImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: BORDER,
+  },
+  itemSummaryFallback: {
+    width: 60,
+    height: 60,
+    borderRadius: 6,
+    backgroundColor: '#23232A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemSummaryInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  itemSummaryTitle: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  itemSummarySub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  itemSummaryPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemSummaryPrice: {
+    color: YELLOW,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  sectionHeaderTitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+  metricCard: {
+    width: '48%',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 12,
+    borderRadius: 8,
+  },
+  metricCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  metricCardLabel: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  metricCardVal: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  metricCardSub: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  conversionBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: BORDER,
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  conversionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  conversionTitle: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  conversionSub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+  },
+  conversionVal: {
+    color: '#10B981',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  boostRoiBox: {
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    padding: 14,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  boostRoiHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  boostRoiTitle: {
+    color: YELLOW,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  boostRoiDesc: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  boostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: YELLOW,
+    paddingVertical: 10,
+    borderRadius: 6,
+  },
+  boostBtnText: {
+    color: BLACK,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 20,
+  },
+  modalEditBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: BLACK,
+    borderWidth: 1,
+    borderColor: YELLOW,
+    paddingVertical: 12,
+    borderRadius: 6,
+  },
+  modalEditBtnText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  modalFullAnalyticsBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#23232A',
+    borderWidth: 1,
+    borderColor: BORDER,
+    paddingVertical: 12,
+    borderRadius: 6,
+  },
+  modalFullAnalyticsBtnText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
   },
 });
