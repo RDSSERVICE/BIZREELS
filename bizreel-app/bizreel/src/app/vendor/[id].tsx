@@ -247,6 +247,17 @@ export default function PublicVendorProfileScreen() {
     );
   }
 
+  const currentUserId = user?._id || (user as any)?.id;
+  const isOwner = Boolean(
+    currentUserId &&
+      (currentUserId.toString() === vendorId?.toString() ||
+        (vendor && ((vendor as any)._id?.toString() === currentUserId.toString() || (vendor as any).id?.toString() === currentUserId.toString())))
+  );
+  const isVendor = Boolean(
+    (user as any)?.activeRole === 'vendor' || (user as any)?.role === 'vendor' || (user as any)?.current_role === 'vendor'
+  );
+  const hideCustomerActions = isOwner || (isVendor && currentUserId && vendorId && currentUserId.toString() === vendorId.toString());
+
   const avatarUri = resolveImageUrl(vendor.profile_pic) || 'https://via.placeholder.com/150';
   const bannerUri = resolveImageUrl(vendor.cover_banner) || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800';
 
@@ -265,9 +276,11 @@ export default function PublicVendorProfileScreen() {
             {vendor.category || 'Verified Business Store'}
           </Text>
         </View>
-        <TouchableOpacity style={styles.headerBtn} onPress={handleChat}>
-          <Ionicons name="chatbubble-ellipses-outline" size={20} color={YELLOW} />
-        </TouchableOpacity>
+        {!hideCustomerActions && (
+          <TouchableOpacity style={styles.headerBtn} onPress={handleChat}>
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color={YELLOW} />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView
@@ -287,23 +300,32 @@ export default function PublicVendorProfileScreen() {
               <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="cover" />
             </View>
             <View style={styles.headerBtnGroup}>
-              <TouchableOpacity
-                style={[styles.followBtn, isFollowing && styles.followBtnActive]}
-                onPress={handleToggleFollow}>
-                <Ionicons
-                  name={isFollowing ? 'checkmark-circle' : 'person-add-outline'}
-                  size={14}
-                  color={isFollowing ? '#fff' : BLACK}
-                />
-                <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
-                  {isFollowing ? 'Following' : 'Follow Store'}
-                </Text>
-              </TouchableOpacity>
+              {hideCustomerActions ? (
+                <TouchableOpacity style={styles.chatBtn} onPress={() => router.push('/vendor/settings' as any)}>
+                  <Ionicons name="create-outline" size={14} color={BLACK} />
+                  <Text style={styles.chatBtnText}>Edit Profile</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={[styles.followBtn, isFollowing && styles.followBtnActive]}
+                    onPress={handleToggleFollow}>
+                    <Ionicons
+                      name={isFollowing ? 'checkmark-circle' : 'person-add-outline'}
+                      size={14}
+                      color={isFollowing ? '#fff' : BLACK}
+                    />
+                    <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+                      {isFollowing ? 'Following' : 'Follow Store'}
+                    </Text>
+                  </TouchableOpacity>
 
-              <TouchableOpacity style={styles.chatBtn} onPress={handleChat}>
-                <Ionicons name="chatbubble-ellipses" size={14} color={BLACK} />
-                <Text style={styles.chatBtnText}>Chat</Text>
-              </TouchableOpacity>
+                  <TouchableOpacity style={styles.chatBtn} onPress={handleChat}>
+                    <Ionicons name="chatbubble-ellipses" size={14} color={BLACK} />
+                    <Text style={styles.chatBtnText}>Chat</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </View>
 
@@ -341,17 +363,19 @@ export default function PublicVendorProfileScreen() {
           </View>
 
           {/* Action Row */}
-          <View style={styles.contactActionRow}>
-            <TouchableOpacity style={styles.actionPill} onPress={handleCall}>
-              <Ionicons name="call-outline" size={14} color={YELLOW} />
-              <Text style={styles.actionPillText}>Call Store</Text>
-            </TouchableOpacity>
+          {!hideCustomerActions && (
+            <View style={styles.contactActionRow}>
+              <TouchableOpacity style={styles.actionPill} onPress={handleCall}>
+                <Ionicons name="call-outline" size={14} color={YELLOW} />
+                <Text style={styles.actionPillText}>Call Store</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionPill} onPress={handleChat}>
-              <Ionicons name="paper-plane-outline" size={14} color={YELLOW} />
-              <Text style={styles.actionPillText}>Send Inquiry</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity style={styles.actionPill} onPress={handleChat}>
+                <Ionicons name="paper-plane-outline" size={14} color={YELLOW} />
+                <Text style={styles.actionPillText}>Send Inquiry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Metrics Grid */}
           <View style={styles.metricsRow}>
@@ -442,13 +466,15 @@ export default function PublicVendorProfileScreen() {
                         </Text>
                         <View style={styles.productPriceRow}>
                           <Text style={styles.productPrice}>₹{price}</Text>
-                          <TouchableOpacity
-                            style={styles.addCartSmallBtn}
-                            onPress={() =>
-                              addToCartMutation.mutate({ listing_id: (item._id || item.id || ''), quantity: 1 })
-                            }>
-                            <Ionicons name="cart" size={14} color={BLACK} />
-                          </TouchableOpacity>
+                          {!hideCustomerActions && (
+                            <TouchableOpacity
+                              style={styles.addCartSmallBtn}
+                              onPress={() =>
+                                addToCartMutation.mutate({ listing_id: (item._id || item.id || ''), quantity: 1 })
+                              }>
+                              <Ionicons name="cart" size={14} color={BLACK} />
+                            </TouchableOpacity>
+                          )}
                         </View>
                       </View>
                     </TouchableOpacity>
