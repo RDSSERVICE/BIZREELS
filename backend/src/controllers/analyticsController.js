@@ -44,29 +44,55 @@ class AnalyticsController {
   // ── Get Vendor Dashboard Analytics ───────────────────────
   getVendorAnalytics = asyncHandler(async (req, res) => {
     const userId = req.user._id;
+    const userIdStr = userId.toString();
+
     const Analytics = require('../models/Analytics');
     const Inquiry = require('../models/Inquiry');
     const Interaction = require('../models/Interaction');
+    let ChatThread = null;
+    try {
+      ChatThread = require('../models/Chat').ChatThread;
+    } catch (_) {}
+    let ListingEvent = null;
+    try {
+      ListingEvent = require('../models/Misc').ListingEvent;
+    } catch (_) {}
+
+    const targetUserMatch = { $in: [userIdStr, userId] };
 
     const [
-      callsCount,
-      whatsappCount,
-      chatsCount,
+      callInters,
+      waInters,
+      chatInters,
       inquiriesCount,
+      chatThreadsCount,
       savedReelsCount,
+      analyticsCalls,
+      analyticsWa,
+      listingEventsCall,
+      listingEventsWa,
     ] = await Promise.all([
-      Analytics.countDocuments({ targetId: userId, type: 'call_vendor' }),
-      Analytics.countDocuments({ targetId: userId, type: 'whatsapp_vendor' }),
-      Analytics.countDocuments({ targetId: userId, type: 'chat_vendor' }),
-      Inquiry.countDocuments({ vendorId: userId }),
-      Interaction.countDocuments({ type: 'save_reel' }),
+      Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'click_to_call' }).catch(() => 0),
+      Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'whatsapp_contact' }).catch(() => 0),
+      Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'chat_inquiry' }).catch(() => 0),
+      Inquiry.countDocuments({ $or: [{ vendorId: userId }, { vendor_id: userId }, { vendorId: userIdStr }] }).catch(() => 0),
+      ChatThread ? ChatThread.countDocuments({ $or: [{ participantIds: userIdStr }, { vendorId: userIdStr }, { vendor: userId }] }).catch(() => 0) : 0,
+      Interaction.countDocuments({ type: 'save_reel' }).catch(() => 0),
+      Analytics.countDocuments({ targetId: userId, type: { $in: ['call_vendor', 'click_to_call'] } }).catch(() => 0),
+      Analytics.countDocuments({ targetId: userId, type: { $in: ['whatsapp_vendor', 'whatsapp_contact'] } }).catch(() => 0),
+      ListingEvent ? ListingEvent.countDocuments({ vendor_id: targetUserMatch, event_type: { $in: ['call_click', 'contact_click'] } }).catch(() => 0) : 0,
+      ListingEvent ? ListingEvent.countDocuments({ vendor_id: targetUserMatch, event_type: 'wa_click' }).catch(() => 0) : 0,
     ]);
+
+    const callsCount = Math.max(callInters, analyticsCalls, listingEventsCall);
+    const whatsappCount = Math.max(waInters, analyticsWa, listingEventsWa);
+    const chatsCount = Math.max(chatInters, chatThreadsCount);
 
     return ApiResponse.ok(res, 'Vendor analytics loaded.', {
       callsCount,
       whatsappCount,
       chatsCount,
-      inquiriesCount,
+      inquiriesCount: Math.max(inquiriesCount, chatsCount),
       savedReelsCount,
     });
   });

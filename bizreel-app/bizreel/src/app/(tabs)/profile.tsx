@@ -92,17 +92,23 @@ export default function ProfileScreen() {
         ])
           .then(([leadsRes, overviewRes]) => {
             const leads = leadsRes.data?.data || leadsRes.data || {};
-            const overview = overviewRes.data?.data || overviewRes.data || {};
+            const rawOverview = overviewRes.data?.data || overviewRes.data || {};
+            const kpis = rawOverview.kpis || rawOverview || {};
+
+            const calls = Math.max(Number(leads.callsCount || 0), Number(kpis.phoneCalls || 0), Number(kpis.callsCount || 0));
+            const wa = Math.max(Number(leads.whatsappCount || 0), Number(kpis.whatsappClicks || 0), Number(kpis.whatsappCount || 0), Number(kpis.wa_clicks || 0));
+            const chats = Math.max(Number(leads.chatsCount || 0), Number(kpis.chatsCount || 0), Number(kpis.chats_started || 0), Number(kpis.unique_chatters || 0));
+            const inquiries = Math.max(Number(leads.inquiriesCount || 0), Number(kpis.inquiriesCount || 0), Number(kpis.leads || 0), chats);
 
             setVendorAnalytics({
-              callsCount: leads.callsCount || overview.phoneCalls || 0,
-              whatsappCount: leads.whatsappCount || overview.whatsappClicks || 0,
-              chatsCount: leads.chatsCount || overview.uniqueChatters || 0,
-              inquiriesCount: leads.inquiriesCount || overview.inquiriesCount || 0,
-              savedReelsCount: leads.savedReelsCount || overview.watchersCount || 0,
-              revenue: overview.revenue || 0,
-              views: overview.views || 0,
-              ordersCount: overview.ordersCount || 0,
+              callsCount: calls,
+              whatsappCount: wa,
+              chatsCount: chats,
+              inquiriesCount: inquiries,
+              savedReelsCount: Number(leads.savedReelsCount || kpis.saves || 0),
+              revenue: Number(kpis.revenue || kpis.total_revenue || 0),
+              views: Number(kpis.views || 0),
+              ordersCount: Number(kpis.total_orders || kpis.ordersCount || 0),
             });
           })
           .catch((err) => console.warn('Failed to load vendor analytics', err));
