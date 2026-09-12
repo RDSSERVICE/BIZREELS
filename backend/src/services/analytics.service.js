@@ -278,18 +278,40 @@ const overview = async (vendorId, rangeKey = '30d') => {
   const baseListingStats = listingStatsAgg[0] || {};
   const baseReelsStats = reelsStatsAgg[0] || {};
 
-  // Compute vendor-specific totals
-  const chatThreadsCount = ChatThread
-    ? await ChatThread.countDocuments({
-        $or: [
-          { participants: vendorIdStr },
-          { participants: vendorObjId },
-          { participantIds: vendorIdStr },
-          { vendorId: vendorIdStr },
-          { vendor: vendorObjId },
-        ],
-      }).catch(() => 0)
-    : 0;
+  const Conversation = require('../models/Conversation');
+  const Message = require('../models/Message');
+
+  const [conversationCount, chatThreadsCount, messageThreadsCount] = await Promise.all([
+    Conversation.countDocuments({
+      $or: [
+        { participants: vendorObjId },
+        { participants: vendorIdStr },
+        { vendorId: vendorObjId },
+        { vendorId: vendorIdStr },
+      ],
+      isDeletedBy: { $ne: vendorObjId },
+    }).catch(() => 0),
+    ChatThread
+      ? ChatThread.countDocuments({
+          $or: [
+            { participants: vendorIdStr },
+            { participants: vendorObjId },
+            { participantIds: vendorIdStr },
+            { vendorId: vendorIdStr },
+            { vendor: vendorObjId },
+          ],
+        }).catch(() => 0)
+      : 0,
+    Message.distinct('conversation', {
+      $or: [
+        { recipient: vendorObjId },
+        { recipient: vendorIdStr },
+        { receiver: vendorObjId },
+        { receiver: vendorIdStr },
+      ],
+      deletedFor: { $ne: vendorObjId },
+    }).then((res) => (Array.isArray(res) ? res.length : 0)).catch(() => 0),
+  ]);
 
   const totalViews = Math.max(
     eventCounts.view || 0,
@@ -297,7 +319,9 @@ const overview = async (vendorId, rangeKey = '30d') => {
   );
 
   const chatsStarted = Math.max(
+    conversationCount,
     chatThreadsCount,
+    messageThreadsCount,
     eventCounts.chat_start || 0,
     interactionCounts.chat_inquiry || 0
   );

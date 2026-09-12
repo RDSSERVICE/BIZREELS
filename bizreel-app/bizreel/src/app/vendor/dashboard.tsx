@@ -65,10 +65,11 @@ export default function VendorDashboardScreen() {
 
   const fetchDashboardData = async () => {
     try {
-      const [overviewRes, leadsRes, analyticsRes, walletRes] = await Promise.all([
+      const [overviewRes, leadsRes, analyticsRes, conversationsRes, walletRes] = await Promise.all([
         api.get('/vendor/analytics/overview?range=30d').catch(() => ({ data: {} })),
         api.get('/inquiries').catch(() => ({ data: {} })),
         api.get('/analytics/vendor-lead-summary').catch(() => ({ data: {} })),
+        api.get('/chat/conversations').catch(() => ({ data: {} })),
         api.get('/wallet/balance').catch(() => ({ data: {} })),
       ]);
 
@@ -76,6 +77,8 @@ export default function VendorDashboardScreen() {
       const kpis = rawOverview.kpis || {};
       const inquiriesList = leadsRes.data?.data || leadsRes.data || [];
       const leadSummary = analyticsRes.data?.data || analyticsRes.data || {};
+      const conversationsList = conversationsRes.data?.data || conversationsRes.data || conversationsRes.data?.conversations || [];
+      const conversationsCount = Array.isArray(conversationsList) ? conversationsList.length : 0;
       const walletData = walletRes.data?.data || walletRes.data || {};
 
       const productsCount = Number(rawOverview.totalProducts ?? kpis.products_total ?? rawOverview.activeListings ?? kpis.listings_active ?? 0);
@@ -85,7 +88,10 @@ export default function VendorDashboardScreen() {
       const followersCount = Number((user as any)?.followers_count || rawOverview.followers || kpis.followers || (user as any)?.followersCount || 0);
       const enquiriesCount = Math.max(
         Number(leadSummary.inquiriesCount || 0),
+        Number(leadSummary.chatsCount || 0),
+        Number(leadSummary.chatThreadsCount || 0),
         Number(leadSummary.directInquiriesCount || 0),
+        conversationsCount,
         Number(kpis.inquiriesCount || 0),
         Number(rawOverview.leadEnquiries || 0),
         Array.isArray(inquiriesList) ? inquiriesList.length : 0

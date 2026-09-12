@@ -42,6 +42,7 @@ class AnalyticsController {
   });
 
   // ── Get Vendor Dashboard Analytics ───────────────────────
+  // ── Get Vendor Dashboard Analytics ───────────────────────
   getVendorAnalytics = asyncHandler(async (req, res) => {
     const userId = req.user._id;
     const userIdStr = userId.toString();
@@ -49,6 +50,8 @@ class AnalyticsController {
     const Analytics = require('../models/Analytics');
     const Inquiry = require('../models/Inquiry');
     const Interaction = require('../models/Interaction');
+    const Conversation = require('../models/Conversation');
+    const Message = require('../models/Message');
     let ChatThread = null;
     try {
       ChatThread = require('../models/Chat').ChatThread;
@@ -65,7 +68,9 @@ class AnalyticsController {
       waInters,
       chatInters,
       inquiriesCount,
+      conversationThreadsCount,
       chatThreadsCount,
+      messageThreadsCount,
       savedReelsCount,
       analyticsCalls,
       analyticsWa,
@@ -85,6 +90,15 @@ class AnalyticsController {
         ],
         isDeleted: { $ne: true },
       }).catch(() => 0),
+      Conversation.countDocuments({
+        $or: [
+          { participants: userId },
+          { participants: userIdStr },
+          { vendorId: userId },
+          { vendorId: userIdStr },
+        ],
+        isDeletedBy: { $ne: userId },
+      }).catch(() => 0),
       ChatThread
         ? ChatThread.countDocuments({
             $or: [
@@ -96,6 +110,15 @@ class AnalyticsController {
             ],
           }).catch(() => 0)
         : 0,
+      Message.distinct('conversation', {
+        $or: [
+          { recipient: userId },
+          { recipient: userIdStr },
+          { receiver: userId },
+          { receiver: userIdStr },
+        ],
+        deletedFor: { $ne: userId },
+      }).then((res) => (Array.isArray(res) ? res.length : 0)).catch(() => 0),
       Interaction.countDocuments({ target_user_id: targetUserMatch, type: 'save_reel' }).catch(() => 0),
       Analytics.countDocuments({ targetId: userId, type: { $in: ['call_vendor', 'click_to_call'] } }).catch(() => 0),
       Analytics.countDocuments({ targetId: userId, type: { $in: ['whatsapp_vendor', 'whatsapp_contact'] } }).catch(() => 0),
@@ -105,7 +128,8 @@ class AnalyticsController {
 
     const callsCount = Math.max(callInters, analyticsCalls, listingEventsCall);
     const whatsappCount = Math.max(waInters, analyticsWa, listingEventsWa);
-    const chatsCount = Math.max(chatThreadsCount, chatInters);
+    const totalThreads = Math.max(conversationThreadsCount, chatThreadsCount, messageThreadsCount);
+    const chatsCount = Math.max(totalThreads, chatInters);
     const totalInquiries = Math.max(inquiriesCount, chatsCount);
 
     return ApiResponse.ok(res, 'Vendor analytics loaded.', {
@@ -125,6 +149,8 @@ class AnalyticsController {
     const Analytics = require('../models/Analytics');
     const Inquiry = require('../models/Inquiry');
     const Interaction = require('../models/Interaction');
+    const Conversation = require('../models/Conversation');
+    const Message = require('../models/Message');
     let ChatThread = null;
     try {
       ChatThread = require('../models/Chat').ChatThread;
@@ -136,20 +162,53 @@ class AnalyticsController {
 
     const targetUserMatch = { $in: [userIdStr, userId] };
 
-    // 1. Query Chat Threads for Vendor Inbox
-    const chatThreads = ChatThread
-      ? await ChatThread.find({
-          $or: [
-            { participants: userIdStr },
-            { participants: userId },
-            { participantIds: userIdStr },
-            { vendorId: userIdStr },
-            { vendor: userId },
-          ],
-        }).lean().catch(() => [])
-      : [];
+    // 1. Query Conversations & Chat Threads for Vendor Inbox
+    const [conversations, chatThreads, messageThreads] = await Promise.all([
+      Conversation.find({
+        $or: [
+          { participants: userId },
+          { participants: userIdStr },
+          { vendorId: userId },
+          { vendorId: userIdStr },
+        ],
+        isDeletedBy: { $ne: userId },
+      }).lean().catch(() => []),
+
+      ChatThread
+        ? ChatThread.find({
+            $or: [
+              { participants: userIdStr },
+              { participants: userId },
+              { participantIds: userIdStr },
+              { vendorId: userIdStr },
+              { vendor: userId },
+            ],
+          }).lean().catch(() => [])
+        : [],
+
+      Message.distinct('conversation', {
+        $or: [
+          { recipient: userId },
+          { recipient: userIdStr },
+          { receiver: userId },
+          { receiver: userIdStr },
+        ],
+        deletedFor: { $ne: userId },
+      }).then((res) => (Array.isArray(res) ? res.length : 0)).catch(() => 0),
+    ]);
 
     let unreadChatsCount = 0;
+
+    for (const c of conversations) {
+      if (c.unreadCount) {
+        if (c.unreadCount instanceof Map) {
+          unreadChatsCount += Number(c.unreadCount.get(userIdStr) || c.unreadCount.get(userId) || 0);
+        } else if (typeof c.unreadCount === 'object') {
+          unreadChatsCount += Number(c.unreadCount[userIdStr] || c.unreadCount[userId] || 0);
+        }
+      }
+    }
+
     for (const thread of chatThreads) {
       if (thread.unread_count && typeof thread.unread_count === 'object') {
         unreadChatsCount += Number(thread.unread_count[userIdStr] || thread.unread_count[userId] || 0);
@@ -181,7 +240,8 @@ class AnalyticsController {
 
     const callsCount = Math.max(callInters, analyticsCalls, listingEventsCall);
     const whatsappCount = Math.max(waInters, analyticsWa, listingEventsWa);
-    const chatsCount = Math.max(chatThreads.length, chatInters);
+    const activeThreadsCount = Math.max(conversations.length, chatThreads.length, messageThreads);
+    const chatsCount = Math.max(activeThreadsCount, chatInters);
     const inquiriesCount = Math.max(inquiries.length, chatsCount);
 
     return ApiResponse.ok(res, 'Vendor database lead & contact summary loaded.', {
@@ -190,7 +250,7 @@ class AnalyticsController {
       chatsCount,
       inquiriesCount,
       unreadChatsCount,
-      chatThreadsCount: chatThreads.length,
+      chatThreadsCount: activeThreadsCount,
       directInquiriesCount: inquiries.length,
       timestamp: new Date().toISOString(),
     });
