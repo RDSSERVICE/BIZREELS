@@ -11,12 +11,11 @@ import {
   FiHelpCircle,
   FiShoppingBag,
   FiVideo,
-  FiTrendingUp,
-  FiAward,
   FiPhoneCall,
   FiChevronDown,
-  FiPercent,
-  FiUsers,
+  FiLock,
+  FiClock,
+  FiAward,
 } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi2';
 import SEO from '../../components/common/SEO';
@@ -27,19 +26,14 @@ export default function Pricing() {
   const navigate = useNavigate();
   const { bi, lang } = useLanguage();
 
-  const [activeTab, setActiveTab] = useState('vendor'); // 'vendor' | 'creator'
-  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
   const [openFaq, setOpenFaq] = useState(null);
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
   };
 
-  const isYearly = billingCycle === 'yearly';
-
   // Fetch dynamic plans created by Admin from backend
   const { data: dbVendorPlansData, refetch: refetchVendorPlans } = useGetSubscriptionPlansQuery({ role: 'vendor' });
-  const { data: dbCreatorPlansData, refetch: refetchCreatorPlans } = useGetSubscriptionPlansQuery({ role: 'creator' });
 
   // Listen for live admin updates via socket so any plan changes propagate immediately
   React.useEffect(() => {
@@ -50,7 +44,6 @@ export default function Pricing() {
       if (socket) {
         const onUpdate = () => {
           refetchVendorPlans();
-          refetchCreatorPlans();
         };
         socket.on('subscription:updated', onUpdate);
         socket.on('admin:update', onUpdate);
@@ -62,29 +55,26 @@ export default function Pricing() {
     } catch (err) {
       // socket listener optional fallback
     }
-  }, [refetchVendorPlans, refetchCreatorPlans]);
+  }, [refetchVendorPlans]);
 
-  const formatPlansFromDb = (items, role) => {
+  const formatPlansFromDb = (items) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     const activeItems = items.filter((p) => p.is_active && !p.is_archived);
     if (activeItems.length === 0) return null;
 
     return activeItems.map((p) => {
-      const isRecharge = p.billing_cycle === 'recharge' || role === 'vendor' || Number(p.wallet_credits || 0) > 0;
       const priceVal = p.price_inr || p.price || 0;
-      const priceMonthly = priceVal;
-      const priceYearly = p.price_inr_year || Math.round(priceMonthly * 10);
-      const displayPrice = isRecharge ? priceVal : (isYearly ? Math.round(priceYearly / 12) : priceMonthly);
+      const creditsVal = Number(p.action_credits || p.wallet_credits || 0);
 
       const rawFeatures = p.features_list?.length > 0
         ? p.features_list
-        : (p.features ? p.features.split(',').map(f => f.trim()).filter(Boolean) : []);
+        : (p.features ? (Array.isArray(p.features) ? p.features : p.features.split(',').map(f => f.trim()).filter(Boolean)) : []);
 
       const featuresList = [];
 
-      if (Number(p.wallet_credits || 0) > 0) {
+      if (creditsVal > 0) {
         featuresList.push({
-          title: bi(`${Number(p.wallet_credits).toLocaleString('en-IN')} Wallet Credits Included`, `${Number(p.wallet_credits).toLocaleString('en-IN')} वॉलेट क्रेडिट शामिल`),
+          title: bi(`${creditsVal.toLocaleString('en-IN')} Action Credits Included`, `${creditsVal.toLocaleString('en-IN')} एक्शन क्रेडिट शामिल`),
           included: true,
           highlight: true,
         });
@@ -98,20 +88,19 @@ export default function Pricing() {
         });
       }
 
-      if (isRecharge) {
-        featuresList.push({
-          title: bi('Non-Expiring Balance (Valid until fully used)', 'क्रेडिट कभी समाप्त नहीं होते (पूर्ण उपयोग तक मान्य)'),
-          included: true,
-        });
-        featuresList.push({
-          title: bi('Draw down on real Views, Calls & WhatsApp leads', 'व्यूज, कॉल्स और व्हाट्सएप पूछताछ पर ही कटौती'),
-          included: true,
-        });
-      }
+      featuresList.push({
+        title: bi('Non-Expiring Balance (Lifetime validity)', 'क्रेडिट कभी समाप्त नहीं होते (लाइफटाइम वैधता)'),
+        included: true,
+      });
+
+      featuresList.push({
+        title: bi('Draw down on WhatsApp leads (2.50 Cr) & Calls (2.50 Cr)', 'व्हाट्सएप लीड्स (2.50 Cr) और कॉल्स (2.50 Cr) पर ही कटौती'),
+        included: true,
+      });
 
       rawFeatures.forEach((fStr) => {
-        // Avoid duplicate credit/boost mentions if already added
-        if (!fStr.toLowerCase().includes('wallet credit') && !fStr.toLowerCase().includes('reel boost') && !fStr.toLowerCase().includes('non-expiring')) {
+        const lower = fStr.toLowerCase();
+        if (!lower.includes('credit') && !lower.includes('boost') && !lower.includes('non-expiring') && !lower.includes('whatsapp')) {
           featuresList.push({
             title: fStr,
             included: true,
@@ -140,49 +129,41 @@ export default function Pricing() {
         name: p.title || p.name,
         badge: defaultBadge,
         desc: p.description || '',
-        priceMonthly,
-        priceYearly,
-        walletCredits: p.wallet_credits || 0,
+        walletCredits: creditsVal,
         freeReelBoosts: p.free_reel_boosts || 0,
-        isRecharge,
-        priceLabel: `₹${displayPrice.toLocaleString('en-IN')}`,
-        billedNote: isRecharge
-          ? bi('Non-expiring recharge pack', 'क्रेडिट कभी समाप्त नहीं होते')
-          : (isYearly ? `Billed annually (₹${priceYearly.toLocaleString('en-IN')}/yr)` : 'Billed monthly'),
+        priceLabel: `₹${priceVal.toLocaleString('en-IN')}`,
+        billedNote: bi(`${creditsVal ? creditsVal.toLocaleString('en-IN') + ' Credits • ' : ''}Non-Expiring Recharge Pack`, `${creditsVal ? creditsVal.toLocaleString('en-IN') + ' क्रेडिट • ' : ''}कभी समाप्त नहीं होते`),
         popular: Boolean(p.is_popular || p.plan_type === 'standard' || p.title?.toLowerCase().includes('growth')),
-        ctaText: role === 'vendor' ? bi(`Recharge Pack (₹${displayPrice})`, `रीचार्ज करें (₹${displayPrice})`) : bi('Join as Creator', 'क्रिएटर के रूप में जुड़ें'),
-        ctaLink: role === 'vendor' ? '/vendor/wallet?tab=plans' : `/auth/register?role=${role}`,
+        ctaText: bi(`Recharge Pack (₹${priceVal.toLocaleString('en-IN')})`, `रीचार्ज करें (₹${priceVal.toLocaleString('en-IN')})`),
+        ctaLink: '/vendor/wallet?tab=plans',
         features: featuresList,
       };
     });
   };
 
-  const dynamicVendorPlans = formatPlansFromDb(dbVendorPlansData?.data?.items || dbVendorPlansData?.items, 'vendor');
-  const dynamicCreatorPlans = formatPlansFromDb(dbCreatorPlansData?.data?.items || dbCreatorPlansData?.items, 'creator');
+  const dynamicVendorPlans = formatPlansFromDb(dbVendorPlansData?.data?.items || dbVendorPlansData?.items || dbVendorPlansData?.data);
 
-  // Vendor Recharge Plans Fallback (Aligned with Specs: Starter ₹499, Growth ₹1199, Business ₹2199)
-  const vendorPlans = [
+  // Vendor Recharge Plans Fallback (Strictly Aligned with Specs: Starter ₹499, Growth ₹1,199, Business ₹2,199)
+  const defaultVendorPlans = [
     {
       id: 'vendor_starter',
       name: bi('Starter', 'स्टार्टर'),
       badge: null,
-      desc: bi('Entry-level non-expiring credit pack for emerging local businesses.', 'स्थानीय व्यवसायों के लिए एंट्री-लेवल नॉन-एक्सपायरिंग क्रेडिट पैक।'),
-      priceMonthly: 499,
-      priceYearly: 499,
+      desc: bi('Entry-level non-expiring credit pack for emerging local businesses and shops.', 'स्थानीय व्यवसायों और दुकानों के लिए एंट्री-लेवल नॉन-एक्सपायरिंग क्रेडिट पैक।'),
       walletCredits: 599,
       freeReelBoosts: 1,
-      isRecharge: true,
       priceLabel: '₹499',
       billedNote: bi('599 Credits Included • Non-Expiring', '599 क्रेडिट शामिल • कभी समाप्त नहीं होते'),
       popular: false,
       ctaText: bi('Recharge Pack (₹499)', 'रीचार्ज करें (₹499)'),
       ctaLink: '/vendor/wallet?tab=plans',
       features: [
-        { title: bi('599 Wallet Credits Included', '599 वॉलेट क्रेडिट शामिल'), included: true, highlight: true },
+        { title: bi('599 Action Credits Included', '599 एक्शन क्रेडिट शामिल'), included: true, highlight: true },
         { title: bi('1 Free Reel Boost Included', '1 मुफ़्त रील बूस्ट शामिल'), included: true, highlight: true },
-        { title: bi('Non-Expiring credits — valid until fully used', 'क्रेडिट कभी समाप्त नहीं होते'), included: true },
-        { title: bi('Direct WhatsApp & Call Inquiries draw down', 'व्हाट्सएप और कॉल्स क्रेडिट से कटेंगे'), included: true },
-        { title: bi('Accumulates with future recharges', 'भविष्य के रीचार्ज के साथ क्रेडिट जुड़ते हैं'), included: true },
+        { title: bi('Non-Expiring credits — valid until fully used', 'क्रेडिट कभी समाप्त नहीं होते — पूर्ण उपयोग तक मान्य'), included: true },
+        { title: bi('WhatsApp Leads & Exotel Voice Calls (2.50 Cr/action)', 'व्हाट्सएप लीड्स और कॉल्स (2.50 Cr/एक्शन)'), included: true },
+        { title: bi('Accumulates with all future recharges', 'भविष्य के सभी रीचार्ज के साथ क्रेडिट जुड़ते हैं'), included: true },
+        { title: bi('24-Hour Deduplication Protection on Leads', 'लीड्स पर 24 घंटे की डिडुप सुरक्षा'), included: true },
         { title: bi('Verified Gold Merchant Badge', 'सत्यापित गोल्ड मर्चेंट बैज'), included: false },
       ],
     },
@@ -191,23 +172,21 @@ export default function Pricing() {
       name: bi('Growth', 'ग्रोथ'),
       badge: bi('MOST POPULAR', 'सर्वाधिक लोकप्रिय'),
       desc: bi('Most popular credit pack designed for high customer reach and volume leads.', 'उच्च ग्राहक पहुंच और अधिक लीड्स के लिए सर्वाधिक लोकप्रिय पैक।'),
-      priceMonthly: 1199,
-      priceYearly: 1199,
       walletCredits: 1599,
       freeReelBoosts: 3,
-      isRecharge: true,
       priceLabel: '₹1,199',
       billedNote: bi('1,599 Credits Included • Non-Expiring', '1,599 क्रेडिट शामिल • कभी समाप्त नहीं होते'),
       popular: true,
       ctaText: bi('Recharge Pack (₹1,199)', 'रीचार्ज करें (₹1,199)'),
       ctaLink: '/vendor/wallet?tab=plans',
       features: [
-        { title: bi('1,599 Wallet Credits Included', '1,599 वॉलेट क्रेडिट शामिल'), included: true, highlight: true },
+        { title: bi('1,599 Action Credits Included', '1,599 एक्शन क्रेडिट शामिल'), included: true, highlight: true },
         { title: bi('3 Free Reel Boosts Included', '3 मुफ़्त रील बूस्ट शामिल'), included: true, highlight: true },
-        { title: bi('Non-Expiring credits — valid until fully used', 'क्रेडिट कभी समाप्त नहीं होते'), included: true },
+        { title: bi('Non-Expiring credits — valid until fully used', 'क्रेडिट कभी समाप्त नहीं होते — पूर्ण उपयोग तक मान्य'), included: true },
         { title: bi('Verified Gold Merchant Badge on all listings ✓', 'सभी लिस्टिंग पर सत्यापित गोल्ड बैज ✓'), included: true },
+        { title: bi('WhatsApp Leads & Exotel Voice Calls (2.50 Cr/action)', 'व्हाट्सएप लीड्स और कॉल्स (2.50 Cr/एक्शन)'), included: true },
         { title: bi('Priority routing for customer phone calls & chats', 'कॉल व चैट में प्राथमिकता रूटिंग'), included: true },
-        { title: bi('Accumulates with future recharges', 'भविष्य के रीचार्ज के साथ क्रेडिट जुड़ते हैं'), included: true },
+        { title: bi('24-Hour Deduplication Protection on Leads', 'लीड्स पर 24 घंटे की डिडुप सुरक्षा'), included: true },
       ],
     },
     {
@@ -215,116 +194,45 @@ export default function Pricing() {
       name: bi('Business', 'बिजनेस'),
       badge: bi('BEST VALUE', 'सर्वोत्तम मूल्य'),
       desc: bi('Best value maximum scale pack with 2,999 credits and 5 free boosts.', '2,999 क्रेडिट और 5 मुफ़्त बूस्ट के साथ सर्वोत्तम मूल्य का स्केल पैक।'),
-      priceMonthly: 2199,
-      priceYearly: 2199,
       walletCredits: 2999,
       freeReelBoosts: 5,
-      isRecharge: true,
       priceLabel: '₹2,199',
       billedNote: bi('2,999 Credits Included • Non-Expiring', '2,999 क्रेडिट शामिल • कभी समाप्त नहीं होते'),
       popular: false,
       ctaText: bi('Recharge Pack (₹2,199)', 'रीचार्ज करें (₹2,199)'),
       ctaLink: '/vendor/wallet?tab=plans',
       features: [
-        { title: bi('2,999 Wallet Credits Included', '2,999 वॉलेट क्रेडिट शामिल'), included: true, highlight: true },
+        { title: bi('2,999 Action Credits Included', '2,999 एक्शन क्रेडिट शामिल'), included: true, highlight: true },
         { title: bi('5 Free Reel Boosts Included', '5 मुफ़्त रील बूस्ट शामिल'), included: true, highlight: true },
-        { title: bi('Non-Expiring credits — valid until fully used', 'क्रेडिट कभी समाप्त नहीं होते'), included: true },
+        { title: bi('Non-Expiring credits — valid until fully used', 'क्रेडिट कभी समाप्त नहीं होते — पूर्ण उपयोग तक मान्य'), included: true },
         { title: bi('Highest priority listing and reel visibility', 'लिस्टिंग और रील में सर्वोच्च प्राथमिकता'), included: true },
         { title: bi('Verified Gold Merchant Badge on all listings ✓', 'सभी लिस्टिंग पर सत्यापित गोल्ड बैज ✓'), included: true },
-        { title: bi('VIP Priority Support & Business Desk', 'वीआईपी प्राथमिकता सपोर्ट एवं बिजनेस डेस्क'), included: true },
+        { title: bi('VIP Priority Support & Dedicated Business Desk', 'वीआईपी प्राथमिकता सपोर्ट एवं बिजनेस डेस्क'), included: true },
+        { title: bi('24-Hour Deduplication Protection on Leads', 'लीड्स पर 24 घंटे की डिडुप सुरक्षा'), included: true },
       ],
     },
   ];
 
-  // Creator Plans Data
-  const creatorPlans = [
-    {
-      id: 'creator_starter',
-      name: bi('Free Creator', 'फ्री क्रिएटर'),
-      badge: null,
-      desc: bi('Showcase your creative work and receive organic client inquiries.', 'अपना रचनात्मक कार्य प्रदर्शित करें और ऑर्गेनिक क्लाइंट पूछताछ प्राप्त करें।'),
-      priceMonthly: 0,
-      priceYearly: 0,
-      priceLabel: bi('₹0 / month', '₹0 / महीना'),
-      popular: false,
-      ctaText: bi('Join as Creator', 'क्रिएटर के रूप में जुड़ें'),
-      ctaLink: '/auth/register?role=creator',
-      features: [
-        { title: bi('Portfolio Showcase (up to 10 clips)', 'पोर्टफोलियो शोकेस (10 क्लिप तक)'), included: true },
-        { title: bi('Direct Messages from Local Businesses', 'स्थानीय व्यवसायों से सीधे संदेश'), included: true },
-        { title: bi('Standard Creator Profile in Directory', 'डायरेक्टरी में मानक क्रिएटर प्रोफ़ाइल'), included: true },
-        { title: bi('Basic Earnings Analytics', 'मूल कमाई एनालिटिक्स'), included: true },
-        { title: bi('Verified Creator Badge', 'सत्यापित क्रिएटर बैज'), included: false },
-        { title: bi('Priority Placement in Marketplace', 'मार्केटप्लेस में प्राथमिकता प्लेसमेंट'), included: false },
-        { title: bi('Escrow Instant Payout Guarantee', 'एस्क्रो इंस्टेंट भुगतान गारंटी'), included: false },
-        { title: bi('0% Platform Commission Fee', '0% प्लेटफॉर्म कमीशन शुल्क'), included: false },
-      ],
-    },
-    {
-      id: 'creator_pro',
-      name: bi('Pro Influencer', 'प्रो इन्फ्लुएंसर'),
-      badge: bi('RECOMMENDED', 'अनुशंसित'),
-      desc: bi('For creators ready to land high-paying local business brand deals.', 'उच्च-भुगतान वाले स्थानीय बिजनेस ब्रांड सौदे प्राप्त करने के इच्छुक क्रिएटर्स के लिए।'),
-      priceMonthly: 499,
-      priceYearly: 399,
-      priceLabel: isYearly ? bi('₹399 / month', '₹399 / महीना') : bi('₹499 / month', '₹499 / महीना'),
-      billedNote: isYearly ? bi('Billed annually (₹4,788/yr)', 'वार्षिक बिल (₹4,788/वर्ष)') : bi('Billed monthly', 'मासिक बिल'),
-      popular: true,
-      ctaText: bi('Upgrade to Creator Pro', 'क्रिएटर प्रो में अपग्रेड करें'),
-      ctaLink: '/auth/register?role=creator',
-      features: [
-        { title: bi('Unlimited 4K Portfolio & Reel Showcase', 'असीमित 4K पोर्टफोलियो और रील शोकेस'), included: true },
-        { title: bi('Official Verified Blue Creator Badge ✓', 'आधिकारिक सत्यापित ब्लू क्रिएटर बैज ✓'), included: true },
-        { title: bi('Priority Placement in Creator Discovery', 'क्रिएटर खोज में प्राथमिकता प्लेसमेंट'), included: true },
-        { title: bi('Direct Shoot Hiring Requests & Quotes', 'सीधे शूट हायरिंग अनुरोध और कोट्स'), included: true },
-        { title: bi('0% Platform Service Fee on Deals', 'सौदों पर 0% प्लेटफॉर्म सेवा शुल्क'), included: true },
-        { title: bi('Instant Escrow Payout Processing', 'त्वरित एस्क्रो भुगतान प्रसंस्करण'), included: true },
-        { title: bi('Custom Pricing Packages Setup', 'कस्टम मूल्य निर्धारण पैकेज सेटअप'), included: true },
-        { title: bi('Comprehensive Engagement Analytics', 'व्यापक सहभागिता एनालिटिक्स'), included: true },
-      ],
-    },
-    {
-      id: 'creator_studio',
-      name: bi('Studio Legend', 'स्टूडियो लीजेंड'),
-      badge: bi('FOR AGENCIES & PROS', 'एजेंसियों और प्रोफेशनल्स के लिए'),
-      desc: bi('Designed for production studios, video directors and agency teams.', 'प्रोडक्शन स्टूडियो, वीडियो निर्देशकों और एजेंसी टीमों के लिए तैयार किया गया।'),
-      priceMonthly: 1499,
-      priceYearly: 1199,
-      priceLabel: isYearly ? bi('₹1,199 / month', '₹1,199 / महीना') : bi('₹1,499 / month', '₹1,499 / महीना'),
-      billedNote: isYearly ? bi('Billed annually (₹14,388/yr)', 'वार्षिक बिल (₹14,388/वर्ष)') : bi('Billed monthly', 'मासिक बिल'),
-      popular: false,
-      ctaText: bi('Join Studio Tier', 'स्टूडियो टियर से जुड़ें'),
-      ctaLink: '/auth/register?role=creator',
-      features: [
-        { title: bi('Everything in Pro Influencer', 'प्रो इन्फ्लुएंसर की सभी सुविधाएं शामिल'), included: true },
-        { title: bi('Top VIP Billboard Spotlight in Creator Hub', 'क्रिएटर हब में शीर्ष वीआईपी बिलबोर्ड स्पॉटलाइट'), included: true },
-        { title: bi('Multi-Crew Agency Profile Management', 'मल्टी-क्रू एजेंसी प्रोफाइल प्रबंधन'), included: true },
-        { title: bi('Direct Access to High-Ticket Requirements', 'हाई-टिकट प्रोजेक्ट आवश्यकताओं तक सीधी पहुंच'), included: true },
-        { title: bi('Dedicated Brand Relationship Manager', 'समर्पित ब्रांड संबंध प्रबंधक'), included: true },
-        { title: bi('Contract Protection & Legal Invoicing Tools', 'अनुबंध सुरक्षा और कानूनी इनवॉइसिंग टूल्स'), included: true },
-        { title: bi('VIP Payout Processing under 2 Hours', '2 घंटे के भीतर वीआईपी भुगतान प्रक्रिया'), included: true },
-      ],
-    },
-  ];
+  const plans = dynamicVendorPlans || defaultVendorPlans;
 
   // Credit Action Add-ons / Usage Reference
   const creditAddons = [
     {
-      title: bi('Verified WhatsApp & Call Inquiries', 'सत्यापित व्हाट्सएप और कॉल पूछताछ'),
+      title: bi('Verified WhatsApp Leads', 'सत्यापित व्हाट्सएप लीड्स'),
       price: '2.50 Credits',
-      desc: bi('Instant customer connect via Meta WhatsApp or Exotel calling. Deducted only on successful connects with 24-hour dedup.', 'मेटा व्हाट्सएप या एक्सोटेल कॉलिंग से सीधे ग्राहक संपर्क। केवल 24 घंटे के डिडुप के साथ सफल कनेक्ट पर कटौती।'),
+      desc: bi('Customer sends an inbound message to your connected Meta WhatsApp Business number. Deducted only on successful connects with 24-hour deduplication.', 'ग्राहक आपके कनेक्टेड मेटा व्हाट्सएप बिजनेस नंबर पर मैसेज भेजता है। केवल 24 घंटे के डिडुप के साथ सफल कनेक्ट पर कटौती।'),
       icon: FiPhoneCall,
     },
     {
-      title: bi('Unique Listing & Reel Views', 'यूनिक लिस्टिंग एवं रील व्यूज'),
-      price: '0.20 Credits',
-      desc: bi('High-intent local buyers viewing your storefront, catalog, and product reels in your target city.', 'आपके लक्षित शहर में आपकी दुकान, कैटलॉग और उत्पाद रील्स देखने वाले स्थानीय खरीदार।'),
+      title: bi('Exotel Voice Calls', 'एक्सोटेल वॉयस कॉल्स'),
+      price: '2.50 Credits',
+      desc: bi('Bridged customer phone call via Exotel with caller privacy masking. Charged only when call successfully connects for at least 10 seconds.', 'एक्सोटेल द्वारा ग्राहक से सीधी फोन कॉल। केवल तभी शुल्क लगता है जब कॉल कम से कम 10 सेकंड तक कनेक्ट रहे।'),
       icon: FiZap,
     },
     {
-      title: bi('Reel Feed Boost', 'रील फीड बूस्ट'),
+      title: bi('Reel Feed Boosts', 'रील फीड बूस्ट्स'),
       price: 'Free / 2.00 Credits',
-      desc: bi('Boost your product reels directly to top discovery feeds for exponential local buyer visibility.', 'स्थानीय खरीदारों की अधिकतम पहुंच के लिए अपनी रील्स को शीर्ष डिस्कवरी फीड में बूस्ट करें।'),
+      desc: bi('Boost your product & service showcase reels to top trending local feeds for exponential buyer visibility in your city.', 'स्थानीय खरीदारों की अधिकतम पहुंच के लिए अपनी रील्स को शीर्ष डिस्कवरी फीड में बूस्ट करें।'),
       icon: FiVideo,
     },
   ];
@@ -332,12 +240,16 @@ export default function Pricing() {
   // FAQs
   const faqs = [
     {
+      q: bi('Who needs a subscription on BizReels?', 'BizReels पर किसे सब्सक्रिप्शन की आवश्यकता होती है?'),
+      a: bi('Subscriptions on BizReels are exclusively for Vendors & Merchants. Content creators and regular shoppers do not need any subscription — BizReels is 100% free for them.', 'BizReels पर सब्सक्रिप्शन केवल विक्रेताओं और व्यापारियों के लिए है। कंटेंट क्रिएटर्स और खरीदारों के लिए यह 100% मुफ़्त है — उन्हें किसी सब्सक्रिप्शन की आवश्यकता नहीं है।'),
+    },
+    {
       q: bi('How do Vendor recharge packs and credits work?', 'विक्रेता रीचार्ज पैक और क्रेडिट कैसे काम करते हैं?'),
       a: bi('Vendor subscriptions operate on a pay-and-recharge model. You purchase a credit pack (Starter ₹499 for 599 credits, Growth ₹1,199 for 1,599 credits, or Business ₹2,199 for 2,999 credits). Credits have lifetime validity, never expire, and stack cumulatively with every new recharge.', 'विक्रेता सदस्यता पे-एंड-रीचार्ज मॉडल पर काम करती है। आप क्रेडिट पैक खरीदते हैं (स्टार्टर ₹499 में 599 क्रेडिट, ग्रोथ ₹1,199 में 1,599 क्रेडिट, या बिजनेस ₹2,199 में 2,999 क्रेडिट)। क्रेडिट की लाइफटाइम वैधता होती है, वे कभी समाप्त नहीं होते और प्रत्येक नए रीचार्ज के साथ जुड़ते हैं।'),
     },
     {
       q: bi('When are credits deducted from my wallet?', 'मेरे वॉलेट से क्रेडिट कब काटे जाते हैं?'),
-      a: bi('Credits are deducted strictly on measurable customer actions: 2.50 Credits for WhatsApp leads or connected phone calls, 0.20 Credits for unique video/listing views, and 0.10 Credits for direct chat inquiries. All actions include an automatic 24-hour deduplication window so you are never double-charged.', 'क्रेडिट केवल वास्तविक ग्राहक क्रियाओं पर काटे जाते हैं: व्हाट्सएप लीड या कनेक्टेड कॉल के लिए 2.50 क्रेडिट, यूनिक व्यू के लिए 0.20 क्रेडिट, और चैट पूछताछ के लिए 0.10 क्रेडिट। इसमें 24 घंटे की डिडुप सुरक्षा शामिल है जिससे कभी दोहरा शुल्क नहीं लगता।'),
+      a: bi('Credits are deducted strictly on measurable customer actions: 2.50 Credits for WhatsApp inbound leads and 2.50 Credits for connected Exotel phone calls (>= 10s). All actions include an automatic 24-hour deduplication window so you are never double-charged for the same customer.', 'क्रेडिट केवल वास्तविक ग्राहक क्रियाओं पर काटे जाते हैं: व्हाट्सएप लीड के लिए 2.50 क्रेडिट और कनेक्टेड कॉल के लिए 2.50 क्रेडिट। इसमें 24 घंटे की डिडुप सुरक्षा शामिल है जिससे एक ही ग्राहक के बार-बार संपर्क पर कभी दोहरा शुल्क नहीं लगता।'),
     },
     {
       q: bi('Does BizReels take a commission on my sales?', 'क्या BizReels मेरी बिक्री पर कोई कमीशन लेता है?'),
@@ -353,25 +265,21 @@ export default function Pricing() {
     },
   ];
 
-  const currentPlans = activeTab === 'vendor'
-    ? (dynamicVendorPlans || vendorPlans)
-    : (dynamicCreatorPlans || creatorPlans);
-
   return (
     <div className="min-h-screen bg-[#f2ede4] font-sans text-[#1a1a1a] pb-20">
       <SEO
-        title="Transparent Pricing Plans — BizReels"
-        description="Simple, transparent, commission-free pricing plans for local businesses, shops, and content creators. Watch. Discover. Connect."
+        title="Vendor Subscription Recharge Plans — BizReels"
+        description="Transparent, commission-free vendor recharge plans. Get non-expiring action credits for WhatsApp leads and Exotel phone calls. Watch. Discover. Connect."
       />
 
       {/* ════════════════════════════════════════════════════════
           HERO HEADER
       ════════════════════════════════════════════════════════ */}
-      <section className="pt-14 pb-10 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#d99a3d]/15 border border-[#d99a3d]/30 text-[#1a1a1a] mb-5">
+      <section className="pt-14 pb-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#d99a3d]/15 border border-[#d99a3d]/30 text-[#1a1a1a] mb-4">
           <HiSparkles className="text-[#d99a3d]" size={14} />
           <span className="text-xs font-black uppercase tracking-wider">
-            {bi('WATCH. DISCOVER. CONNECT.', 'वॉच. डिस्कवर. कनेक्ट.')}
+            {bi('VENDOR SUBSCRIPTION & RECHARGE PLANS', 'विक्रेता सदस्यता एवं रीचार्ज योजनाएं')}
           </span>
         </div>
 
@@ -383,66 +291,30 @@ export default function Pricing() {
           <span style={{ color: '#d99a3d' }}>{bi('PRICING.', 'मूल्य निर्धारण।')}</span>
         </h1>
 
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed mb-8">
+        <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed mb-6">
           {bi(
-            'Zero hidden fees, zero commission on sales. Choose the perfect plan to scale your local commerce presence and customer connections.',
-            'शून्य छिपी हुई फीस, बिक्री पर शून्य कमीशन। अपनी स्थानीय कॉमर्स उपस्थिति और ग्राहक संपर्कों को बढ़ाने के लिए सही प्लान चुनें।'
+            'Zero hidden fees, zero commission on sales. Pay only for real customer leads through non-expiring Action Credit recharge packs.',
+            'शून्य छिपी हुई फीस, बिक्री पर शून्य कमीशन। नॉन-एक्सपायरिंग एक्शन क्रेडिट रीचार्ज पैक के माध्यम से केवल वास्तविक ग्राहक लीड्स के लिए भुगतान करें।'
           )}
         </p>
 
-        {/* ── Audience Role Switcher (Vendor vs Creator) ── */}
-        <div className="inline-flex p-1.5 bg-white rounded-2xl border border-[#e3dccb] shadow-xs gap-1.5 mb-6">
-          <button
-            type="button"
-            onClick={() => setActiveTab('vendor')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer border-none ${
-              activeTab === 'vendor'
-                ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs'
-                : 'bg-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <FiShoppingBag className="w-4 h-4" />
-            <span>{bi('Vendors & Merchants', 'विक्रेता एवं व्यापारी')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('creator')}
-            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer border-none ${
-              activeTab === 'creator'
-                ? 'bg-[#1c1a17] text-[#d99a3d] shadow-xs'
-                : 'bg-transparent text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            <FiVideo className="w-4 h-4" />
-            <span>{bi('Content Creators', 'कंटेंट क्रिएटर्स')}</span>
-          </button>
-        </div>
-
-        {/* ── Monthly / Yearly Billing Toggle ── */}
-        <div className="flex items-center justify-center gap-3 text-xs font-extrabold text-slate-700">
-          <span className={billingCycle === 'monthly' ? 'text-[#1a1a1a]' : 'text-slate-400'}>
-            {bi('Monthly Billing', 'मासिक बिलिंग')}
+        {/* ── Key Value Highlights Row ── */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs font-black text-[#1a1a1a]">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#e3dccb] shadow-2xs">
+            <FiClock className="text-[#d99a3d]" />
+            {bi('Non-Expiring Credits', 'कभी समाप्त न होने वाले क्रेडिट्स')}
           </span>
-          <button
-            type="button"
-            onClick={() => setBillingCycle(isYearly ? 'monthly' : 'yearly')}
-            className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer border-none ${
-              isYearly ? 'bg-[#d99a3d]' : 'bg-slate-300'
-            }`}
-            aria-label="Toggle Billing Frequency"
-          >
-            <motion.div
-              className="bg-white w-4 h-4 rounded-full shadow-md"
-              layout
-              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              style={{ marginLeft: isYearly ? 'auto' : '0' }}
-            />
-          </button>
-          <span className={`flex items-center gap-1.5 ${isYearly ? 'text-[#1a1a1a]' : 'text-slate-400'}`}>
-            {bi('Annual Billing', 'वार्षिक बिलिंग')}
-            <span className="px-2 py-0.5 bg-[#25D366]/20 text-[#128C7E] text-[10px] font-black rounded-full uppercase tracking-widest border border-[#25D366]/30">
-              {bi('Save 20%', '20% छूट')}
-            </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#e3dccb] shadow-2xs">
+            <FiShield className="text-emerald-600" />
+            {bi('0% Sales Commission', '0% बिक्री कमीशन')}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#e3dccb] shadow-2xs">
+            <FiLock className="text-blue-600" />
+            {bi('24h Deduplication Protection', '24 घंटे डिडुप सुरक्षा')}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#e3dccb] shadow-2xs">
+            <FiPhoneCall className="text-[#25D366]" />
+            {bi('WhatsApp & Call Leads', 'व्हाट्सएप एवं कॉल लीड्स')}
           </span>
         </div>
       </section>
@@ -452,7 +324,7 @@ export default function Pricing() {
       ════════════════════════════════════════════════════════ */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          {currentPlans.map((plan) => {
+          {plans.map((plan) => {
             return (
               <div
                 key={plan.id}
@@ -583,25 +455,59 @@ export default function Pricing() {
       </section>
 
       {/* ════════════════════════════════════════════════════════
-          PAY-AS-YOU-GO / CREDIT ADD-ONS SECTION
+          CREATOR CALLOUT BANNER (BizReels is 100% Free for Creators)
       ════════════════════════════════════════════════════════ */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-20">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
+        <div className="bg-gradient-to-r from-[#1c1a17] via-[#26231e] to-[#1c1a17] rounded-3xl p-6 sm:p-8 border border-[#d99a3d]/30 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#d99a3d]/20 border border-[#d99a3d]/40 flex items-center justify-center text-[#d99a3d] shrink-0">
+              <FiVideo className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider mb-1">
+                {bi('100% Free for Content Creators', 'कंटेंट क्रिएटर्स के लिए 100% मुफ़्त')}
+              </div>
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-lg sm:text-xl uppercase tracking-tight text-white">
+                {bi('Are you a Video Creator or Influencer?', 'क्या आप वीडियो क्रिएटर या इन्फ्लुएंसर हैं?')}
+              </h3>
+              <p className="text-xs text-slate-300 font-medium max-w-xl mt-1 leading-relaxed">
+                {bi(
+                  'BizReels has no subscription fees for content creators! Upload video reels, build your commercial portfolio, get hired by local businesses for shoots, and keep 100% of your earnings.',
+                  'BizReels पर क्रिएटर्स के लिए कोई सब्सक्रिप्शन फीस नहीं है! रील्स अपलोड करें, अपना पोर्टफोलियो बनाएं, स्थानीय व्यवसायों से शूट हायरिंग प्राप्त करें और अपनी 100% कमाई रखें।'
+                )}
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/auth/register?role=creator"
+            className="px-6 py-3 rounded-full bg-[#d99a3d] hover:bg-[#c48729] text-[#1c1a17] text-xs font-black uppercase tracking-wider flex items-center gap-2 shrink-0 transition-all shadow-md no-underline"
+          >
+            <span>{bi('Join Free as Creator', 'क्रिएटर के रूप में मुफ़्त जुड़ें')}</span>
+            <FiArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════
+          PAY-AS-YOU-GO / CREDIT ACTION RATES REFERENCE
+      ════════════════════════════════════════════════════════ */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#e3dccb] shadow-xs">
           <div className="max-w-2xl mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d99a3d]/15 text-[#1a1a1a] rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2">
               <FiZap className="text-[#d99a3d]" />
-              {bi('Pay-As-You-Go Credits', 'पे-एज-यू-गो क्रेडिट्स')}
+              {bi('Transparent Action Rates', 'पारदर्शी एक्शन दरें')}
             </div>
             <h2
               style={{ fontFamily: "'Archivo Black', sans-serif" }}
               className="text-2xl sm:text-3xl text-[#1a1a1a] uppercase tracking-tight"
             >
-              {bi('Flexible Add-ons & Boost Packs', 'लचीले ऐड-ऑन और बूस्ट पैक')}
+              {bi('Measurable Action Deductions', 'स्पष्ट और निश्चित क्रेडिट कटौती')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
               {bi(
-                'Need extra reach without upgrading your plan? Top-up credits instantly and use them anytime with lifetime validity.',
-                'प्लान अपग्रेड किए बिना अतिरिक्त पहुंच चाहिए? तुरंत क्रेडिट टॉप-अप करें और लाइफटाइम वैधता के साथ कभी भी उपयोग करें।'
+                'Credits are only deducted when a customer takes high-intent actions to reach your business. Protected with a 24-hour deduplication window.',
+                'क्रेडिट केवल तभी काटे जाते हैं जब कोई ग्राहक आपके व्यवसाय से संपर्क करने के लिए वास्तविक कदम उठाता है। 24 घंटे की डिडुप सुरक्षा के साथ।'
               )}
             </p>
           </div>
@@ -630,10 +536,10 @@ export default function Pricing() {
                     <p className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">{item.desc}</p>
                   </div>
                   <Link
-                    to="/auth/register"
+                    to="/vendor/wallet?tab=plans"
                     className="text-[11px] font-extrabold uppercase tracking-wider text-[#d99a3d] hover:underline flex items-center gap-1 mt-1"
                   >
-                    <span>{bi('Purchase on Dashboard', 'डैशबोर्ड पर खरीदें')}</span>
+                    <span>{bi('Recharge in Dashboard', 'डैशबोर्ड में रीचार्ज करें')}</span>
                     <FiArrowRight size={12} />
                   </Link>
                 </div>
@@ -655,7 +561,7 @@ export default function Pricing() {
             {bi('DETAILED FEATURE COMPARISON', 'विस्तृत फीचर तुलना')}
           </h2>
           <p className="text-xs text-slate-500 font-medium mt-1">
-            {bi('Compare all recharge packs side-by-side to choose the right power for your business.', 'अपने व्यवसाय के लिए सही रीचार्ज पैक चुनने के लिए सुविधाओं की तुलना करें।')}
+            {bi('Compare all vendor recharge packs side-by-side to choose the right power for your business.', 'अपने व्यवसाय के लिए सही रीचार्ज पैक चुनने के लिए सुविधाओं की तुलना करें।')}
           </p>
         </div>
 
@@ -679,7 +585,7 @@ export default function Pricing() {
             </thead>
             <tbody className="divide-y divide-[#e3dccb]/60">
               <tr>
-                <td className="p-4 font-bold text-[#1a1a1a]">{bi('Wallet Credits Included', 'वॉलेट क्रेडिट शामिल')}</td>
+                <td className="p-4 font-bold text-[#1a1a1a]">{bi('Action Credits Included', 'एक्शन क्रेडिट शामिल')}</td>
                 <td className="p-4 text-center font-extrabold text-amber-700">599 Credits</td>
                 <td className="p-4 text-center font-black text-amber-800 bg-[#fdfaf3]">1,599 Credits</td>
                 <td className="p-4 text-center font-black text-amber-900">2,999 Credits</td>
@@ -802,8 +708,8 @@ export default function Pricing() {
             </h2>
             <p className="text-xs sm:text-sm text-[#c9c4bb] font-medium mb-8 max-w-lg">
               {bi(
-                'Join thousands of merchants, local service providers, and content creators closing profitable deals on BizReels today.',
-                'आज ही BizReels पर लाभदायक सौदे करने वाले हजारों व्यापारियों, सेवा प्रदाताओं और कंटेंट क्रिएटर्स से जुड़ें।'
+                'Join thousands of merchants, local shops, and service businesses closing profitable customer deals on BizReels today.',
+                'आज ही BizReels पर लाभदायक ग्राहक सौदे करने वाले हजारों व्यापारियों, दुकानों और सेवा व्यवसायों से जुड़ें।'
               )}
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full justify-center">
@@ -818,7 +724,7 @@ export default function Pricing() {
                 to="/auth/register?role=creator"
                 className="w-full sm:w-auto px-8 py-3.5 bg-[#2c2824] hover:bg-[#3d3832] text-[#f2ede4] border border-[#4a453e] rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all no-underline"
               >
-                <span>{bi('Join as Creator', 'क्रिएटर के रूप में जुड़ें')}</span>
+                <span>{bi('Join as Creator (100% Free)', 'क्रिएटर के रूप में जुड़ें (100% मुफ़्त)')}</span>
               </Link>
             </div>
           </div>

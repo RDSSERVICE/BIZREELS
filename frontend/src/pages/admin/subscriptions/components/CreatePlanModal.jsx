@@ -195,7 +195,7 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Creator Growth Pro"
+                    placeholder="e.g. Vendor Growth Pro"
                     value={form.title}
                     onChange={(e) => handleChange('title', e.target.value)}
                     className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none focus:border-brand-purple"
@@ -210,9 +210,7 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
                     onChange={(e) => handleChange('user_type', e.target.value)}
                     className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none focus:border-brand-purple"
                   >
-                    <option value="vendor">Vendor Plans</option>
-                    <option value="creator">Creator Plans</option>
-                    <option value="all">Universal (All Roles)</option>
+                    <option value="vendor">Vendor Plans (Vendors Only)</option>
                   </select>
                 </div>
               </div>
