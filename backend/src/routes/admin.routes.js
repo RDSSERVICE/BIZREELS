@@ -1816,12 +1816,16 @@ router.get('/credit-rates', requireAuth, catchAsync(async (req, res) => {
     reelPost: 1,
     aiImage: 2,
     aiVideo30s: 15,
-    reelBoost1Day: 10,
+    reelBoost1Day: 2,
+    reelBoostAdditional: 2,
     validLead: 1,
   };
   const setting = await AppSettings.findOne({ key: 'credit_rates' });
   if (setting && setting.value) {
     rates = { ...rates, ...setting.value };
+    const boostRate = Number(rates.reelBoost1Day ?? rates.reelBoostAdditional ?? 2.00);
+    rates.reelBoost1Day = boostRate;
+    rates.reelBoostAdditional = boostRate;
   }
   res.json({ success: true, data: rates });
 }));
@@ -1831,6 +1835,13 @@ router.post('/credit-rates', requireAuth, requireAdmin, catchAsync(async (req, r
   const { rates } = req.body;
   if (!rates) {
     throw ApiError.badRequest('rates object is required');
+  }
+
+  // Ensure reelBoost1Day and reelBoostAdditional stay synced when admin changes rates
+  if (rates.reelBoost1Day !== undefined) {
+    rates.reelBoostAdditional = rates.reelBoost1Day;
+  } else if (rates.reelBoostAdditional !== undefined) {
+    rates.reelBoost1Day = rates.reelBoostAdditional;
   }
 
   await AppSettings.updateOne(
@@ -1845,9 +1856,16 @@ router.post('/credit-rates', requireAuth, requireAdmin, catchAsync(async (req, r
     { upsert: true }
   );
 
+  // Invalidate cached rates in action charge service
   try {
-    const { emitToAdmin } = require('../sockets');
+    const actionChargeService = require('../services/action-charge.service');
+    actionChargeService.clearCache?.();
+  } catch (e) {}
+
+  try {
+    const { emitToAdmin, emitToAll } = require('../sockets');
     emitToAdmin('admin:update', { tags: ['AppSettings', 'AdminOverview'] });
+    if (emitToAll) emitToAll('credit_rates:updated', rates);
   } catch (err) {}
 
   res.json({ success: true, message: 'Credit rates updated successfully!', data: rates });

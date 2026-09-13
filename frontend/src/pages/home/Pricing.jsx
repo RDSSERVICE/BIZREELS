@@ -20,7 +20,7 @@ import {
 import { HiSparkles } from 'react-icons/hi2';
 import SEO from '../../components/common/SEO';
 import { useLanguage } from '../../context/LanguageContext';
-import { useGetSubscriptionPlansQuery } from '../../features/vendor/vendorApi';
+import { useGetSubscriptionPlansQuery, useGetCreditRatesQuery } from '../../features/vendor/vendorApi';
 
 export default function Pricing() {
   const navigate = useNavigate();
@@ -32,8 +32,9 @@ export default function Pricing() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
-  // Fetch dynamic plans created by Admin from backend
+  // Fetch dynamic plans and live credit rates created/configured by Admin
   const { data: dbVendorPlansData, refetch: refetchVendorPlans } = useGetSubscriptionPlansQuery({ role: 'vendor' });
+  const { data: creditRatesData, refetch: refetchCreditRates } = useGetCreditRatesQuery();
 
   // Listen for live admin updates via socket so any plan changes propagate immediately
   React.useEffect(() => {
@@ -215,23 +216,32 @@ export default function Pricing() {
 
   const plans = dynamicVendorPlans || defaultVendorPlans;
 
+  const rateItems = Array.isArray(creditRatesData) ? creditRatesData : (creditRatesData?.rates || []);
+  const boostItem = rateItems.find(r => r.category === 'Promotion' || r.action?.toLowerCase().includes('reel'));
+  const whatsappItem = rateItems.find(r => r.category === 'WhatsApp' || r.action?.toLowerCase().includes('whatsapp'));
+  const callItem = rateItems.find(r => r.category === 'Telephony' || r.action?.toLowerCase().includes('call'));
+
+  const boostRateLabel = boostItem?.rate || 'Free / 2.00 Credits/day';
+  const whatsappRateLabel = whatsappItem?.rate || '2.50 Credits';
+  const callRateLabel = callItem?.rate || '2.50 Credits';
+
   // Credit Action Add-ons / Usage Reference
   const creditAddons = [
     {
       title: bi('Verified WhatsApp Leads', 'सत्यापित व्हाट्सएप लीड्स'),
-      price: '2.50 Credits',
+      price: whatsappRateLabel,
       desc: bi('Customer sends an inbound message to your connected Meta WhatsApp Business number. Deducted only on successful connects with 24-hour deduplication.', 'ग्राहक आपके कनेक्टेड मेटा व्हाट्सएप बिजनेस नंबर पर मैसेज भेजता है। केवल 24 घंटे के डिडुप के साथ सफल कनेक्ट पर कटौती।'),
       icon: FiPhoneCall,
     },
     {
       title: bi('Exotel Voice Calls', 'एक्सोटेल वॉयस कॉल्स'),
-      price: '2.50 Credits',
+      price: callRateLabel,
       desc: bi('Bridged customer phone call via Exotel with caller privacy masking. Charged only when call successfully connects for at least 10 seconds.', 'एक्सोटेल द्वारा ग्राहक से सीधी फोन कॉल। केवल तभी शुल्क लगता है जब कॉल कम से कम 10 सेकंड तक कनेक्ट रहे।'),
       icon: FiZap,
     },
     {
       title: bi('Reel Feed Boosts', 'रील फीड बूस्ट्स'),
-      price: 'Free / 2.00 Credits',
+      price: boostRateLabel,
       desc: bi('Boost your product & service showcase reels to top trending local feeds for exponential buyer visibility in your city.', 'स्थानीय खरीदारों की अधिकतम पहुंच के लिए अपनी रील्स को शीर्ष डिस्कवरी फीड में बूस्ट करें।'),
       icon: FiVideo,
     },
@@ -249,7 +259,10 @@ export default function Pricing() {
     },
     {
       q: bi('When are credits deducted from my wallet?', 'मेरे वॉलेट से क्रेडिट कब काटे जाते हैं?'),
-      a: bi('Credits are deducted strictly on measurable customer actions: 2.50 Credits for WhatsApp inbound leads and 2.50 Credits for connected Exotel phone calls (>= 10s). All actions include an automatic 24-hour deduplication window so you are never double-charged for the same customer.', 'क्रेडिट केवल वास्तविक ग्राहक क्रियाओं पर काटे जाते हैं: व्हाट्सएप लीड के लिए 2.50 क्रेडिट और कनेक्टेड कॉल के लिए 2.50 क्रेडिट। इसमें 24 घंटे की डिडुप सुरक्षा शामिल है जिससे एक ही ग्राहक के बार-बार संपर्क पर कभी दोहरा शुल्क नहीं लगता।'),
+      a: bi(
+        `Credits are deducted strictly on measurable customer actions: ${whatsappRateLabel} for WhatsApp inbound leads, ${callRateLabel} for connected Exotel phone calls (>= 10s), and ${boostRateLabel} for additional reel feed boosting. All lead actions include an automatic 24-hour deduplication window so you are never double-charged for the same customer.`,
+        `क्रेडिट केवल वास्तविक ग्राहक क्रियाओं पर काटे जाते हैं: व्हाट्सएप लीड के लिए ${whatsappRateLabel}, कनेक्टेड कॉल के लिए ${callRateLabel}, और अतिरिक्त रील बूस्टिंग के लिए ${boostRateLabel}। इसमें 24 घंटे की डिडुप सुरक्षा शामिल है जिससे एक ही ग्राहक के बार-बार संपर्क पर कभी दोहरा शुल्क नहीं लगता।`
+      ),
     },
     {
       q: bi('Does BizReels take a commission on my sales?', 'क्या BizReels मेरी बिक्री पर कोई कमीशन लेता है?'),

@@ -437,21 +437,21 @@ export default function VendorReelsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs text-[#1a1a1a] line-clamp-2 uppercase">{reel.caption || reel.title || 'Service Reel'}</h4>
                   <div className="flex items-center gap-1">
-                    {reel.isBoosted && (
-                      <span className="bg-[#241b15] text-[#d99a3d] border border-[#241b15] px-2 py-0.5 rounded text-[10px] font-black flex items-center gap-0.5" title={`Boost active until ${new Date(reel.boostExpiresAt).toLocaleDateString()}`}>
+                    {(reel.isBoosted || reel.is_boosted) && (
+                      <span className="bg-[#241b15] text-[#d99a3d] border border-[#241b15] px-2 py-0.5 rounded text-[10px] font-black flex items-center gap-0.5" title={`Boost active until ${new Date(reel.boostExpiresAt || reel.boosted_until || Date.now() + 7*24*3600*1000).toLocaleDateString()}`}>
                         <FiZap size={11} className="fill-[#d99a3d]" />
                         Boosted
                       </span>
                     )}
-                    {!reel.isBoosted && reel.status === 'published' && (
+                    {!reel.isBoosted && !reel.is_boosted && reel.status === 'published' && (
                       <button
                         type="button"
                         onClick={() => handleOpenBoostModal(reel)}
-                        className="p-1.5 rounded-lg hover:bg-[#f8f4ec] text-slate-500 hover:text-[#d99a3d] transition flex-shrink-0 flex items-center gap-1 cursor-pointer"
+                        className="px-2 py-1 rounded-lg hover:bg-amber-100 text-amber-900 border border-amber-300 bg-amber-50 transition flex-shrink-0 flex items-center gap-1 cursor-pointer shadow-2xs font-sans"
                         title="Boost Reel"
                       >
-                        <FiZap size={15} />
-                        <span className="text-[10px] font-black">Boost</span>
+                        <FiZap size={12} className="text-amber-600 fill-amber-500" />
+                        <span className="text-[10px] font-black uppercase tracking-wider">Boost</span>
                       </button>
                     )}
                     <button

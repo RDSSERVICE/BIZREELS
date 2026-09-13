@@ -14,6 +14,7 @@ const DEFAULT_RATES = {
   firstChatMessage: 0.10,
   inquiry: 0.10,
   orderRequest: 5.00,
+  reelBoost1Day: 2.00,
   reelBoostAdditional: 2.00,
   dedupWindowHours: 24,
 };
@@ -22,6 +23,14 @@ let cachedRates = null;
 let lastCacheTime = 0;
 
 class ActionChargeService {
+  /**
+   * Clear cache when admin modifies credit rates
+   */
+  clearCache() {
+    cachedRates = null;
+    lastCacheTime = 0;
+  }
+
   /**
    * Fetch current configurable action rates with 60-second caching
    */
@@ -34,6 +43,9 @@ class ActionChargeService {
     try {
       const setting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
       cachedRates = { ...DEFAULT_RATES, ...(setting?.value || {}) };
+      const boostRate = Number(cachedRates.reelBoost1Day ?? cachedRates.reelBoostAdditional ?? 2.00);
+      cachedRates.reelBoost1Day = boostRate;
+      cachedRates.reelBoostAdditional = boostRate;
       lastCacheTime = now;
     } catch (e) {
       cachedRates = { ...DEFAULT_RATES };
@@ -241,12 +253,14 @@ class ActionChargeService {
   /**
    * Deduct Reel Boost with Free Boost Priority
    * If vendor has free_reel_boosts > 0, deducts 1 boost (0 credits).
-   * Otherwise deducts 2.00 Credits from wallet.
+   * Otherwise deducts durationDays * ratePerDay (2.00 Credits/day) from wallet.
    */
-  async deductReelBoost({ vendorId, reelId }) {
+  async deductReelBoost({ vendorId, reelId, durationDays = 1 }) {
     const vId = vendorId.toString();
     const rates = await this.getRates();
-    const boostCost = rates.reelBoostAdditional || 2.00;
+    const days = Math.max(1, parseInt(durationDays || 1, 10));
+    const ratePerDay = Number(rates.reelBoost1Day || rates.reelBoostAdditional || 2.00);
+    const boostCost = Number((days * ratePerDay).toFixed(2));
 
     let wallet = await Wallet.findOne({ user_id: vId });
     if (!wallet) {
@@ -292,8 +306,8 @@ class ActionChargeService {
         source: 'system',
         status: 'completed',
         reference_id: refId,
-        admin_remarks: `Free Reel Boost Applied (1 used, ${freeBoosts - 1} remaining)`,
-        meta: { reel_id: reelId, free_boost_used: true },
+        admin_remarks: `Free Reel Boost Applied for ${days} days (1 used, ${freeBoosts - 1} remaining)`,
+        meta: { reel_id: reelId, free_boost_used: true, duration_days: days },
       });
 
       try {
@@ -307,6 +321,8 @@ class ActionChargeService {
         success: true,
         type: 'free_boost',
         usedFreeBoost: true,
+        durationDays: days,
+        ratePerDay,
         freeBoostRemaining: freeBoosts - 1,
         remainingFreeBoosts: freeBoosts - 1,
         deductedAmount: 0,
@@ -314,10 +330,10 @@ class ActionChargeService {
       };
     }
 
-    // No free boosts -> Check credit balance for 2.00 Credits
+    // No free boosts -> Check credit balance for durationDays * ratePerDay (2.00 Credits/day)
     const previousCredits = wallet.credits || 0;
     if (previousCredits < boostCost) {
-      throw new Error(`Insufficient credits to boost reel. Needed: ${boostCost} Credits, Available: ${previousCredits} Credits. Please recharge your plan.`);
+      throw new Error(`Insufficient credits to boost reel for ${days} days. Needed: ${boostCost.toFixed(2)} Credits (${days} days × ${ratePerDay.toFixed(2)} Credits/day), Available: ${previousCredits.toFixed(2)} Credits. Please recharge your wallet.`);
     }
 
     const updatedCredits = Math.max(0, Number((previousCredits - boostCost).toFixed(2)));
@@ -346,8 +362,8 @@ class ActionChargeService {
       source: 'system',
       status: 'completed',
       reference_id: refId,
-      admin_remarks: `Additional Reel Boost (-${boostCost} Credits)`,
-      meta: { reel_id: reelId, free_boost_used: false },
+      admin_remarks: `Reel Boost for ${days} days (-${boostCost.toFixed(2)} Credits at ${ratePerDay.toFixed(2)} Credits/day)`,
+      meta: { reel_id: reelId, free_boost_used: false, duration_days: days, rate_per_day: ratePerDay },
     });
 
     try {
@@ -361,11 +377,14 @@ class ActionChargeService {
       success: true,
       type: 'credits',
       usedFreeBoost: false,
+      durationDays: days,
+      ratePerDay,
       freeBoostRemaining: 0,
       remainingFreeBoosts: 0,
       deductedAmount: boostCost,
       creditsDeducted: boostCost,
       newBalance: updatedCredits,
+      referenceId: refId,
     };
   }
 }

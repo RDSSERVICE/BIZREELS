@@ -60,7 +60,7 @@ export default function AdminCreditRatesPage() {
         reelPost: 1,
         aiImage: 2,
         aiVideo30s: 15,
-        reelBoost1Day: 10,
+        reelBoost1Day: 2,
         validLead: 1,
       });
     } finally {

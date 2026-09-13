@@ -245,25 +245,47 @@ class WalletController {
 
   // ── Get Credit Rate Schedule ────────────────────────────
   getCreditRates = asyncHandler(async (req, res) => {
+    const { AppSettings } = require('../models/Admin');
+    let boostRate = 2.00;
+    let whatsappRate = 2.50;
+    let callRate = 2.50;
+    let rawRates = {
+      whatsapp: 2.50,
+      callConnected: 2.50,
+      reelBoost1Day: 2.00,
+      reelBoostAdditional: 2.00,
+      uniqueView: 0.20,
+    };
+    try {
+      const setting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+      if (setting && setting.value) {
+        boostRate = Number(setting.value.reelBoost1Day ?? setting.value.reelBoostAdditional ?? 2.00);
+        whatsappRate = Number(setting.value.whatsapp ?? 2.50);
+        callRate = Number(setting.value.callConnected ?? 2.50);
+        rawRates = { ...rawRates, ...setting.value, reelBoost1Day: boostRate, reelBoostAdditional: boostRate };
+      }
+    } catch (e) {}
+
     const rateItems = [
       {
         action: 'Verified WhatsApp Lead',
-        rate: '2.50 Credits',
+        rate: `${whatsappRate.toFixed(2)} Credits`,
         description: 'Charged when a customer sends an inbound message to your connected Meta WhatsApp Business number (includes 24-hour deduplication protection)',
         category: 'WhatsApp',
         badge: 'ACTION LEAD',
       },
       {
         action: 'Connected Exotel Voice Call',
-        rate: '2.50 Credits',
+        rate: `${callRate.toFixed(2)} Credits`,
         description: 'Charged ONLY when a phone call connects between buyer and vendor for >= 10 seconds via Exotel (0 if busy, missed, or failed)',
         category: 'Telephony',
         badge: 'ACTION LEAD',
       },
       {
         action: 'Reel Feed Feature Boost',
-        rate: 'Free / 2.00 Credits',
-        description: 'Plan-included free boosts (Starter: 1, Growth: 3, Business: 5) are consumed first. Additional boosts cost 2.00 Credits per boost',
+        rate: `Free / ${boostRate.toFixed(2)} Credits/day`,
+        rateValue: boostRate,
+        description: `Plan-included free boosts (Starter: 1, Growth: 3, Business: 5) are consumed first. Additional boost duration costs ${boostRate.toFixed(2)} Credits per day`,
         category: 'Promotion',
         badge: 'BOOST',
       },
@@ -290,7 +312,13 @@ class WalletController {
       },
     ];
 
-    return ApiResponse.ok(res, 'Official vendor credit rate schedule loaded.', { rates: rateItems });
+    return ApiResponse.ok(res, 'Official vendor credit rate schedule loaded.', {
+      rates: rateItems,
+      rawRates,
+      boostRate,
+      whatsappRate,
+      callRate,
+    });
   });
 }
 

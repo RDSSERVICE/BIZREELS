@@ -194,11 +194,11 @@ const boostReelWithCredits = async (vendorId, reelId, durationDays) => {
   }
 
   // Fetch active credit rates to get cost per day
-  let costPerDay = 10; // fallback default
+  let costPerDay = 2.00; // fallback default
   try {
     const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
-    if (rateSetting && rateSetting.value && rateSetting.value.reelBoost1Day !== undefined) {
-      costPerDay = Number(rateSetting.value.reelBoost1Day);
+    if (rateSetting && rateSetting.value) {
+      costPerDay = Number(rateSetting.value.reelBoost1Day ?? rateSetting.value.reelBoostAdditional ?? 2.00);
     }
   } catch (err) {
     logger.error('Failed to fetch credit rates for reel boosting:', err);

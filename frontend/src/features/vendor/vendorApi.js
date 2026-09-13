@@ -124,7 +124,14 @@ const vendorApi = apiSlice.injectEndpoints({
       query: (id) => ({ url: `/reels/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Reels', 'VendorDashboard'],
     }),
-    // NOTE: Boosts endpoints removed — boost system deprecated
+    boostReel: builder.mutation({
+      query: ({ id, durationDays }) => ({
+        url: `/reels/${id}/boost`,
+        method: 'POST',
+        body: { durationDays }
+      }),
+      invalidatesTags: ['Reels', 'VendorDashboard', 'Wallet'],
+    }),
 
     // ── Leads / Enquiries ───────────────────────────────────
     getVendorLeads: builder.query({

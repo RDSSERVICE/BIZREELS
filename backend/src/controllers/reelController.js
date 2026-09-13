@@ -267,36 +267,65 @@ class ReelController {
     const { id } = req.params;
     const actionChargeService = require('../services/action-charge.service');
     const Reel = require('../models/Reel');
+    const ApiError = require('../utils/ApiError');
 
-    // Deduct boost (1 Free Boost if available, or 2.00 Credits)
+    const reel = await Reel.findOne({ _id: id, isDeleted: { $ne: true } });
+    if (!reel) {
+      throw ApiError.notFound('Reel not found');
+    }
+
+    const creatorId = (reel.creator?._id || reel.creator)?.toString();
+    if (creatorId && creatorId !== req.user._id.toString()) {
+      throw ApiError.forbidden('You can only boost your own reels');
+    }
+
+    const body = req.body || {};
+    const durationDays = Math.max(1, parseInt(body.durationDays ?? body.duration_days ?? body.days ?? 1, 10));
+
+    // Deduct boost (1 Free Boost if available from subscription, or durationDays * 2.00 Credits)
     const boostDeduction = await actionChargeService.deductReelBoost({
       vendorId: req.user._id,
       reelId: id,
+      durationDays,
     });
 
-    const body = req.body || {};
-    const durationDays =
-      body.durationDays ??
-      body.duration_days ??
-      body.days ??
-      7;
+    // Calculate new expiration date (extend if already boosted)
+    const now = new Date();
+    let baseFrom = now;
+    if (reel.boostExpiresAt && new Date(reel.boostExpiresAt) > now) {
+      baseFrom = new Date(reel.boostExpiresAt);
+    } else if (reel.boosted_until && new Date(reel.boosted_until) > now) {
+      baseFrom = new Date(reel.boosted_until);
+    }
+    const expiresAt = new Date(baseFrom.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
-    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+    // Atomically update both camelCase and snake_case properties
     await Reel.updateOne(
       { _id: id },
       {
         $set: {
+          isBoosted: true,
           is_boosted: true,
+          boostExpiresAt: expiresAt,
           boosted_until: expiresAt,
+          boostDurationDays: durationDays,
+          boostActivatedAt: now,
           boost_status: 'active',
         },
       }
     );
 
+    // Notify connected vendor socket
+    try {
+      const { emitToUser } = require('../lib/socket');
+      emitToUser(req.user._id.toString(), 'reel:updated', { reelId: id, isBoosted: true, boostExpiresAt: expiresAt });
+    } catch (e) {}
+
     return ApiResponse.ok(res, 'Reel boosted successfully.', {
       ...boostDeduction,
       durationDays,
       boostedUntil: expiresAt,
+      boostExpiresAt: expiresAt,
     });
   });
 

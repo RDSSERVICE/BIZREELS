@@ -241,6 +241,7 @@ class VendorController {
     const followers = req.user.followersCount || (req.user.followers ? req.user.followers.length : 0);
 
     const availableCredits = wallet ? (wallet.credits || 0) : 0;
+    const freeReelBoosts = wallet ? (wallet.free_reel_boosts ?? req.user.free_reel_boosts ?? 0) : (req.user.free_reel_boosts ?? 0);
     const depositedCredits = wallet ? (wallet.lifetime_deposited_paise ? Math.floor(wallet.lifetime_deposited_paise / 100) : 0) : 0;
     const earnedCredits = wallet ? (wallet.lifetime_earned_credits || 0) : 0;
     const usedCreditHistory = wallet ? (wallet.lifetime_spent_credits || 0) : 0;
@@ -295,32 +296,30 @@ class VendorController {
     if (cachedCreditRates && (nowMs - lastRatesFetched < RATES_CACHE_TTL_MS)) {
       creditRates = cachedCreditRates;
     } else {
+      const defaultRates = {
+        productListing: 1,
+        reelPost: 1,
+        aiImage: 2,
+        aiVideo30s: 15,
+        reelBoost1Day: 2,
+        reelBoostAdditional: 2,
+        validLead: 1,
+      };
       try {
         const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
         if (rateSetting && rateSetting.value) {
-          creditRates = rateSetting.value;
+          creditRates = { ...defaultRates, ...rateSetting.value };
+          const boostRate = Number(creditRates.reelBoost1Day ?? creditRates.reelBoostAdditional ?? 2.00);
+          creditRates.reelBoost1Day = boostRate;
+          creditRates.reelBoostAdditional = boostRate;
         } else {
-          creditRates = {
-            productListing: 1,
-            reelPost: 1,
-            aiImage: 2,
-            aiVideo30s: 15,
-            reelBoost1Day: 10,
-            validLead: 1,
-          };
+          creditRates = defaultRates;
         }
         cachedCreditRates = creditRates;
         lastRatesFetched = nowMs;
       } catch (err) {
         logger.error('Failed to load credit rates from AppSettings:', err);
-        creditRates = {
-          productListing: 1,
-          reelPost: 1,
-          aiImage: 2,
-          aiVideo30s: 15,
-          reelBoost1Day: 10,
-          validLead: 1,
-        };
+        creditRates = defaultRates;
       }
     }
 
@@ -341,6 +340,8 @@ class VendorController {
         deposited: depositedCredits,
         earned: earnedCredits,
         used: usedCreditHistory,
+        free_reel_boosts: freeReelBoosts,
+        freeReelBoosts: freeReelBoosts,
       },
       referral: referralInfo ? {
         code: referralInfo.referral_code,
