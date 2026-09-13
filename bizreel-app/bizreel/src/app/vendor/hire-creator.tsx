@@ -1,10 +1,3 @@
-/**
- * Vendor Hire Creator Marketplace Screen — Mobile Application
- * Parity with Web Frontend VendorHireCreatorPage.jsx
- * Features: Search bar, Category & City filters, Creator Cards with rate cards,
- * and Hire Proposal Modal.
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -24,14 +17,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 const CATEGORIES = [
   'All Categories',
@@ -160,7 +156,7 @@ export default function VendorHireCreatorScreen() {
       {/* Top Bar Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Hire Content Creators</Text>
         <View style={{ width: 36 }} />
@@ -169,11 +165,11 @@ export default function VendorHireCreatorScreen() {
       {/* ── Search Bar & Filters Section ── */}
       <View style={styles.searchSection}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color="rgba(255,255,255,0.4)" />
+          <Ionicons name="search" size={16} color={TEXT_MUTED} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search creator name, category, city..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={TEXT_MUTED}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={handleSearchSubmit}
@@ -181,7 +177,7 @@ export default function VendorHireCreatorScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+              <Ionicons name="close-circle" size={16} color={TEXT_MUTED} />
             </TouchableOpacity>
           )}
         </View>
@@ -210,7 +206,7 @@ export default function VendorHireCreatorScreen() {
                 key={c}
                 style={[styles.cityChip, isSelected && styles.cityChipActive]}
                 onPress={() => setSelectedCity(c)}>
-                <Ionicons name="location-outline" size={12} color={isSelected ? BLACK : YELLOW} />
+                <Ionicons name="location-outline" size={12} color={isSelected ? '#fff' : GOLD} />
                 <Text style={[styles.cityChipText, isSelected && styles.cityChipTextActive]}>{c}</Text>
               </TouchableOpacity>
             );
@@ -221,7 +217,7 @@ export default function VendorHireCreatorScreen() {
       {/* Creators Directory List */}
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={YELLOW} />
+          <ActivityIndicator size="large" color={GOLD} />
         </View>
       ) : (
         <FlatList
@@ -235,8 +231,8 @@ export default function VendorHireCreatorScreen() {
                 setRefreshing(true);
                 fetchCreators();
               }}
-              tintColor={YELLOW}
-              colors={[YELLOW]}
+              tintColor={GOLD}
+              colors={[GOLD]}
             />
           }
           renderItem={({ item }) => {
@@ -269,14 +265,14 @@ export default function VendorHireCreatorScreen() {
                     <View style={styles.cardMainInfo}>
                       <View style={styles.nameRow}>
                         <Text style={styles.creatorName} numberOfLines={1}>{item.name}</Text>
-                        {isVerified && <Ionicons name="checkmark-circle" size={16} color={YELLOW} />}
+                        {isVerified && <Ionicons name="checkmark-circle" size={16} color={GOLD} />}
                       </View>
 
                       <Text style={styles.handleText}>@{item.handle || item.username || 'creator'}</Text>
 
                       <View style={styles.metaBadgeRow}>
                         <View style={styles.ratingBadge}>
-                          <Ionicons name="star" size={11} color={BLACK} />
+                          <Ionicons name="star" size={11} color="#fff" />
                           <Text style={styles.ratingText}>{rating}</Text>
                         </View>
 
@@ -304,14 +300,14 @@ export default function VendorHireCreatorScreen() {
                     <TouchableOpacity
                       style={styles.viewProfileBtn}
                       onPress={handleNavigateProfile}>
-                      <Ionicons name="person-outline" size={14} color="#fff" />
+                      <Ionicons name="person-outline" size={14} color={TEXT_MAIN} />
                       <Text style={styles.viewProfileBtnText}>PROFILE</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.hireBtn}
                       onPress={() => handleOpenHireModal(item)}>
-                      <Ionicons name="flash" size={14} color={BLACK} />
+                      <Ionicons name="flash" size={14} color={GOLD} />
                       <Text style={styles.hireBtnText}>HIRE NOW</Text>
                     </TouchableOpacity>
                   </View>
@@ -321,7 +317,7 @@ export default function VendorHireCreatorScreen() {
           }}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={56} color="rgba(255,255,255,0.2)" />
+              <Ionicons name="people-outline" size={56} color={TEXT_MUTED} />
               <Text style={styles.emptyTitle}>No Creators Found</Text>
               <Text style={styles.emptySub}>
                 No registered creators match your criteria. New creators will appear here automatically as soon as they sign up!
@@ -342,7 +338,7 @@ export default function VendorHireCreatorScreen() {
                 <Text style={styles.modalSub}>Target Creator: {selectedCreator?.name}</Text>
               </View>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setHireModalVisible(false)}>
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={TEXT_MAIN} />
               </TouchableOpacity>
             </View>
 
@@ -375,7 +371,7 @@ export default function VendorHireCreatorScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. Diwali Collection Video Reel Showcase"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_MUTED}
                   value={campaignTitle}
                   onChangeText={setCampaignTitle}
                 />
@@ -387,7 +383,7 @@ export default function VendorHireCreatorScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="1500"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     value={offeredRate}
                     onChangeText={setOfferedRate}
                     keyboardType="number-pad"
@@ -399,7 +395,7 @@ export default function VendorHireCreatorScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="1"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     value={reelsCount}
                     onChangeText={setReelsCount}
                     keyboardType="number-pad"
@@ -412,7 +408,7 @@ export default function VendorHireCreatorScreen() {
                 <TextInput
                   style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
                   placeholder="Describe your product specs, key talking points, and delivery deadline..."
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_MUTED}
                   value={requirements}
                   onChangeText={setRequirements}
                   multiline
@@ -424,7 +420,7 @@ export default function VendorHireCreatorScreen() {
                 onPress={handleSendProposal}
                 disabled={submittingProposal}>
                 {submittingProposal ? (
-                  <ActivityIndicator color={BLACK} />
+                  <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={styles.submitProposalBtnText}>🚀 SEND PROPOSAL REQUEST NOW</Text>
                 )}
@@ -440,34 +436,35 @@ export default function VendorHireCreatorScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_COLOR },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
-    borderBottomWidth: 2,
-    borderBottomColor: YELLOW,
+    backgroundColor: CARD_BG,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
   backBtn: {
     width: 36,
     height: 36,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 8,
   },
   headerTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   searchSection: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     padding: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
@@ -476,39 +473,41 @@ const styles = StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 8,
     paddingHorizontal: 10,
-    height: 38,
+    height: 40,
     gap: 6,
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
   },
   filterScroll: {
     gap: 6,
   },
   filterPill: {
-    backgroundColor: BLACK,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: BORDER,
   },
   filterPillActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   filterPillText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
   filterPillTextActive: {
-    color: BLACK,
+    color: GOLD,
     fontWeight: '900',
   },
   cityScroll: {
@@ -518,23 +517,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: BLACK,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: BORDER,
   },
   cityChipActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   cityChipText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '800',
   },
   cityChipTextActive: {
-    color: BLACK,
+    color: '#fff',
     fontWeight: '900',
   },
   centered: {
@@ -547,12 +547,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   creatorCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 6,
+    borderRadius: 14,
     padding: 14,
     gap: 10,
+    ...Shadows.sm,
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -562,8 +563,8 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    borderWidth: 1.5,
-    borderColor: YELLOW,
+    borderWidth: 2,
+    borderColor: GOLD,
   },
   cardMainInfo: {
     flex: 1,
@@ -575,12 +576,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   creatorName: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   handleText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
   },
   metaBadgeRow: {
@@ -593,30 +594,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 3,
+    borderRadius: 4,
   },
   ratingText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
   },
   catBadge: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 6,
     paddingVertical: 2,
+    borderRadius: 4,
   },
   catBadgeText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '800',
   },
   bioText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 11,
     lineHeight: 16,
   },
@@ -631,12 +633,12 @@ const styles = StyleSheet.create({
   },
   rateGroup: {},
   rateLabel: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '800',
   },
   rateValue: {
-    color: YELLOW,
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -648,14 +650,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
+    borderRadius: 8,
   },
   viewProfileBtnText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 10,
     fontWeight: '800',
   },
@@ -663,12 +666,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 14,
     paddingVertical: 8,
+    borderRadius: 8,
   },
   hireBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
   },
@@ -679,51 +683,54 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   emptyTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   emptySub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
   },
   modalContent: {
     flex: 1,
-    backgroundColor: BLACK,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: CARD_BG,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderTopWidth: 3,
+    borderTopColor: GOLD,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
   modalTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   modalSub: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '800',
   },
   modalCloseBtn: {
     width: 32,
     height: 32,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -735,10 +742,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFBEB',
     padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: '#FCD34D',
   },
   modalAvatar: {
     width: 48,
@@ -746,16 +754,16 @@ const styles = StyleSheet.create({
     borderRadius: 24,
   },
   modalCreatorName: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   modalCreatorSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 10,
   },
   modalCreatorRate: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
     marginTop: 2,
@@ -764,17 +772,18 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   fieldLabel: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: DARK_CARD,
-    color: '#fff',
+    backgroundColor: '#F8FAFC',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
@@ -783,14 +792,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitProposalBtn: {
-    backgroundColor: YELLOW,
-    paddingVertical: 16,
+    backgroundColor: ESPRESSO,
+    paddingVertical: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   submitProposalBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: FontSize.sm,
     fontWeight: '900',
     letterSpacing: 0.5,

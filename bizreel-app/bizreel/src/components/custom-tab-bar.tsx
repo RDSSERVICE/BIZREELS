@@ -1,10 +1,14 @@
 /**
- * CustomTabBar — Classic Brutalist Yellow & Black Bottom Navigation.
- * Sharp edges, thick borders, solid block active state. No pill/rounded softness.
+ * CustomTabBar — Bottom Navigation with illuminated selected icon.
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Radius } from '@/constants/theme';
+import { useAuth } from '@/features/auth/context';
+import { useCart } from '@/features/cart/queries';
 
 export interface BottomTabBarProps {
   state: any;
@@ -12,23 +16,19 @@ export interface BottomTabBarProps {
   descriptors?: any;
   insets?: any;
 }
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FontSize, FontWeight, Spacing } from '@/constants/theme';
-import { useAuth } from '@/features/auth/context';
-import { useCart } from '@/features/cart/queries';
-
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_BG = '#18181C';
-const BORDER = '#2D2D36';
+const ACCENT_GOLD = '#D99A3D';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#94A3B8';
+const BG_WHITE = '#FFFFFF';
+const BORDER = '#E2E8F0';
 
 const TABS = [
-  { name: 'home',             label: 'HOME',     icon: 'home-outline',         activeIcon: 'home',             forRole: 'all' },
-  { name: 'index',            label: 'REELS',    icon: 'play-circle-outline',  activeIcon: 'play-circle',      forRole: 'customer' },
-  { name: 'studio',           label: 'STUDIO',   icon: 'videocam-outline',     activeIcon: 'videocam',         forRole: 'vendor' },
-  { name: 'search',           label: 'SEARCH',   icon: 'search-outline',       activeIcon: 'search',           forRole: 'customer' },
-  { name: 'profile',          label: 'ME',       icon: 'person-outline',       activeIcon: 'person',           forRole: 'all' },
+  { name: 'home',             label: 'Home',     icon: 'home-outline',         activeIcon: 'home',             forRole: 'all' },
+  { name: 'index',            label: 'Reels',    icon: 'play-circle-outline',  activeIcon: 'play-circle',      forRole: 'customer' },
+  { name: 'studio',           label: 'Studio',   icon: 'videocam-outline',     activeIcon: 'videocam',         forRole: 'vendor' },
+  { name: 'search',           label: 'Search',   icon: 'search-outline',       activeIcon: 'search',           forRole: 'customer' },
+  { name: 'profile',          label: 'Profile',  icon: 'person-outline',       activeIcon: 'person',           forRole: 'all' },
 ];
 
 export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
@@ -69,13 +69,14 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
     return state.routes[state.index]?.name === routeName;
   }
 
+  const bottomInset = Math.max(insets.bottom, 6);
+
   return (
-    <View style={[styles.outerContainer, { paddingBottom: Math.max(insets.bottom, 10) }]} pointerEvents="box-none">
+    <View style={[styles.outerContainer, { paddingBottom: bottomInset }]} pointerEvents="box-none">
       <View style={styles.tabBarRow}>
-        {visibleTabs.map((tab, i) => {
+        {visibleTabs.map((tab) => {
           const active = isActive(tab.name);
           const iconName = active ? tab.activeIcon : tab.icon;
-          const isLast = i === visibleTabs.length - 1;
 
           return (
             <Pressable
@@ -83,24 +84,26 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               android_ripple={null}
               style={({ pressed }) => [
                 styles.tabItem,
-                active && styles.tabItemActive,
-                !isLast && styles.tabItemBorderRight,
-                pressed && !active && { opacity: 0.6 },
+                pressed && !active && { opacity: 0.7 },
               ]}
               onPress={() => handlePress(tab.name)}
               accessibilityLabel={tab.label}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}>
 
-              <View style={styles.iconWrapper}>
+              {/* Illuminated Icon Container */}
+              <View style={[styles.iconWrapper, active && styles.iconWrapperIlluminated]}>
                 <Ionicons
                   name={iconName as any}
-                  size={20}
-                  color={active ? BLACK : 'rgba(255,255,255,0.45)'}
+                  size={active ? 20 : 18}
+                  color={active ? ACCENT_GOLD : TEXT_MUTED}
                 />
 
+                {/* Illuminated Top Indicator Bar */}
+                {active && <View style={styles.illuminatedBar} />}
+
                 {tab.name === 'search' && cartTotalItems > 0 && (
-                  <View style={[styles.badge, active && styles.badgeActive]} />
+                  <View style={styles.badge} />
                 )}
               </View>
 
@@ -115,65 +118,85 @@ export function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
+const BG_MATTE = '#FBF9F5';
+const BORDER_MATTE = '#E5E0D4';
+
 const styles = StyleSheet.create({
   outerContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: DARK_BG,
+    backgroundColor: BG_MATTE,
     borderTopWidth: 1,
-    borderTopColor: BORDER,
+    borderTopColor: BORDER_MATTE,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 6,
   },
   tabBarRow: {
     flexDirection: 'row',
-    alignItems: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingTop: 4,
+    paddingHorizontal: 8,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    gap: 3,
-    backgroundColor: DARK_BG,
-  },
-  tabItemActive: {
-    backgroundColor: YELLOW,
-  },
-  tabItemBorderRight: {
-    borderRightWidth: 1,
-    borderRightColor: BORDER,
+    paddingVertical: 2,
+    gap: 2,
   },
   iconWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 28,
-    height: 24,
+    width: 42,
+    height: 32,
+    borderRadius: Radius.full,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  iconWrapperIlluminated: {
+    backgroundColor: '#241B15',
+    borderColor: ACCENT_GOLD,
+    shadowColor: ACCENT_GOLD,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  illuminatedBar: {
+    position: 'absolute',
+    top: -2,
+    width: 13,
+    height: 2,
+    borderRadius: Radius.full,
+    backgroundColor: ACCENT_GOLD,
   },
   tabLabel: {
-    fontSize: 8,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-    color: 'rgba(255,255,255,0.4)',
+    fontSize: 9.5,
+    fontWeight: '600',
+    color: TEXT_MUTED,
   },
   tabLabelActive: {
-    color: BLACK,
-    fontWeight: '900',
+    color: '#1E1B18',
+    fontWeight: '800',
   },
   badge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: YELLOW,
-    width: 7,
-    height: 7,
-    borderRadius: 0, // brutalist — square badge
+    top: 2,
+    right: 3,
+    backgroundColor: '#EF4444',
+    width: 7.5,
+    height: 7.5,
+    borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: DARK_BG,
-  },
-  badgeActive: {
-    backgroundColor: BLACK,
-    borderColor: YELLOW,
+    borderColor: BG_MATTE,
   },
 });
+

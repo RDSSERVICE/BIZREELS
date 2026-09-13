@@ -31,7 +31,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import DirectBuyModal from '@/components/DirectBuyModal';
 import { useAddToCart } from '@/features/cart/queries';
 import { api } from '@/lib/api';
@@ -604,7 +604,7 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
     }
   }
 
-  const bottomMargin = Math.max(insets.bottom, 12) + 70;
+  const bottomMargin = Math.max(insets.bottom, 10) + 60;
 
   return (
     <View style={[styles.container, { height }]}>
@@ -625,10 +625,6 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
         ) : (
           <>
             <Image source={{ uri: imageUrl || undefined }} style={styles.media} contentFit="contain" />
-            <View style={[styles.imageTypeBadge, { top: insets.top + 16 }]}>
-              <Ionicons name="image-outline" size={14} color="#fff" />
-              <Text style={styles.imageTypeText}>Photo Reel</Text>
-            </View>
           </>
         )}
 
@@ -812,14 +808,14 @@ export const ReelItem = memo(function ReelItem({ reel, isActive, height, userLat
                   }
                 );
               }}>
-              <Ionicons name="cart" size={15} color="#fff" />
+              <Ionicons name="cart" size={15} color="#1A1A1A" />
               <Text style={styles.reelCartText}>Add to Cart</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.reelBuyBtn}
               onPress={() => setDirectBuyModalOpen(true)}>
-              <Ionicons name="flash" size={15} color="#000" />
+              <Ionicons name="flash" size={15} color="#D99A3D" />
               <Text style={styles.reelBuyText}>Buy Now</Text>
             </TouchableOpacity>
           </View>
@@ -1095,7 +1091,7 @@ const styles = StyleSheet.create({
   playPauseCircle: {
     width: 64,
     height: 64,
-    borderRadius: 0,
+    borderRadius: 32,
     backgroundColor: 'rgba(0,0,0,0.65)',
     borderWidth: 2,
     borderColor: YELLOW,
@@ -1134,7 +1130,7 @@ const styles = StyleSheet.create({
   avatarContainer: {
     width: 40,
     height: 40,
-    borderRadius: 0,
+    borderRadius: 20,
     backgroundColor: DARK_CARD,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1142,7 +1138,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: YELLOW,
   },
-  avatarImage: { width: 40, height: 40 },
+  avatarImage: { width: 40, height: 40, borderRadius: 20 },
   avatarFallback: {
     color: YELLOW,
     fontSize: FontSize.md,
@@ -1159,23 +1155,25 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   followBtn: {
-    backgroundColor: YELLOW,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 5,
-    borderRadius: 0,
+    backgroundColor: '#D99A3D',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   followBtnActive: {
-    backgroundColor: DARK_CARD,
-    borderWidth: 1,
-    borderColor: BORDER,
+    backgroundColor: 'rgba(36, 27, 21, 0.85)',
+    borderWidth: 1.5,
+    borderColor: '#D99A3D',
   },
   followBtnText: {
-    color: BLACK,
+    color: '#1A1A1A',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   followBtnTextActive: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#D99A3D',
   },
   caption: {
     color: '#fff',
@@ -1198,7 +1196,7 @@ const styles = StyleSheet.create({
     backgroundColor: BLACK,
     paddingHorizontal: Spacing.two,
     paddingVertical: 4,
-    borderRadius: 0,
+    borderRadius: 9999,
     borderWidth: 1,
     borderColor: YELLOW,
   },
@@ -1221,11 +1219,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(15, 17, 23, 0.55)',
+    backgroundColor: 'rgba(36, 27, 21, 0.78)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.16)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(217, 154, 61, 0.35)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
@@ -1233,24 +1231,24 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   actionIconCircleLiked: {
-    backgroundColor: 'rgba(255, 45, 85, 0.22)',
+    backgroundColor: 'rgba(255, 45, 85, 0.25)',
     borderColor: '#FF2D55',
   },
   actionIconCircleSaved: {
-    backgroundColor: 'rgba(245, 158, 11, 0.22)',
-    borderColor: '#F59E0B',
+    backgroundColor: 'rgba(217, 154, 61, 0.3)',
+    borderColor: '#D99A3D',
   },
   actionIconCircleCall: {
-    backgroundColor: 'rgba(59, 130, 246, 0.22)',
-    borderColor: 'rgba(59, 130, 246, 0.45)',
+    backgroundColor: 'rgba(59, 130, 246, 0.25)',
+    borderColor: 'rgba(59, 130, 246, 0.5)',
   },
   actionIconCircleWhatsApp: {
-    backgroundColor: 'rgba(34, 197, 94, 0.22)',
-    borderColor: 'rgba(34, 197, 94, 0.45)',
+    backgroundColor: 'rgba(34, 197, 94, 0.25)',
+    borderColor: 'rgba(34, 197, 94, 0.5)',
   },
   actionIconCircleChat: {
-    backgroundColor: 'rgba(245, 158, 11, 0.22)',
-    borderColor: 'rgba(245, 158, 11, 0.45)',
+    backgroundColor: 'rgba(217, 154, 61, 0.25)',
+    borderColor: 'rgba(217, 154, 61, 0.5)',
   },
   actionCount: {
     color: '#FFFFFF',
@@ -1271,41 +1269,41 @@ const styles = StyleSheet.create({
   reelCartBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    borderRadius: 0,
+    backgroundColor: '#D99A3D',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 9999,
     gap: 6,
-    borderWidth: 1,
-    borderColor: BORDER,
   },
   reelCartText: {
-    color: '#fff',
+    color: '#1A1A1A',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   reelBuyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    borderRadius: 0,
+    backgroundColor: '#241B15',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: '#D99A3D',
     gap: 6,
   },
   reelBuyText: {
-    color: BLACK,
+    color: '#D99A3D',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   taggedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: '#241B15',
+    borderRadius: 9999,
     padding: Spacing.two,
     borderWidth: 1.5,
-    borderColor: YELLOW,
+    borderColor: '#D99A3D',
     marginBottom: Spacing.one,
   },
   taggedContent: {
@@ -1317,12 +1315,12 @@ const styles = StyleSheet.create({
   taggedImage: {
     width: 38,
     height: 38,
-    borderRadius: 0,
+    borderRadius: 19,
   },
   taggedImageFallback: {
     width: 38,
     height: 38,
-    borderRadius: 0,
+    borderRadius: 19,
     backgroundColor: BLACK,
     borderWidth: 1,
     borderColor: BORDER,
@@ -1335,20 +1333,20 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   taggedPrice: {
-    color: YELLOW,
+    color: '#D99A3D',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   addToCartBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: Spacing.three,
+    backgroundColor: '#D99A3D',
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 0,
+    borderRadius: 9999,
   },
   addToCartBtnText: {
-    color: BLACK,
+    color: '#1A1A1A',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -1358,12 +1356,12 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(15,23,42,0.6)',
   },
   commentsDrawer: {
-    backgroundColor: DARK_CARD,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: SCREEN_HEIGHT * 0.65,
     padding: Spacing.four,
   },
@@ -1374,21 +1372,21 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.three,
     paddingBottom: Spacing.two,
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    borderBottomColor: '#E2E8F0',
   },
   drawerTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   commentItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     padding: Spacing.two,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     gap: 10,
   },
   commentAvatar: {
@@ -1396,7 +1394,7 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
   },
   commentContentBox: {
     flex: 1,
@@ -1407,22 +1405,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   commentUser: {
-    color: YELLOW,
+    color: '#D97706',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   commentTime: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#94A3B8',
     fontSize: 10,
   },
   commentText: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.sm,
     marginTop: 3,
     lineHeight: 18,
   },
   emptyComments: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748B',
     textAlign: 'center',
     marginVertical: Spacing.four,
     fontSize: FontSize.sm,
@@ -1434,15 +1432,15 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
     paddingTop: Spacing.two,
     borderTopWidth: 1,
-    borderTopColor: BORDER,
+    borderTopColor: '#E2E8F0',
   },
   input: {
     flex: 1,
-    backgroundColor: BLACK,
-    color: '#fff',
-    borderRadius: 0,
+    backgroundColor: '#F8FAFC',
+    color: '#0F172A',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     fontSize: FontSize.sm,
@@ -1450,8 +1448,8 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 38,
     height: 38,
-    borderRadius: 0,
-    backgroundColor: YELLOW,
+    borderRadius: 19,
+    backgroundColor: '#241B15',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1461,28 +1459,30 @@ const styles = StyleSheet.create({
     zIndex: 25,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: '#0F0F12',
+    gap: 6,
+    backgroundColor: '#241B15',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: '#D99A3D',
   },
   topPriceText: {
-    color: BLACK,
+    color: '#D99A3D',
     fontSize: 14,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   pricePillTag: {
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 14,
     paddingVertical: 8,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
   },
   pricePillText: {
-    color: BLACK,
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '900',
   },
@@ -1493,14 +1493,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(15,15,18,0.85)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: '#241B15',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(217, 154, 61, 0.4)',
   },
   topLocationText: {
-    color: '#fff',
+    color: '#E2E8F0',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1508,14 +1509,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(217, 154, 61, 0.18)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: 'rgba(217, 154, 61, 0.35)',
   },
   locationPillText: {
-    color: YELLOW,
+    color: '#D97706',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -1523,28 +1525,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   postedTimePillText: {
-    color: '#E2E8F0',
+    color: '#F8FAFC',
     fontSize: 10,
     fontWeight: '700',
   },
   topOriginalPriceText: {
-    color: 'rgba(15,15,18,0.6)',
+    color: '#94A3B8',
     fontSize: 10,
     fontWeight: '700',
     textDecorationLine: 'line-through',
   },
   topDiscountBadge: {
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 2,
+    backgroundColor: '#10B981',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 9999,
     marginLeft: 2,
   },
   topDiscountText: {
@@ -1560,9 +1563,9 @@ const styles = StyleSheet.create({
   },
   discountPillTag: {
     backgroundColor: '#EF4444',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 9999,
     marginTop: 2,
   },
   discountPillText: {
@@ -1577,8 +1580,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 9999,
     marginTop: 6,
   },
   offerBannerText: {

@@ -26,7 +26,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, Shadows, Spacing } from '@/constants/theme';
 import {
   getDistrictsForState,
   getPincodesForDistrict,
@@ -44,10 +44,13 @@ const resolveMediaUrl = (url?: string) => {
   return `https://api.bizreels.in${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 const VENDOR_PROFESSIONS = [
   'Retailer / Shop Owner',
@@ -609,7 +612,7 @@ export default function VendorSettingsScreen() {
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={YELLOW} />
+        <ActivityIndicator size="large" color={GOLD} />
       </View>
     );
   }
@@ -619,12 +622,12 @@ export default function VendorSettingsScreen() {
       {/* Top Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.replace('/(tabs)/home')}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Business Profile & Branding</Text>
         <TouchableOpacity style={styles.saveHeaderBtn} onPress={saveProfileData} disabled={saving}>
           {saving ? (
-            <ActivityIndicator size="small" color={BLACK} />
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text style={styles.saveHeaderBtnText}>SAVE</Text>
           )}
@@ -635,11 +638,11 @@ export default function VendorSettingsScreen() {
         {/* Navigation Tabs Bar */}
         <View style={styles.navTabRow}>
           <TouchableOpacity style={[styles.navTab, styles.navTabActive]}>
-            <Ionicons name="briefcase-outline" size={14} color={BLACK} />
+            <Ionicons name="briefcase-outline" size={14} color="#fff" />
             <Text style={styles.navTabTextActive}>Branding & Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.navTab} onPress={() => router.push('/vendor/onboarding' as any)}>
-            <Ionicons name="document-text-outline" size={14} color="#fff" />
+            <Ionicons name="document-text-outline" size={14} color={TEXT_MUTED} />
             <Text style={styles.navTabText}>Setup Details</Text>
           </TouchableOpacity>
         </View>
@@ -647,7 +650,7 @@ export default function VendorSettingsScreen() {
         {/* ── SECTION 1: PROFILE PHOTO & COVER BANNER ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="camera-outline" size={16} color={YELLOW} />
+            <Ionicons name="camera-outline" size={16} color={GOLD} />
             <Text style={styles.cardTitle}>Profile Photo & Cover Banner</Text>
           </View>
 
@@ -657,13 +660,13 @@ export default function VendorSettingsScreen() {
               <Image source={{ uri: resolveMediaUrl(coverBanner) }} style={styles.coverImage} contentFit="cover" />
             ) : (
               <View style={styles.coverPlaceholder}>
-                <Ionicons name="image-outline" size={28} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="image-outline" size={28} color={TEXT_MUTED} />
                 <Text style={styles.coverPlaceholderText}>+ Upload Store Cover Banner (16:9)</Text>
               </View>
             )}
             {uploadingCover && (
               <View style={styles.uploadOverlay}>
-                <ActivityIndicator color={YELLOW} />
+                <ActivityIndicator color={GOLD} />
               </View>
             )}
           </TouchableOpacity>
@@ -675,15 +678,15 @@ export default function VendorSettingsScreen() {
                 <Image source={{ uri: resolveMediaUrl(profilePic) }} style={styles.avatarImage} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="storefront" size={28} color={YELLOW} />
+                  <Ionicons name="storefront" size={28} color={GOLD} />
                 </View>
               )}
               <View style={styles.cameraBadge}>
-                <Ionicons name="camera" size={12} color={BLACK} />
+                <Ionicons name="camera" size={12} color="#fff" />
               </View>
               {uploadingAvatar && (
                 <View style={styles.avatarUploadOverlay}>
-                  <ActivityIndicator size="small" color={YELLOW} />
+                  <ActivityIndicator size="small" color={GOLD} />
                 </View>
               )}
             </TouchableOpacity>
@@ -700,7 +703,7 @@ export default function VendorSettingsScreen() {
         {/* ── SECTION 2: BASIC SHOP DETAILS ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="briefcase-outline" size={16} color={YELLOW} />
+            <Ionicons name="briefcase-outline" size={16} color={GOLD} />
             <Text style={styles.cardTitle}>Basic Shop Details</Text>
           </View>
 
@@ -709,7 +712,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. Metro Electronics & Accessories"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={shopName}
               onChangeText={setShopName}
             />
@@ -720,7 +723,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. Metro Enterprises Pvt Ltd"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={businessName}
               onChangeText={setBusinessName}
             />
@@ -749,7 +752,7 @@ export default function VendorSettingsScreen() {
               <TextInput
                 style={[styles.input, { marginTop: 8 }]}
                 placeholder="Enter your custom business profession..."
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
                 value={customProfession}
                 onChangeText={setCustomProfession}
               />
@@ -782,7 +785,7 @@ export default function VendorSettingsScreen() {
                 <Switch
                   value={open24x7}
                   onValueChange={setOpen24x7}
-                  trackColor={{ false: BORDER, true: YELLOW }}
+                  trackColor={{ false: BORDER, true: GOLD }}
                   thumbColor="#fff"
                 />
               </View>
@@ -795,7 +798,7 @@ export default function VendorSettingsScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="09:00 AM"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     value={openingTime}
                     onChangeText={setOpeningTime}
                   />
@@ -806,7 +809,7 @@ export default function VendorSettingsScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="09:00 PM"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     value={closingTime}
                     onChangeText={setClosingTime}
                   />
@@ -842,7 +845,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={[styles.input, { height: 75, textAlignVertical: 'top' }]}
               placeholder="Describe your shop offerings, specialty products, brands sold..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -853,7 +856,7 @@ export default function VendorSettingsScreen() {
         {/* ── SECTION 3: BUSINESS PHYSICAL ADDRESS ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="location-outline" size={16} color={YELLOW} />
+            <Ionicons name="location-outline" size={16} color={GOLD} />
             <Text style={styles.cardTitle}>Business Physical Address</Text>
           </View>
 
@@ -861,12 +864,12 @@ export default function VendorSettingsScreen() {
           <View style={styles.fieldGroup}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text style={styles.label}>PIN CODE *</Text>
-              {lookingUpPincode && <ActivityIndicator size="small" color={YELLOW} />}
+              {lookingUpPincode && <ActivityIndicator size="small" color={GOLD} />}
             </View>
             <TextInput
               style={styles.input}
               placeholder="Enter Pin Code"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               keyboardType="number-pad"
               maxLength={6}
               value={selectedPincode === 'OTHER_CUSTOM' ? customPincode : (selectedPincode || customPincode)}
@@ -925,7 +928,7 @@ export default function VendorSettingsScreen() {
               <TextInput
                 style={[styles.input, { marginTop: 8 }]}
                 placeholder="Enter custom district name"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
                 value={customDistrict}
                 onChangeText={setCustomDistrict}
               />
@@ -960,7 +963,7 @@ export default function VendorSettingsScreen() {
               <TextInput
                 style={[styles.input, { marginTop: 8 }]}
                 placeholder="Enter custom tehsil name"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
                 value={customTehsil}
                 onChangeText={setCustomTehsil}
               />
@@ -973,7 +976,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
               placeholder="e.g. Shop No. 12, Ground Floor, MG Road, Near Main Market"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={areaAddress}
               onChangeText={setAreaAddress}
               multiline
@@ -995,7 +998,7 @@ export default function VendorSettingsScreen() {
         {/* ── SECTION 4: ONLINE PRESENCE & SOCIAL LINKS ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="globe-outline" size={16} color={YELLOW} />
+            <Ionicons name="globe-outline" size={16} color={GOLD} />
             <Text style={styles.cardTitle}>Online Presence & Social Links</Text>
           </View>
 
@@ -1004,7 +1007,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="+91 9876543210"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={whatsapp}
               onChangeText={setWhatsapp}
               keyboardType="phone-pad"
@@ -1016,7 +1019,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="https://myshop.com"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={website}
               onChangeText={setWebsite}
             />
@@ -1027,7 +1030,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="@shopname"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={instagram}
               onChangeText={setInstagram}
             />
@@ -1038,7 +1041,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="facebook.com/shopname"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={facebook}
               onChangeText={setFacebook}
             />
@@ -1048,7 +1051,7 @@ export default function VendorSettingsScreen() {
         {/* ── SECTION 5: TAX & LEGAL COMPLIANCE ── */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="shield-checkmark-outline" size={16} color={YELLOW} />
+            <Ionicons name="shield-checkmark-outline" size={16} color={GOLD} />
             <Text style={styles.cardTitle}>Tax & Legal Compliance</Text>
           </View>
 
@@ -1057,7 +1060,7 @@ export default function VendorSettingsScreen() {
             <TextInput
               style={styles.input}
               placeholder="03AAAAA0000A1Z5"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_MUTED}
               value={gstin}
               onChangeText={(t) => setGstin(t.toUpperCase())}
               autoCapitalize="characters"
@@ -1070,7 +1073,7 @@ export default function VendorSettingsScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="ABCDE1234F"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
                 value={panNumber}
                 onChangeText={(t) => setPanNumber(t.toUpperCase())}
                 autoCapitalize="characters"
@@ -1082,7 +1085,7 @@ export default function VendorSettingsScreen() {
               <TextInput
                 style={styles.input}
                 placeholder="FSSAI / Municipal Reg."
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
                 value={registrationLicense}
                 onChangeText={setRegistrationLicense}
               />
@@ -1093,7 +1096,7 @@ export default function VendorSettingsScreen() {
         {/* Save Button */}
         <TouchableOpacity style={styles.saveSubmitBtn} onPress={saveProfileData} disabled={saving}>
           {saving ? (
-            <ActivityIndicator color={BLACK} />
+            <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.saveSubmitBtnText}>💾 SAVE BUSINESS PROFILE NOW</Text>
           )}
@@ -1105,12 +1108,12 @@ export default function VendorSettingsScreen() {
           onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Ionicons name="document-text-outline" size={20} color={YELLOW} />
+            <Ionicons name="document-text-outline" size={20} color={GOLD} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>Privacy Policy &amp; Terms</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10 }}>https://bizreels.in/privacy-policy</Text>
+              <Text style={{ color: TEXT_MAIN, fontSize: 12, fontWeight: '900' }}>Privacy Policy &amp; Terms</Text>
+              <Text style={{ color: TEXT_MUTED, fontSize: 10 }}>https://bizreels.in/privacy-policy</Text>
             </View>
-            <Ionicons name="open-outline" size={16} color={YELLOW} />
+            <Ionicons name="open-outline" size={16} color={GOLD} />
           </View>
         </TouchableOpacity>
 
@@ -1134,41 +1137,42 @@ export default function VendorSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
-  centered: { flex: 1, backgroundColor: BLACK, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: BG_COLOR },
+  centered: { flex: 1, backgroundColor: BG_COLOR, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
-    borderBottomWidth: 2,
-    borderBottomColor: YELLOW,
+    backgroundColor: CARD_BG,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
   backBtn: {
     width: 36,
     height: 36,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 8,
   },
   headerTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   saveHeaderBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 4,
+    borderRadius: 8,
   },
   saveHeaderBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
   },
@@ -1185,33 +1189,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    borderRadius: 8,
   },
   navTabActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   navTabText: {
-    color: '#fff',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '800',
   },
   navTabTextActive: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
   },
   card: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 6,
-    padding: 14,
+    borderRadius: 14,
+    padding: 16,
     gap: 12,
+    ...Shadows.sm,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -1222,7 +1228,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   cardTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1230,9 +1236,10 @@ const styles = StyleSheet.create({
   coverImageContainer: {
     height: 120,
     width: '100%',
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 10,
     overflow: 'hidden',
     position: 'relative',
   },
@@ -1244,13 +1251,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   coverPlaceholderText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
   uploadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(15,23,42,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1269,16 +1276,16 @@ const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 2,
-    borderColor: YELLOW,
-    backgroundColor: BLACK,
+    borderColor: GOLD,
+    backgroundColor: BG_COLOR,
   },
   avatarPlaceholder: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 2,
-    borderColor: YELLOW,
+    borderColor: GOLD,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1286,7 +1293,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -1296,62 +1303,65 @@ const styles = StyleSheet.create({
   avatarUploadOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 32,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(15,23,42,0.6)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   storeNameHeading: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   storeCatSub: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '800',
     marginTop: 2,
   },
   fieldGroup: { gap: 4 },
   label: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   input: {
-    backgroundColor: BLACK,
-    color: '#fff',
+    backgroundColor: '#F8FAFC',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   row: { flexDirection: 'row', gap: 8 },
   pillScroll: { gap: 6, paddingVertical: 4 },
   pill: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 10,
     paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: BORDER,
   },
   pillActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   pillText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
   pillTextActive: {
-    color: BLACK,
+    color: GOLD,
     fontWeight: '900',
   },
   timingSection: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     padding: 10,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: BORDER,
     gap: 8,
@@ -1362,7 +1372,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   subHeaderTitle: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1373,7 +1383,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   toggleInlineLabel: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 9,
     fontWeight: '900',
   },
@@ -1384,7 +1394,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dayChip: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 8,
@@ -1400,7 +1410,7 @@ const styles = StyleSheet.create({
     borderColor: '#10B981',
   },
   dayChipText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '800',
   },
@@ -1416,62 +1426,65 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 10,
     padding: 10,
     marginTop: 4,
   },
   addressPreviewTitle: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   addressPreviewText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 10,
     fontWeight: '800',
     marginTop: 2,
   },
   saveSubmitBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,
   },
   saveSubmitBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   legalCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     padding: Spacing.four,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 16,
+    ...Shadows.sm,
   },
   dangerZoneCard: {
-    backgroundColor: '#1E1212',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: '#FECACA',
     padding: Spacing.four,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 8,
     marginTop: 16,
   },
   dangerZoneTitle: {
-    color: '#EF4444',
+    color: '#DC2626',
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   dangerZoneSub: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#991B1B',
     fontSize: 11,
     lineHeight: 16,
   },
@@ -1479,9 +1492,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EF4444',
+    backgroundColor: '#DC2626',
     paddingVertical: 12,
-    borderRadius: 6,
+    borderRadius: 8,
     gap: 6,
     marginTop: 4,
   },

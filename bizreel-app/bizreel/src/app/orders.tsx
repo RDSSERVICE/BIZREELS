@@ -76,7 +76,7 @@ export default function CustomerOrdersScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-            <SymbolView name="chevron.left" size={22} tintColor="#fff" />
+            <SymbolView name="chevron.left" size={22} tintColor="#1E1B18" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>My Orders</Text>
           <View style={{ width: 36 }} />
@@ -84,14 +84,14 @@ export default function CustomerOrdersScreen() {
 
         <View style={styles.center}>
           <SymbolView name="bag.badge.questionmark" size={64} tintColor={BrandColors.primary} />
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 16 }}>Sign In to View Orders</Text>
-          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 20 }}>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: '#1E1B18', marginTop: 16 }}>Sign In to View Orders</Text>
+          <Text style={{ fontSize: 13, color: '#6E675F', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 20 }}>
             Please sign in to your BizReels account to view your past orders, active shipments, and track deliveries.
           </Text>
           <TouchableOpacity
-            style={{ backgroundColor: BrandColors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+            style={{ backgroundColor: '#241B15', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 9999, borderWidth: 1, borderColor: '#D99A3D' }}
             onPress={() => router.push('/(auth)/login')}>
-            <Text style={{ color: '#000', fontWeight: '700', fontSize: 15 }}>Log In / Register</Text>
+            <Text style={{ color: '#D99A3D', fontWeight: '800', fontSize: 15 }}>Log In / Register</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -103,31 +103,35 @@ export default function CustomerOrdersScreen() {
       {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <SymbolView name="chevron.left" size={22} tintColor="#fff" />
+          <SymbolView name="chevron.left" size={22} tintColor="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Orders</Text>
         <TouchableOpacity style={styles.iconBtn} onPress={() => refetch()}>
-          <SymbolView name="arrow.clockwise" size={20} tintColor="#fff" />
+          <SymbolView name="arrow.clockwise" size={20} tintColor="#0F172A" />
         </TouchableOpacity>
       </View>
 
       {/* Filter Tabs */}
       <View style={styles.filterRow}>
-        {(['all', 'pending', 'completed', 'cancelled'] as const).map((filter) => (
-          <TouchableOpacity
-            key={filter}
-            style={[styles.filterChip, activeFilter === filter && styles.filterChipActive]}
-            onPress={() => setActiveFilter(filter)}>
-            <Text style={[styles.filterChipText, activeFilter === filter && styles.filterChipTextActive]}>
-              {filter.charAt(0).toUpperCase() + filter.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {(['all', 'pending', 'completed', 'cancelled'] as const).map((filter) => {
+          const isSelected = activeFilter === filter;
+          return (
+            <TouchableOpacity
+              key={filter}
+              style={[styles.filterChip, isSelected && styles.filterChipActive]}
+              onPress={() => setActiveFilter(filter)}>
+              <Text style={[styles.filterChipText, isSelected && styles.filterChipTextActive]}>
+                {filter.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
+      {/* Orders List */}
       {isLoading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={BrandColors.primary} />
+          <ActivityIndicator size="large" color={YELLOW} />
         </View>
       ) : (
         <FlatList
@@ -183,15 +187,15 @@ export default function CustomerOrdersScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#2563EB';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
   },
   center: {
     flex: 1,
@@ -206,20 +210,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: BLACK,
+    backgroundColor: '#FFFFFF',
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.base,
     fontWeight: '900',
   },
@@ -230,10 +234,10 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   filterChip: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: Spacing.three,
     paddingVertical: 6,
-    borderRadius: 0,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: BORDER,
   },
@@ -242,12 +246,12 @@ const styles = StyleSheet.create({
     borderColor: YELLOW,
   },
   filterChipText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#64748B',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
   },
   filterChipTextActive: {
-    color: BLACK,
+    color: '#1E1B18',
     fontWeight: '900',
   },
   listContent: {
@@ -255,12 +259,17 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   orderCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: Spacing.three,
     borderWidth: 1,
     borderColor: BORDER,
     gap: Spacing.two,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   orderCardHeader: {
     flexDirection: 'row',
@@ -268,14 +277,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   orderIdText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748B',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   statusBadge: {
     paddingHorizontal: Spacing.two,
     paddingVertical: 2,
-    borderRadius: 0,
+    borderRadius: 6,
   },
   statusText: {
     fontSize: FontSize.xs,
@@ -291,17 +300,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listingTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.base,
     fontWeight: '900',
   },
   itemMeta: {
-    color: 'rgba(255,255,255,0.7)',
+    color: '#64748B',
     fontSize: FontSize.sm,
     marginTop: 2,
   },
   addressText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#94A3B8',
     fontSize: FontSize.xs,
   },
   orderCardFooter: {
@@ -317,8 +326,8 @@ const styles = StyleSheet.create({
     borderColor: '#EF4444',
     paddingHorizontal: Spacing.three,
     paddingVertical: 6,
-    borderRadius: 0,
-    backgroundColor: 'rgba(239,68,68,0.1)',
+    borderRadius: 10,
+    backgroundColor: '#FEF2F2',
   },
   cancelBtnText: {
     color: '#EF4444',
@@ -332,12 +341,12 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   emptyTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   emptySub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748B',
     fontSize: FontSize.sm,
     textAlign: 'center',
   },

@@ -1,8 +1,3 @@
-/**
- * Vendor Customer Reviews Screen — Mobile Application
- * Implements reviews overview metrics, customer feedback list, and official vendor reply functionality.
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -19,8 +14,16 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
+
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 interface ReviewItem {
   _id?: string;
@@ -124,11 +127,11 @@ export default function VendorReviewsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reviews & Ratings</Text>
         <TouchableOpacity style={styles.refreshBtn} onPress={fetchReviews}>
-          <Ionicons name="refresh-outline" size={18} color="#F59E0B" />
+          <Ionicons name="refresh-outline" size={18} color={GOLD} />
         </TouchableOpacity>
       </View>
 
@@ -138,14 +141,14 @@ export default function VendorReviewsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#F59E0B" />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={GOLD} />
         }
         ListHeaderComponent={
           <View style={styles.headerSection}>
             {/* Main Title Banner Box */}
             <View style={styles.bannerCard}>
               <View style={styles.bannerIconBox}>
-                <Ionicons name="star" size={22} color="#F59E0B" />
+                <Ionicons name="star" size={22} color={GOLD} />
               </View>
               <View style={styles.bannerTextCol}>
                 <Text style={styles.bannerTitle}>CUSTOMER REVIEWS & RATINGS</Text>
@@ -162,7 +165,7 @@ export default function VendorReviewsScreen() {
                 <View style={styles.statCardHeader}>
                   <Text style={styles.statLabel}>AVERAGE RATING</Text>
                   <View style={styles.statIconBox}>
-                    <Ionicons name="star" size={14} color="#F59E0B" />
+                    <Ionicons name="star" size={14} color={GOLD} />
                   </View>
                 </View>
                 <Text style={styles.statValue}>{avgRating} ★</Text>
@@ -195,12 +198,12 @@ export default function VendorReviewsScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color="#F59E0B" />
+              <ActivityIndicator size="small" color={GOLD} />
               <Text style={styles.loadingText}>Loading customer reviews...</Text>
             </View>
           ) : (
             <View style={styles.emptyBox}>
-              <Ionicons name="chatbubbles-outline" size={36} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="chatbubbles-outline" size={36} color={TEXT_MUTED} />
               <Text style={styles.emptyText}>No customer reviews received yet.</Text>
             </View>
           )
@@ -222,7 +225,7 @@ export default function VendorReviewsScreen() {
                         key={i}
                         name={i < ratingCount ? 'star' : 'star-outline'}
                         size={14}
-                        color={i < ratingCount ? '#F59E0B' : 'rgba(255,255,255,0.2)'}
+                        color={i < ratingCount ? GOLD : BORDER}
                       />
                     ))}
                   </View>
@@ -251,7 +254,7 @@ export default function VendorReviewsScreen() {
                   <TextInput
                     style={styles.replyInput}
                     placeholder="Type your official reply..."
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     value={replyTextMap[reviewId] || ''}
                     onChangeText={(txt) =>
                       setReplyTextMap((prev) => ({ ...prev, [reviewId]: txt }))
@@ -262,10 +265,10 @@ export default function VendorReviewsScreen() {
                     onPress={() => handleReplySubmit(reviewId)}
                     disabled={isSubmitting}>
                     {isSubmitting ? (
-                      <ActivityIndicator size="small" color="#0F0F12" />
+                      <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <>
-                        <Ionicons name="send" size={12} color="#0F0F12" />
+                        <Ionicons name="send" size={12} color="#fff" />
                         <Text style={styles.replyBtnText}>Reply</Text>
                       </>
                     )}
@@ -281,34 +284,35 @@ export default function VendorReviewsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F12' },
+  container: { flex: 1, backgroundColor: BG_COLOR },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D36',
+    borderBottomColor: BORDER,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#18181C',
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.base, fontWeight: FontWeight.bold },
+  headerTitle: { color: TEXT_MAIN, fontSize: FontSize.base, fontWeight: FontWeight.bold },
   refreshBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#18181C',
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -320,32 +324,33 @@ const styles = StyleSheet.create({
   bannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#18181C',
-    borderRadius: 16,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     padding: Spacing.four,
     gap: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
+    ...Shadows.sm,
   },
   bannerIconBox: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#26262E',
+    backgroundColor: '#FFFBEB',
     borderWidth: 1,
-    borderColor: '#3F3F46',
+    borderColor: '#FDE68A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   bannerTextCol: { flex: 1, gap: 2 },
   bannerTitle: {
-    color: '#FFF',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   bannerSubtitle: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
     lineHeight: 14,
   },
@@ -354,12 +359,13 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: Spacing.two },
   statCard: {
     flex: 1,
-    backgroundColor: '#18181C',
-    borderRadius: 14,
+    backgroundColor: CARD_BG,
+    borderRadius: 12,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     gap: 4,
+    ...Shadows.sm,
   },
   statCardHeader: {
     flexDirection: 'row',
@@ -367,7 +373,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 8,
     fontWeight: FontWeight.bold,
     letterSpacing: 0.3,
@@ -376,12 +382,12 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 8,
-    backgroundColor: 'rgba(245,158,11,0.15)',
+    backgroundColor: '#FFFBEB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   statValue: {
-    color: '#FFF',
+    color: TEXT_MAIN,
     fontSize: FontSize.md,
     fontWeight: '900',
     marginTop: 2,
@@ -389,21 +395,22 @@ const styles = StyleSheet.create({
 
   /* Empty / Loading States */
   loadingBox: { height: 160, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
+  loadingText: { color: TEXT_MUTED, fontSize: 11 },
 
   emptyBox: {
-    backgroundColor: '#18181C',
-    borderRadius: 16,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     padding: Spacing.six,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     marginVertical: Spacing.two,
+    ...Shadows.sm,
   },
   emptyText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
@@ -411,13 +418,14 @@ const styles = StyleSheet.create({
 
   /* Review Item Card */
   reviewCard: {
-    backgroundColor: '#18181C',
-    borderRadius: 16,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     padding: Spacing.four,
     gap: Spacing.two,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     marginBottom: Spacing.two,
+    ...Shadows.sm,
   },
   reviewCardTop: {
     flexDirection: 'row',
@@ -425,28 +433,28 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   customerInfoCol: { gap: 4 },
-  customerName: { color: '#FFF', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  customerName: { color: TEXT_MAIN, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
   starRow: { flexDirection: 'row', gap: 2 },
-  dateText: { color: 'rgba(255,255,255,0.4)', fontSize: 10 },
+  dateText: { color: TEXT_MUTED, fontSize: 10 },
 
   commentText: {
-    color: 'rgba(255,255,255,0.85)',
+    color: TEXT_MAIN,
     fontSize: 12,
     fontStyle: 'italic',
     lineHeight: 18,
   },
 
   replyBox: {
-    backgroundColor: 'rgba(245,158,11,0.08)',
-    borderRadius: 12,
+    backgroundColor: '#FFFBEB',
+    borderRadius: 10,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.25)',
+    borderColor: '#FCD34D',
     gap: 2,
     marginTop: 4,
   },
-  replyTitle: { color: '#F59E0B', fontSize: 10, fontWeight: FontWeight.bold },
-  replyContent: { color: 'rgba(255,255,255,0.8)', fontSize: 11, lineHeight: 16 },
+  replyTitle: { color: GOLD, fontSize: 10, fontWeight: FontWeight.bold },
+  replyContent: { color: '#78350F', fontSize: 11, lineHeight: 16 },
 
   replyFormRow: {
     flexDirection: 'row',
@@ -456,23 +464,23 @@ const styles = StyleSheet.create({
   },
   replyInput: {
     flex: 1,
-    backgroundColor: '#26262E',
-    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#3F3F46',
+    borderColor: BORDER,
     paddingHorizontal: 10,
-    height: 36,
-    color: '#FFF',
+    height: 38,
+    color: TEXT_MAIN,
     fontSize: 11,
   },
   replyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F59E0B',
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 12,
-    height: 36,
-    borderRadius: 10,
+    height: 38,
+    borderRadius: 8,
     gap: 4,
   },
-  replyBtnText: { color: '#0F0F12', fontSize: 11, fontWeight: FontWeight.bold },
+  replyBtnText: { color: GOLD, fontSize: 11, fontWeight: FontWeight.bold },
 });

@@ -15,9 +15,17 @@ import {
   View,
 } from 'react-native';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
+
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER_COLOR = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 interface DashboardStats {
   totalProjects: number;
@@ -158,7 +166,7 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
   if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={YELLOW} />
+        <ActivityIndicator size="large" color={GOLD} />
       </View>
     );
   }
@@ -179,7 +187,7 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
                 {(user as any)?.creatorProfile?.displayName || user?.name || 'Content Creator'}
               </Text>
               <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={12} color={BLACK} />
+                <Ionicons name="checkmark-circle" size={12} color="#0F172A" />
                 <Text style={styles.verifiedBadgeText}>CREATOR</Text>
               </View>
             </View>
@@ -191,7 +199,7 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
           <TouchableOpacity
             style={styles.editProfileBtn}
             onPress={() => router.push('/creator/profile')}>
-            <Ionicons name="create-outline" size={14} color={BLACK} />
+            <Ionicons name="create-outline" size={14} color="#0F172A" />
             <Text style={styles.editProfileBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
@@ -200,13 +208,13 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
         <TouchableOpacity
           style={styles.kycBanner}
           onPress={() => router.push('/creator/verification')}>
-          <Ionicons name="shield-checkmark" size={16} color={YELLOW} />
+          <Ionicons name="shield-checkmark" size={16} color={GOLD} />
           <Text style={styles.kycBannerText} numberOfLines={1}>
             {stats?.verificationStatus === 'pro_verified' || stats?.verificationStatus === 'verified_creator'
               ? '✅ Verified Creator Badge Active'
               : 'Complete KYC verification to unlock brand campaign deals ›'}
           </Text>
-          <Ionicons name="chevron-forward" size={14} color={YELLOW} />
+          <Ionicons name="chevron-forward" size={14} color={GOLD} />
         </TouchableOpacity>
       </View>
 
@@ -216,24 +224,43 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
       </View>
       <View style={styles.statsGrid}>
         <View style={styles.statCard}>
-          <Ionicons name="cash-outline" size={20} color={YELLOW} />
+          <View style={styles.statHeaderRow}>
+            <Text style={styles.statLabel}>Total Earnings</Text>
+            <View style={[styles.statIconBox, { backgroundColor: '#ECFDF5' }]}>
+              <Ionicons name="cash-outline" size={16} color="#059669" />
+            </View>
+          </View>
           <Text style={styles.statVal}>₹{(stats?.totalEarnings || 0).toLocaleString('en-IN')}</Text>
-          <Text style={styles.statLabel}>Total Earnings</Text>
         </View>
+
         <View style={styles.statCard}>
-          <Ionicons name="videocam-outline" size={20} color="#3B82F6" />
+          <View style={styles.statHeaderRow}>
+            <Text style={styles.statLabel}>Active Shoots</Text>
+            <View style={[styles.statIconBox, { backgroundColor: '#EFF6FF' }]}>
+              <Ionicons name="videocam-outline" size={16} color="#2563EB" />
+            </View>
+          </View>
           <Text style={styles.statVal}>{activeShoots.length}</Text>
-          <Text style={styles.statLabel}>Active Shoots</Text>
         </View>
+
         <View style={styles.statCard}>
-          <Ionicons name="time-outline" size={20} color="#F59E0B" />
+          <View style={styles.statHeaderRow}>
+            <Text style={styles.statLabel}>Pending Invites</Text>
+            <View style={[styles.statIconBox, { backgroundColor: '#FFFBEB' }]}>
+              <Ionicons name="time-outline" size={16} color={GOLD} />
+            </View>
+          </View>
           <Text style={styles.statVal}>{pendingInvites.length}</Text>
-          <Text style={styles.statLabel}>Pending Invites</Text>
         </View>
+
         <View style={styles.statCard}>
-          <Ionicons name="eye-outline" size={20} color="#10B981" />
+          <View style={styles.statHeaderRow}>
+            <Text style={styles.statLabel}>Portfolio Views</Text>
+            <View style={[styles.statIconBox, { backgroundColor: '#F3E8FF' }]}>
+              <Ionicons name="eye-outline" size={16} color="#7C3AED" />
+            </View>
+          </View>
           <Text style={styles.statVal}>{(stats?.portfolioViews || 0).toLocaleString()}</Text>
-          <Text style={styles.statLabel}>Portfolio Views</Text>
         </View>
       </View>
 
@@ -243,36 +270,37 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsRow}>
         <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/portfolio')}>
-          <Ionicons name="film-outline" size={16} color={YELLOW} />
+          <Ionicons name="film-outline" size={16} color={ESPRESSO} />
           <Text style={styles.actionChipText}>Portfolio</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/pricing')}>
-          <Ionicons name="pricetag-outline" size={16} color={YELLOW} />
+          <Ionicons name="pricetag-outline" size={16} color={ESPRESSO} />
           <Text style={styles.actionChipText}>Rates</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/availability')}>
-          <Ionicons name="calendar-outline" size={16} color={YELLOW} />
+          <Ionicons name="calendar-outline" size={16} color={ESPRESSO} />
           <Text style={styles.actionChipText}>Availability</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/orders')}>
-          <Ionicons name="briefcase-outline" size={16} color={YELLOW} />
+          <Ionicons name="briefcase-outline" size={16} color={ESPRESSO} />
           <Text style={styles.actionChipText}>Orders</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/wallet')}>
-          <Ionicons name="wallet-outline" size={16} color={YELLOW} />
+          <Ionicons name="wallet-outline" size={16} color={ESPRESSO} />
           <Text style={styles.actionChipText}>Wallet</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionChip} onPress={() => router.push('/creator/subscription')}>
-          <Ionicons name="card-outline" size={16} color={YELLOW} />
+          <Ionicons name="card-outline" size={16} color={ESPRESSO} />
           <Text style={styles.actionChipText}>Subscription</Text>
         </TouchableOpacity>
       </ScrollView>
+
       {/* Trending Reels & Creator Inspiration Section */}
       <View style={styles.sectionHeaderRow}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={styles.sectionHeader}>🔥 TRENDING REELS & CREATOR INSPIRATION</Text>
+          <Text style={styles.sectionHeader}>🔥 TRENDING REELS & INSPIRATION</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)' as any)}>
-            <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '900' }}>Watch Feed ›</Text>
+            <Text style={{ color: GOLD, fontSize: 11, fontWeight: '900' }}>Watch Feed ›</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -285,9 +313,9 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
               style={styles.reelCard}
               onPress={() => router.push(`/reel/${reel._id || reel.id}` as any)}>
               <View style={styles.reelThumbnailBox}>
-                <Ionicons name="play-circle" size={32} color={YELLOW} style={{ zIndex: 2 }} />
+                <Ionicons name="play-circle" size={32} color={GOLD} style={{ zIndex: 2 }} />
                 <View style={styles.reelBadgeOverlay}>
-                  <Ionicons name="eye" size={10} color="#fff" />
+                  <Ionicons name="eye" size={10} color="#FFFFFF" />
                   <Text style={styles.reelBadgeText}>{(reel.views_count || 1400).toLocaleString()}</Text>
                 </View>
               </View>
@@ -298,152 +326,147 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
                 <Text style={styles.reelCaption} numberOfLines={2}>
                   {reel.caption || 'Trending Short Product Video Reel Demonstration'}
                 </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                  <Ionicons name="heart" size={12} color="#EF4444" />
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '700' }}>
-                    {reel.likes_count || 320} likes
-                  </Text>
-                </View>
               </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
       ) : (
         <View style={styles.emptyReelsCard}>
-          <Ionicons name="videocam-outline" size={28} color={YELLOW} />
-          <Text style={{ color: '#fff', fontSize: FontSize.xs, fontWeight: '900', marginTop: 4 }}>
-            Explore High-Performing Video Reels
-          </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textAlign: 'center', marginTop: 2 }}>
-            Watch trending video reels to gather creative content ideas for your brand shoots.
-          </Text>
-          <TouchableOpacity
-            style={styles.watchFeedBtn}
-            onPress={() => router.push('/(tabs)' as any)}>
-            <Ionicons name="play" size={14} color={BLACK} />
-            <Text style={styles.watchFeedBtnText}>Open Reels Feed</Text>
+          <Text style={{ color: TEXT_MAIN, fontSize: 12, fontWeight: '800' }}>No trending reels currently available.</Text>
+          <TouchableOpacity style={styles.watchFeedBtn} onPress={() => router.push('/(tabs)' as any)}>
+            <Text style={styles.watchFeedBtnText}>Browse Video Reel Feed</Text>
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Campaign Invites & Active Hires Tabs */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionHeader}>BRAND CAMPAIGNS & HIRES</Text>
+      </View>
+
       <View style={styles.tabHeaderRow}>
         <TouchableOpacity
           style={[styles.tabBtn, activeTab === 'invitations' && styles.tabBtnActive]}
           onPress={() => setActiveTab('invitations')}>
           <Text style={[styles.tabBtnText, activeTab === 'invitations' && styles.tabBtnTextActive]}>
-            Invitations ({pendingInvites.length})
+            Pending Invites ({pendingInvites.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tabBtn, activeTab === 'campaigns' && styles.tabBtnActive]}
           onPress={() => setActiveTab('campaigns')}>
           <Text style={[styles.tabBtnText, activeTab === 'campaigns' && styles.tabBtnTextActive]}>
-            Active Campaigns ({activeShoots.length})
+            Active Shoots ({activeShoots.length})
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* List Items */}
-      {(activeTab === 'invitations' ? pendingInvites : activeShoots).length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Ionicons name="folder-open-outline" size={32} color="rgba(255,255,255,0.4)" />
-          <Text style={styles.emptyTitle}>
-            No {activeTab === 'invitations' ? 'pending invitations' : 'active campaign shoots'} right now
-          </Text>
-          <Text style={styles.emptySub}>
-            Complete your creator profile & rates package to get noticed by top local vendors!
-          </Text>
-        </View>
-      ) : (
-        (activeTab === 'invitations' ? pendingInvites : activeShoots).map((item) => (
-          <View key={item._id || item.id} style={styles.campaignCard}>
-            <View style={styles.campaignHeaderRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.campaignVendor}>
-                  {item.vendor?.name || item.vendorName || 'Brand Partner'}
-                </Text>
-                <Text style={styles.campaignTitle}>{item.title || item.packageName || 'Product Video Reel Shoot'}</Text>
-              </View>
-              <View style={styles.priceTag}>
-                <Text style={styles.priceTagText}>₹{(item.totalAmount || item.budget || 0).toLocaleString('en-IN')}</Text>
-              </View>
-            </View>
-
-            <Text style={styles.campDesc} numberOfLines={3}>
-              {item.notes || item.requirements || 'Product demonstration video shoot requirement.'}
-            </Text>
-
-            <View style={styles.campaignFooterRow}>
-              <Text style={styles.statusText}>Status: {item.status.toUpperCase()}</Text>
-
-              {activeTab === 'invitations' ? (
+      {activeTab === 'invitations' ? (
+        pendingInvites.length > 0 ? (
+          <View style={{ gap: 12 }}>
+            {pendingInvites.map((c) => (
+              <View key={c._id || c.id} style={styles.campaignCard}>
+                <View style={styles.campaignHeaderRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.campaignVendor}>Brand: {c.vendorName || c.vendor?.name || 'Local Vendor'}</Text>
+                    <Text style={styles.campaignTitle}>{c.title || c.packageName || 'Reel Shoot Project'}</Text>
+                  </View>
+                  <View style={styles.priceTag}>
+                    <Text style={styles.priceTagText}>₹{(c.budget || c.totalAmount || 0).toLocaleString('en-IN')}</Text>
+                  </View>
+                </View>
+                {c.notes || c.requirements ? (
+                  <Text style={styles.campDesc} numberOfLines={2}>
+                    {c.notes || c.requirements}
+                  </Text>
+                ) : null}
                 <View style={styles.btnGroup}>
                   <TouchableOpacity
                     style={[styles.smallBtn, styles.declineBtn]}
-                    onPress={() => handleAcceptDecline(item._id || item.id!, 'decline')}>
+                    onPress={() => handleAcceptDecline(c._id || c.id!, 'decline')}>
                     <Text style={styles.declineBtnText}>Decline</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.smallBtn, styles.acceptBtn]}
-                    onPress={() => handleAcceptDecline(item._id || item.id!, 'accept')}>
-                    <Text style={styles.acceptBtnText}>Accept Deal</Text>
+                    style={[styles.smallBtn, styles.deliverBtn]}
+                    onPress={() => handleAcceptDecline(c._id || c.id!, 'accept')}>
+                    <Text style={styles.deliverBtnText}>Accept Offer</Text>
                   </TouchableOpacity>
                 </View>
-              ) : (
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyCard}>
+            <Ionicons name="mail-open-outline" size={32} color={TEXT_MUTED} />
+            <Text style={styles.emptyTitle}>No Pending Campaign Invites</Text>
+            <Text style={styles.emptySub}>Share your profile link with vendors to receive direct shoot requests!</Text>
+          </View>
+        )
+      ) : activeShoots.length > 0 ? (
+        <View style={{ gap: 12 }}>
+          {activeShoots.map((c) => (
+            <View key={c._id || c.id} style={styles.campaignCard}>
+              <View style={styles.campaignHeaderRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.campaignVendor}>Brand: {c.vendorName || c.vendor?.name || 'Local Vendor'}</Text>
+                  <Text style={styles.campaignTitle}>{c.title || c.packageName || 'Reel Shoot Project'}</Text>
+                </View>
+                <View style={styles.priceTag}>
+                  <Text style={styles.priceTagText}>₹{(c.budget || c.totalAmount || 0).toLocaleString('en-IN')}</Text>
+                </View>
+              </View>
+              <View style={styles.campaignFooterRow}>
+                <Text style={styles.statusText}>STATUS: ACCEPTED • READY FOR SUBMISSION</Text>
                 <TouchableOpacity
                   style={[styles.smallBtn, styles.deliverBtn]}
-                  onPress={() => setSubmittingCampaign(item)}>
-                  <Ionicons name="cloud-upload-outline" size={14} color={BLACK} />
-                  <Text style={styles.deliverBtnText}>Submit Reel</Text>
+                  onPress={() => setSubmittingCampaign(c)}>
+                  <Ionicons name="cloud-upload-outline" size={14} color="#0F172A" />
+                  <Text style={styles.deliverBtnText}>Submit Deliverable</Text>
                 </TouchableOpacity>
-              )}
+              </View>
             </View>
-          </View>
-        ))
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyCard}>
+          <Ionicons name="videocam-outline" size={32} color={TEXT_MUTED} />
+          <Text style={styles.emptyTitle}>No Active Shoot Campaigns</Text>
+          <Text style={styles.emptySub}>Accept pending invites to start creating video deliverables.</Text>
+        </View>
       )}
 
-      {/* Submit Deliverable Modal */}
+      {/* Deliverable Submission Modal */}
       <Modal visible={!!submittingCampaign} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Submit Campaign Reel Deliverable</Text>
-              <TouchableOpacity onPress={() => setSubmittingCampaign(null)}>
-                <Ionicons name="close" size={20} color="#fff" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.label}>Final Video Reel URL (Google Drive / Cloudinary / Dropbox)</Text>
+            <Text style={styles.modalTitle}>Submit Campaign Video</Text>
+            <Text style={styles.label}>Video URL / Link (Google Drive, DropBox, or Reel Link):</Text>
             <TextInput
               style={styles.input}
-              placeholder="https://drive.google.com/file/d/..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholder="https://..."
+              placeholderTextColor={TEXT_MUTED}
               value={deliverableUrl}
               onChangeText={setDeliverableUrl}
             />
-
-            <Text style={styles.label}>Caption / Note for Brand (Optional)</Text>
+            <Text style={styles.label}>Caption / Notes for Brand:</Text>
             <TextInput
-              style={[styles.input, { height: 70 }]}
-              placeholder="Added background music and brand color text overlay..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              style={styles.input}
+              placeholder="e.g. Here is the final reel draft..."
+              placeholderTextColor={TEXT_MUTED}
               value={deliverableCaption}
               onChangeText={setDeliverableCaption}
-              multiline
             />
-
-            <View style={styles.modalFooter}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setSubmittingCampaign(null)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+            <View style={styles.btnGroup}>
+              <TouchableOpacity
+                style={[styles.smallBtn, styles.declineBtn, { flex: 1 }]}
+                onPress={() => setSubmittingCampaign(null)}>
+                <Text style={styles.declineBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.submitBtn}
+                style={[styles.smallBtn, styles.deliverBtn, { flex: 1 }]}
                 onPress={handleSubmitDeliverable}
                 disabled={submitting}>
-                {submitting ? (
-                  <ActivityIndicator color={BLACK} />
-                ) : (
-                  <Text style={styles.submitBtnText}>Submit to Vendor</Text>
-                )}
+                <Text style={styles.deliverBtnText}>{submitting ? 'Submitting...' : 'Submit to Brand'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -452,51 +475,63 @@ export default function CreatorDashboardScreen({ embedded }: { embedded?: boolea
     </View>
   );
 
-  if (embedded) {
-    return content;
-  }
+  if (embedded) return content;
 
   return (
-    <View style={styles.container}>
-      {/* Header Bar */}
+    <View style={{ flex: 1, backgroundColor: BG_COLOR }}>
       <View style={styles.headerBar}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.replace('/(tabs)/home')}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>CREATOR STUDIO</Text>
-          <Text style={styles.headerSub}>{user?.name || 'Creator Dashboard'}</Text>
+          <Text style={styles.headerTitle}>CREATOR DASHBOARD</Text>
+          <Text style={styles.headerSub}>Portfolio & Brand Deals</Text>
         </View>
-        <TouchableOpacity style={styles.headerActionBtn} onPress={() => router.push('/creator/settings')}>
-          <Ionicons name="settings-outline" size={20} color={YELLOW} />
-        </TouchableOpacity>
       </View>
-
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={YELLOW} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} colors={[GOLD]} />}>
         {content}
       </ScrollView>
     </View>
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
-  embeddedContent: { flex: 1, paddingHorizontal: Spacing.four, paddingVertical: Spacing.three, gap: Spacing.four },
-  standaloneContent: { flex: 1, gap: Spacing.four },
-  creatorHeaderCard: {
-    backgroundColor: DARK_CARD,
-    borderWidth: 2,
-    borderColor: YELLOW,
-    padding: Spacing.four,
+  loadingContainer: { flex: 1, backgroundColor: BG_COLOR, alignItems: 'center', justifyContent: 'center' },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.six,
+    paddingBottom: Spacing.three,
+    backgroundColor: ESPRESSO,
+    borderBottomWidth: 2,
+    borderBottomColor: GOLD,
     gap: Spacing.three,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: { color: '#FFFFFF', fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
+  headerSub: { color: GOLD, fontSize: FontSize.xs, fontWeight: '700' },
+  scroll: { flex: 1 },
+  scrollContent: { padding: Spacing.four, gap: Spacing.four },
+  standaloneContent: { gap: Spacing.four },
+  embeddedContent: { gap: Spacing.four },
+
+  creatorHeaderCard: {
+    backgroundColor: ESPRESSO,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    gap: 12,
+    ...Shadows.md,
   },
   creatorHeaderRow: {
     flexDirection: 'row',
@@ -504,122 +539,102 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.two,
   },
-  creatorName: { color: '#fff', fontSize: FontSize.base, fontWeight: '900' },
+  creatorName: { color: '#FFFFFF', fontSize: FontSize.base, fontWeight: '900' },
   verifiedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: 6,
+    backgroundColor: GOLD,
+    paddingHorizontal: 8,
     paddingVertical: 2,
+    borderRadius: 9999,
     gap: 4,
   },
-  verifiedBadgeText: { color: BLACK, fontSize: 9, fontWeight: '900' },
-  creatorSub: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, marginTop: 4 },
+  verifiedBadgeText: { color: '#0F172A', fontSize: 9, fontWeight: '900' },
+  creatorSub: { color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, marginTop: 4 },
   editProfileBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: GOLD,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
     gap: 4,
   },
-  editProfileBtnText: { color: BLACK, fontSize: 10, fontWeight: '900' },
+  editProfileBtnText: { color: '#0F172A', fontSize: 10, fontWeight: '900' },
+
   kycBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: GOLD,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+    borderRadius: 12,
     gap: 8,
   },
-  kycBannerText: { flex: 1, color: '#fff', fontSize: 11, fontWeight: '700' },
+  kycBannerText: { flex: 1, color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+
   sectionHeaderRow: { marginTop: 4 },
-  loadingContainer: { flex: 1, backgroundColor: BLACK, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: '#fff', fontSize: FontSize.xs, marginTop: 10 },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.six,
-    paddingBottom: Spacing.three,
-    backgroundColor: DARK_CARD,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    gap: Spacing.three,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
-  headerSub: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
-  headerActionBtn: {
-    width: 36,
-    height: 36,
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: BORDER,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scroll: { flex: 1 },
-  scrollContent: { padding: Spacing.four, gap: Spacing.four },
-  kycCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: DARK_CARD,
-    borderWidth: 1,
-    borderColor: YELLOW,
-    padding: Spacing.three,
-    gap: Spacing.three,
-  },
-  kycTitle: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
-  kycSub: { color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 },
-  sectionHeader: { color: YELLOW, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  sectionHeader: { color: ESPRESSO, fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 1 },
+
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   statCard: {
-    width: '48%',
-    backgroundColor: DARK_CARD,
+    width: '48.5%',
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: BORDER,
-    padding: Spacing.three,
-    gap: 4,
+    borderColor: BORDER_COLOR,
+    padding: 14,
+    gap: 6,
+    ...Shadows.sm,
   },
-  statVal: { color: '#fff', fontSize: FontSize.lg, fontWeight: '900' },
-  statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '700' },
-  actionsRow: { flexDirection: 'row', gap: 8, marginVertical: 4 },
+  statHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statVal: { color: TEXT_MAIN, fontSize: FontSize.lg, fontWeight: '900' },
+  statLabel: { color: TEXT_MUTED, fontSize: 10, fontWeight: '800' },
+
+  actionsRow: { flexDirection: 'row', marginVertical: 4 },
   actionChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: BORDER_COLOR,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 9999,
     marginRight: 8,
+    ...Shadows.sm,
   },
-  actionChipText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
-  reelsScrollRow: { flexDirection: 'row', gap: 12, marginVertical: 4 },
+  actionChipText: { color: TEXT_MAIN, fontSize: FontSize.xs, fontWeight: '800' },
+
+  reelsScrollRow: { flexDirection: 'row', marginVertical: 4 },
   reelCard: {
     width: 150,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     marginRight: 10,
     overflow: 'hidden',
+    ...Shadows.sm,
   },
   reelThumbnailBox: {
     width: '100%',
     height: 160,
-    backgroundColor: '#000',
+    backgroundColor: ESPRESSO,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -631,83 +646,67 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 6,
     paddingVertical: 2,
+    borderRadius: 4,
   },
-  reelBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  reelBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
   reelMetaBox: { padding: 8, gap: 2 },
-  reelCreatorName: { color: YELLOW, fontSize: 10, fontWeight: '900' },
-  reelCaption: { color: '#fff', fontSize: 11, lineHeight: 14, fontWeight: '600' },
+  reelCreatorName: { color: GOLD, fontSize: 10, fontWeight: '900' },
+  reelCaption: { color: TEXT_MAIN, fontSize: 11, lineHeight: 14, fontWeight: '600' },
   emptyReelsCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     padding: Spacing.four,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
+    ...Shadows.sm,
   },
   watchFeedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: 12,
+    backgroundColor: ESPRESSO,
+    paddingHorizontal: 14,
     paddingVertical: 8,
+    borderRadius: 9999,
     gap: 6,
-    marginTop: 6,
   },
-  watchFeedBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  tabHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: BORDER },
+  watchFeedBtnText: { color: GOLD, fontSize: FontSize.xs, fontWeight: '900' },
+
+  tabHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: BORDER_COLOR },
   tabBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabBtnActive: { borderBottomColor: YELLOW },
-  tabBtnText: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs, fontWeight: '700' },
-  tabBtnTextActive: { color: YELLOW, fontWeight: '900' },
-  emptyCard: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: 30, alignItems: 'center', gap: 8 },
-  emptyText: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs },
-  campaignCard: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, gap: Spacing.two },
-  campHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  campTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900' },
-  campSub: { color: YELLOW, fontSize: 10, fontWeight: '700', marginTop: 2 },
-  campBudget: { color: '#10B981', fontSize: FontSize.base, fontWeight: '900' },
-  campDesc: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, lineHeight: 18 },
-  campActionRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  rejectBtn: { flex: 1, height: 40, backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: '#EF4444', alignItems: 'center', justifyContent: 'center' },
-  rejectBtnText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: '900' },
-  acceptBtn: { flex: 1, height: 40, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center' },
-  acceptBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  submitDeliverableBtn: { flex: 1, height: 44, backgroundColor: YELLOW, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  submitDeliverableText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: Spacing.four },
-  modalContent: { backgroundColor: DARK_CARD, borderWidth: 2, borderColor: YELLOW, padding: Spacing.five, gap: Spacing.three },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  modalTitle: { color: YELLOW, fontSize: FontSize.base, fontWeight: '900' },
-  modalLabel: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
-  modalInput: { backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, color: '#fff', paddingHorizontal: Spacing.three, height: 44, fontSize: FontSize.xs },
-  modalSubmitBtn: { backgroundColor: YELLOW, height: 48, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  modalSubmitText: { color: BLACK, fontSize: FontSize.sm, fontWeight: '900' },
-  modalFooter: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  cancelBtn: { flex: 1, height: 44, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  cancelBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
-  submitBtn: { flex: 1, height: 44, backgroundColor: YELLOW, alignItems: 'center', justifyContent: 'center' },
-  submitBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  emptyTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900' },
-  emptySub: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, textAlign: 'center' },
+  tabBtnActive: { borderBottomColor: GOLD },
+  tabBtnText: { color: TEXT_MUTED, fontSize: FontSize.xs, fontWeight: '700' },
+  tabBtnTextActive: { color: ESPRESSO, fontWeight: '900' },
+
+  emptyCard: { backgroundColor: CARD_BG, borderRadius: 14, borderWidth: 1, borderColor: BORDER_COLOR, padding: 30, alignItems: 'center', gap: 8, ...Shadows.sm },
+  emptyTitle: { color: TEXT_MAIN, fontSize: FontSize.sm, fontWeight: '900' },
+  emptySub: { color: TEXT_MUTED, fontSize: FontSize.xs, textAlign: 'center' },
+
+  campaignCard: { backgroundColor: CARD_BG, borderRadius: 16, borderWidth: 1, borderColor: BORDER_COLOR, padding: Spacing.four, gap: Spacing.two, ...Shadows.sm },
   campaignHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  campaignVendor: { color: YELLOW, fontSize: 10, fontWeight: '700' },
-  campaignTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900', marginTop: 2 },
-  priceTag: { backgroundColor: 'rgba(16,185,129,0.15)', borderWidth: 1, borderColor: '#10B981', paddingHorizontal: 8, paddingVertical: 4 },
-  priceTagText: { color: '#10B981', fontSize: FontSize.xs, fontWeight: '900' },
+  campaignVendor: { color: GOLD, fontSize: 10, fontWeight: '900' },
+  campaignTitle: { color: TEXT_MAIN, fontSize: FontSize.sm, fontWeight: '900', marginTop: 2 },
+  campDesc: { color: TEXT_MUTED, fontSize: FontSize.xs, lineHeight: 18 },
+  priceTag: { backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#059669', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
+  priceTagText: { color: '#059669', fontSize: FontSize.xs, fontWeight: '900' },
   campaignFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
-  statusText: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: '700' },
+  statusText: { color: TEXT_MUTED, fontSize: 10, fontWeight: '700' },
+
   btnGroup: { flexDirection: 'row', gap: 8 },
-  smallBtn: { height: 34, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
-  declineBtn: { backgroundColor: 'rgba(239,68,68,0.15)', borderWidth: 1, borderColor: '#EF4444' },
-  declineBtnText: { color: '#EF4444', fontSize: 10, fontWeight: '900' },
-  deliverBtn: { backgroundColor: YELLOW, flexDirection: 'row', gap: 4 },
-  deliverBtnText: { color: BLACK, fontSize: 10, fontWeight: '900' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: Spacing.four },
-  modalContainer: { backgroundColor: DARK_CARD, borderWidth: 2, borderColor: YELLOW, padding: Spacing.five, gap: Spacing.three },
-  label: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
-  input: { backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, color: '#fff', paddingHorizontal: Spacing.three, height: 44, fontSize: FontSize.xs },
+  smallBtn: { height: 38, paddingHorizontal: 14, borderRadius: 9999, alignItems: 'center', justifyContent: 'center' },
+  declineBtn: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#EF4444' },
+  declineBtnText: { color: '#EF4444', fontSize: 11, fontWeight: '900' },
+  deliverBtn: { backgroundColor: GOLD, flexDirection: 'row', gap: 6 },
+  deliverBtnText: { color: '#0F172A', fontSize: 11, fontWeight: '900' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15,23,42,0.6)', justifyContent: 'center', padding: Spacing.four },
+  modalContainer: { backgroundColor: CARD_BG, borderRadius: 16, borderWidth: 1.5, borderColor: GOLD, padding: Spacing.five, gap: Spacing.three, ...Shadows.lg },
+  modalTitle: { color: TEXT_MAIN, fontSize: FontSize.base, fontWeight: '900' },
+  label: { color: TEXT_MAIN, fontSize: FontSize.xs, fontWeight: '700' },
+  input: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: BORDER_COLOR, borderRadius: 10, color: TEXT_MAIN, paddingHorizontal: Spacing.three, height: 44, fontSize: FontSize.xs },
 });

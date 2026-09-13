@@ -200,37 +200,15 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
               </View>
               <View>
                 <Text style={styles.brandTitle}>
-                  Biz<Text style={{ color: '#F59E0B' }}>Reel</Text>s
+                  Biz<Text style={{ color: '#D99A3D' }}>Reels</Text>
                 </Text>
                 <Text style={styles.brandSubtitle}>{subtitleRole}</Text>
               </View>
             </View>
 
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={18} color="#F59E0B" />
+              <Ionicons name="close" size={18} color="#1A1A1A" />
             </TouchableOpacity>
-          </View>
-
-          {/* User Profile Header Card */}
-          <View style={styles.profileCard}>
-            <View style={styles.avatarCircle}>
-              <Ionicons name={user ? "person-circle" : "person-outline"} size={32} color="#F59E0B" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.nameRow}>
-                <Text style={styles.profileName} numberOfLines={1}>
-                  {!user ? 'Welcome to BizReels' : displayName}
-                </Text>
-                {isVendor && (
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark-circle" size={12} color="#F59E0B" />
-                  </View>
-                )}
-              </View>
-              <Text style={styles.profileEmail} numberOfLines={1}>
-                {!user ? 'Sign in to access all features' : displayEmail}
-              </Text>
-            </View>
           </View>
 
           <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -242,14 +220,11 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                   <TouchableOpacity
                     style={styles.sectionHeaderRow}
                     onPress={() => toggleSection(sec.key)}>
-                    <View style={styles.sectionTitleLeft}>
-                      <View style={styles.sectionLine} />
-                      <Text style={styles.sectionTitle}>{sec.title}</Text>
-                    </View>
+                    <Text style={styles.sectionTitle}>{sec.title}</Text>
                     <Ionicons
-                      name={isCollapsed ? 'chevron-down' : 'chevron-up'}
-                      size={14}
-                      color="#F59E0B"
+                      name={isCollapsed ? 'chevron-forward' : 'chevron-down'}
+                      size={12}
+                      color="#94A3B8"
                     />
                   </TouchableOpacity>
 
@@ -266,8 +241,8 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                             <View style={[styles.iconBox, isActive && styles.iconBoxActive]}>
                               <Ionicons
                                 name={item.icon as any}
-                                size={16}
-                                color={isActive ? '#000' : '#F59E0B'}
+                                size={13}
+                                color="#1A1A1A"
                               />
                             </View>
 
@@ -276,8 +251,8 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
                             </Text>
 
                             {item.badge && (
-                              <View style={[styles.itemBadge, isActive && styles.itemBadgeActive]}>
-                                <Text style={[styles.itemBadgeText, isActive && styles.itemBadgeTextActive]}>
+                              <View style={styles.itemBadge}>
+                                <Text style={styles.itemBadgeText}>
                                   {item.badge}
                                 </Text>
                               </View>
@@ -291,29 +266,51 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
               );
             })}
 
-            <View style={{ height: 30 }} />
+            <View style={{ height: 20 }} />
           </ScrollView>
 
-          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          {/* User Profile Footer — 1:1 Web Layout */}
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+            <View style={styles.profileCard}>
+              <View style={styles.avatarCircle}>
+                <Ionicons name={user ? "person" : "person-outline"} size={16} color="#D99A3D" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.nameRow}>
+                  <Text style={styles.profileName} numberOfLines={1}>
+                    {!user ? 'Welcome to BizReels' : displayName}
+                  </Text>
+                  {isVendor && (
+                    <View style={styles.verifiedBadge}>
+                      <Ionicons name="checkmark-circle" size={12} color="#D99A3D" />
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.profileEmail} numberOfLines={1}>
+                  {!user ? 'Sign in to access all features' : displayEmail}
+                </Text>
+              </View>
+            </View>
+
             {!user ? (
               <View style={{ gap: 8 }}>
                 <TouchableOpacity
-                  style={[styles.logoutBtn, { backgroundColor: '#F59E0B', borderColor: '#F59E0B' }]}
+                  style={[styles.logoutBtn, { backgroundColor: '#241B15', borderColor: '#241B15' }]}
                   onPress={() => handleNavigate('/(auth)/login')}>
-                  <Ionicons name="log-in-outline" size={16} color="#0F0F12" />
-                  <Text style={[styles.logoutText, { color: '#0F0F12' }]}>Log In</Text>
+                  <Ionicons name="log-in-outline" size={15} color="#D99A3D" />
+                  <Text style={[styles.logoutText, { color: '#D99A3D' }]}>Log In</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.logoutBtn, { backgroundColor: 'transparent', borderColor: '#F59E0B' }]}
+                  style={[styles.logoutBtn, { backgroundColor: '#F8F4EC', borderColor: '#E3DCCB' }]}
                   onPress={() => handleNavigate('/(auth)/register')}>
-                  <Ionicons name="person-add-outline" size={16} color="#F59E0B" />
-                  <Text style={[styles.logoutText, { color: '#F59E0B' }]}>Sign Up</Text>
+                  <Ionicons name="person-add-outline" size={15} color="#1A1A1A" />
+                  <Text style={[styles.logoutText, { color: '#1A1A1A' }]}>Sign Up</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={16} color="#EF4444" />
-                <Text style={styles.logoutText}>Log Out</Text>
+                <Ionicons name="log-out-outline" size={15} color="#EF4444" />
+                <Text style={styles.logoutText}>Sign Out</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -328,169 +325,153 @@ export function VendorDrawerModal({ isOpen, onClose }: VendorDrawerModalProps) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     flexDirection: 'row',
   },
   backdropTouch: { flex: 1 },
   drawerContainer: {
-    width: '45%',
-    maxWidth: 200,
-    backgroundColor: '#0F0F12',
-    paddingHorizontal: 8,
+    width: '80%',
+    maxWidth: 290,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    borderRightWidth: 1,
+    borderRightColor: '#E3DCCB',
   },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.two,
+    paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#26262E',
+    borderBottomColor: '#E3DCCB',
+    marginBottom: 8,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 0,
-    backgroundColor: '#F59E0B',
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#241B15',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#D99A3D',
   },
-  logoText: { color: '#000', fontSize: FontSize.md, fontWeight: '900' },
-  brandTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
-  brandSubtitle: { color: '#F59E0B', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
+  logoText: { color: '#D99A3D', fontSize: FontSize.md, fontWeight: '900' },
+  brandTitle: { color: '#1A1A1A', fontSize: FontSize.sm, fontWeight: '900' },
+  brandSubtitle: { color: '#D99A3D', fontSize: 9, fontWeight: '900', letterSpacing: 1.2 },
 
   closeBtn: {
     width: 28,
     height: 28,
-    borderRadius: 0,
-    backgroundColor: '#1C1C22',
+    borderRadius: 6,
+    backgroundColor: '#F8F4EC',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: '#E3DCCB',
   },
-
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#18181C',
-    padding: 8,
-    borderRadius: 0,
-    marginVertical: 8,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#F59E0B',
-  },
-  avatarCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 0,
-    backgroundColor: '#F59E0B',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: '#000', fontSize: FontSize.sm, fontWeight: '900' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  profileName: { color: '#fff', fontSize: FontSize.xs, fontWeight: FontWeight.bold, flex: 1 },
-  verifiedBadge: { marginLeft: 2 },
-  profileEmail: { color: 'rgba(255,255,255,0.5)', fontSize: 10 },
 
   scrollContent: { flex: 1 },
 
-  sectionBlock: { marginBottom: 14 },
+  sectionBlock: { marginBottom: 12 },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 6,
-    marginBottom: 4,
+    paddingHorizontal: 4,
+    marginBottom: 2,
   },
-  sectionTitleLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  sectionLine: { width: 3, height: 10, borderRadius: 1, backgroundColor: '#F59E0B' },
-  sectionTitle: { color: '#F59E0B', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  sectionTitle: { color: '#94A3B8', fontSize: 9.5, fontWeight: '900', letterSpacing: 1 },
 
   itemsList: { gap: 3 },
   menuItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 7,
-    paddingHorizontal: 8,
-    borderRadius: 0,
-    gap: 8,
-    borderWidth: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1E1E26',
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   menuItemRowActive: {
-    backgroundColor: '#F59E0B',
-    borderBottomColor: '#F59E0B',
+    backgroundColor: '#241B15',
+    borderColor: '#241B15',
   },
   iconBox: {
     width: 24,
     height: 24,
-    borderRadius: 0,
-    backgroundColor: 'rgba(245,158,11,0.12)',
+    borderRadius: 5,
+    backgroundColor: '#F8F4EC',
+    borderWidth: 1,
+    borderColor: '#E3DCCB',
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconBoxActive: {
-    backgroundColor: '#000',
-    borderWidth: 0,
+    backgroundColor: '#D99A3D',
+    borderColor: '#D99A3D',
   },
   menuItemTitle: {
     flex: 1,
-    color: 'rgba(255,255,255,0.85)',
+    color: '#334155',
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.semibold,
+    fontWeight: '700',
   },
   menuItemTitleActive: {
-    color: '#000',
+    color: '#D99A3D',
     fontWeight: '900',
   },
   itemBadge: {
-    backgroundColor: 'rgba(245,158,11,0.2)',
-    paddingHorizontal: 6,
+    backgroundColor: '#D99A3D',
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderRadius: 10,
   },
-  itemBadgeActive: {
-    backgroundColor: '#000',
-    borderColor: '#000',
-  },
-  itemBadgeText: { color: '#F59E0B', fontSize: 8, fontWeight: '900' },
-  itemBadgeTextActive: { color: '#F59E0B' },
+  itemBadgeText: { color: '#1A1A1A', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.5 },
 
   footer: {
-    paddingTop: Spacing.two,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#26262E',
+    borderTopColor: '#E3DCCB',
     gap: 8,
+    backgroundColor: '#F8F4EC',
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
   },
-  switchFeedBtn: {
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#18181C',
-    paddingVertical: 8,
-    borderRadius: 0,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#F59E0B',
+    gap: 8,
   },
-  switchFeedText: { color: '#F59E0B', fontSize: FontSize.xs, fontWeight: '900' },
+  avatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#241B15',
+    borderWidth: 2,
+    borderColor: '#D99A3D',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  profileName: { color: '#1A1A1A', fontSize: FontSize.xs, fontWeight: '900', flex: 1 },
+  verifiedBadge: { marginLeft: 2 },
+  profileEmail: { color: '#64748B', fontSize: 10 },
+
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239,68,68,0.1)',
+    backgroundColor: '#FEF2F2',
     paddingVertical: 8,
-    borderRadius: 0,
+    borderRadius: 8,
     gap: 6,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.4)',
+    borderColor: '#FECDD3',
   },
-  logoutText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  logoutText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: '800' },
 });

@@ -1,5 +1,5 @@
 /**
- * Profile Screen — Classic Brutalist Yellow & Black palette
+ * Profile Screen — Light Theme & Warm Gold Bento Grid
  * Minimalistic, clean, professional.
  */
 
@@ -21,16 +21,20 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RoleSwitcher } from '@/components/role-switcher';
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useCurrentUserProfile } from '@/features/auth/queries';
 import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/image';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F6F4EE';
+const CARD_BG = '#FBF9F5';
+const BORDER = '#E5E0D4';
+const TEXT_MAIN = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
+const EMERALD = '#10B981';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -144,7 +148,7 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={YELLOW} />
+        <ActivityIndicator size="large" color={GOLD} />
       </View>
     );
   }
@@ -152,15 +156,17 @@ export default function ProfileScreen() {
   if (authStatus === 'unauthed' || !user) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Ionicons name="person-circle-outline" size={80} color={YELLOW} />
-        <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginTop: 16 }}>Welcome to BizReels</Text>
-        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 24, lineHeight: 18 }}>
+        <View style={styles.unauthIconBox}>
+          <Ionicons name="person-circle-outline" size={48} color={GOLD} />
+        </View>
+        <Text style={{ fontSize: 20, fontWeight: '900', color: TEXT_MAIN, marginTop: 16 }}>Welcome to BizReels</Text>
+        <Text style={{ fontSize: 13, color: TEXT_MUTED, textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 24, lineHeight: 18 }}>
           Sign in to access your profile, track your orders, view saved reels, and manage your account preferences.
         </Text>
         <TouchableOpacity
-          style={{ backgroundColor: YELLOW, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 10 }}
+          style={{ backgroundColor: ESPRESSO, paddingHorizontal: 32, paddingVertical: 14, borderRadius: 10 }}
           onPress={() => router.push('/(auth)/login')}>
-          <Text style={{ color: BLACK, fontWeight: '700', fontSize: 16 }}>Log In / Register</Text>
+          <Text style={{ color: GOLD, fontWeight: '900', fontSize: 16 }}>Log In / Register</Text>
         </TouchableOpacity>
       </View>
     );
@@ -169,7 +175,7 @@ export default function ProfileScreen() {
   if (isError) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={YELLOW} />
+        <Ionicons name="alert-circle-outline" size={48} color={GOLD} />
         <Text style={styles.errorText}>Could not load user profile.</Text>
         <Pressable onPress={() => refetch()} style={styles.retryBtn}>
           <Text style={styles.retryText}>Try Again</Text>
@@ -250,31 +256,31 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.logoutIconBtn}
             onPress={() => router.push('/(auth)/login')}>
-            <Ionicons name="log-in-outline" size={18} color={YELLOW} />
+            <Ionicons name="log-in-outline" size={18} color={GOLD} />
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.guestCard}>
             <View style={styles.guestAvatarCircle}>
-              <Ionicons name="person-outline" size={36} color={YELLOW} />
+              <Ionicons name="person-outline" size={36} color={GOLD} />
             </View>
             <Text style={styles.guestTitle}>Welcome to BizReels</Text>
             <Text style={styles.guestSub}>
-              Log in to message sellers directly, place orders, save favorite reels & manage your store profile.
+              Log in to message sellers directly, place orders, save favorite reels &amp; manage your store profile.
             </Text>
 
             <TouchableOpacity
               style={styles.guestPrimaryBtn}
               onPress={() => router.push('/(auth)/login')}>
-              <Ionicons name="log-in-outline" size={18} color={BLACK} />
+              <Ionicons name="log-in-outline" size={18} color={GOLD} />
               <Text style={styles.guestPrimaryText}>Log In to Your Account</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.guestSecondaryBtn}
               onPress={() => router.push('/(auth)/register')}>
-              <Ionicons name="person-add-outline" size={18} color={YELLOW} />
+              <Ionicons name="person-add-outline" size={18} color={TEXT_MAIN} />
               <Text style={styles.guestSecondaryText}>Create Free Account</Text>
             </TouchableOpacity>
           </View>
@@ -283,21 +289,21 @@ export default function ProfileScreen() {
           <View style={styles.menuSection}>
             <Text style={styles.menuSectionTitle}>EXPLORE BIZREELS</Text>
             <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/home')}>
-              <Ionicons name="home-outline" size={20} color={YELLOW} />
+              <Ionicons name="home-outline" size={20} color={GOLD} />
               <Text style={styles.menuItemLabel}>Home Marketplace</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+              <Ionicons name="chevron-forward" size={16} color={TEXT_MUTED} />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)')}>
-              <Ionicons name="videocam-outline" size={20} color={YELLOW} />
+              <Ionicons name="videocam-outline" size={20} color={GOLD} />
               <Text style={styles.menuItemLabel}>Watch Video Reels</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+              <Ionicons name="chevron-forward" size={16} color={TEXT_MUTED} />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/(tabs)/search' as any)}>
-              <Ionicons name="search-outline" size={20} color={YELLOW} />
-              <Text style={styles.menuItemLabel}>Search Products & Sellers</Text>
-              <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+              <Ionicons name="search-outline" size={20} color={GOLD} />
+              <Text style={styles.menuItemLabel}>Search Products &amp; Sellers</Text>
+              <Ionicons name="chevron-forward" size={16} color={TEXT_MUTED} />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -315,10 +321,10 @@ export default function ProfileScreen() {
             style={styles.logoutIconBtn}
             onPress={() => router.push('/messages' as any)}
             accessibilityLabel="Chat Inbox">
-            <Ionicons name="chatbubble-ellipses-outline" size={18} color={YELLOW} />
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={GOLD} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.logoutIconBtn} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={18} color={YELLOW} />
+            <Ionicons name="log-out-outline" size={18} color={GOLD} />
           </TouchableOpacity>
         </View>
       </View>
@@ -330,8 +336,8 @@ export default function ProfileScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={YELLOW}
-            colors={[YELLOW]}
+            tintColor={GOLD}
+            colors={[GOLD]}
           />
         }>
 
@@ -346,7 +352,7 @@ export default function ProfileScreen() {
               </View>
             )}
             <View style={styles.verifiedDot}>
-              <Ionicons name="checkmark" size={8} color={BLACK} />
+              <Ionicons name="checkmark" size={8} color={ESPRESSO} />
             </View>
           </View>
 
@@ -371,7 +377,7 @@ export default function ProfileScreen() {
                   : uData.kyc_status === 'pending'
                   ? 'KYC PENDING'
                   : 'UNVERIFIED';
-                const statusColor = isKycApproved ? '#10B981' : '#F59E0B';
+                const statusColor = isKycApproved ? EMERALD : GOLD;
 
                 return (
                   <View style={[styles.kycBadge, { borderColor: statusColor }]}>
@@ -413,8 +419,8 @@ export default function ProfileScreen() {
         {(((user as any).activeRole === 'vendor' || (user as any).current_role === 'vendor' || (user as any).role === 'vendor')) && (
           <View style={styles.leadAnalyticsCard}>
             <View style={styles.leadAnalyticsHeader}>
-              <Ionicons name="bar-chart" size={16} color={YELLOW} />
-              <Text style={styles.leadAnalyticsTitle}>LEAD & CONTACT ANALYTICS</Text>
+              <Ionicons name="bar-chart" size={16} color={GOLD} />
+              <Text style={styles.leadAnalyticsTitle}>LEAD &amp; CONTACT ANALYTICS</Text>
             </View>
 
             <View style={styles.leadGrid}>
@@ -431,7 +437,7 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.leadGridItem}>
-                <Ionicons name="chatbubble-ellipses" size={16} color={YELLOW} />
+                <Ionicons name="chatbubble-ellipses" size={16} color={GOLD} />
                 <Text style={styles.leadVal}>{vendorAnalytics?.chatsCount || 0}</Text>
                 <Text style={styles.leadLbl}>Chats</Text>
               </View>
@@ -452,10 +458,10 @@ export default function ProfileScreen() {
               <View style={styles.sectionBar} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flex: 1 }}>
                 <Text style={styles.menuSectionHeader}>
-                  MY FEED INTERESTS & PREFERENCES ({groupedInterests.length})
+                  MY FEED INTERESTS &amp; PREFERENCES ({groupedInterests.length})
                 </Text>
                 <TouchableOpacity onPress={() => router.push('/customer/choose-interests' as any)}>
-                  <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '900' }}>Edit / Manage ›</Text>
+                  <Text style={{ color: GOLD, fontSize: 11, fontWeight: '900' }}>Edit / Manage ›</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -465,7 +471,7 @@ export default function ProfileScreen() {
                 {groupedInterests.map((item, idx) => (
                   <View key={idx} style={styles.interestGroupCard}>
                     <View style={styles.interestCategoryHeader}>
-                      <Ionicons name="folder-outline" size={13} color={YELLOW} />
+                      <Ionicons name="folder-outline" size={13} color={GOLD} />
                       <Text style={styles.interestCategoryName}>{item.category}</Text>
                     </View>
 
@@ -478,14 +484,14 @@ export default function ProfileScreen() {
                         ))}
                       </View>
                     ) : (
-                      <Text style={styles.allSubLabel}>All Subcategories & Related Feed Items</Text>
+                      <Text style={styles.allSubLabel}>All Subcategories &amp; Related Feed Items</Text>
                     )}
                   </View>
                 ))}
               </View>
             ) : (
               <View style={styles.emptyInterestsBox}>
-                <Ionicons name="heart-dislike-outline" size={28} color={YELLOW} />
+                <Ionicons name="heart-dislike-outline" size={28} color={GOLD} />
                 <Text style={styles.emptyInterestsTitle}>No Preferences Configured Yet</Text>
                 <Text style={styles.emptyInterestsSub}>
                   Select your top categories to receive personalized video reels, local seller offers, and custom deals.
@@ -493,7 +499,7 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   style={styles.chooseInterestsBtn}
                   onPress={() => router.push('/customer/choose-interests' as any)}>
-                  <Ionicons name="options-outline" size={14} color={BLACK} />
+                  <Ionicons name="options-outline" size={14} color={GOLD} />
                   <Text style={styles.chooseInterestsBtnText}>+ Select Your Interests</Text>
                 </TouchableOpacity>
               </View>
@@ -515,10 +521,10 @@ export default function ProfileScreen() {
                 style={[styles.menuRow, idx === CUSTOMER_MENU.length - 1 && styles.menuRowLast]}
                 onPress={() => router.push(menu.route as any)}>
                 <View style={styles.menuIconBox}>
-                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+                  <Ionicons name={menu.icon as any} size={17} color={GOLD} />
                 </View>
                 <Text style={styles.menuLabel}>{menu.label}</Text>
-                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+                <Ionicons name="chevron-forward" size={15} color={TEXT_MUTED} />
               </TouchableOpacity>
             ))}
           </View>
@@ -538,10 +544,10 @@ export default function ProfileScreen() {
                 style={[styles.menuRow, idx === VENDOR_MENU.length - 1 && styles.menuRowLast]}
                 onPress={() => router.push(menu.route as any)}>
                 <View style={styles.menuIconBox}>
-                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+                  <Ionicons name={menu.icon as any} size={17} color={GOLD} />
                 </View>
                 <Text style={styles.menuLabel}>{menu.label}</Text>
-                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+                <Ionicons name="chevron-forward" size={15} color={TEXT_MUTED} />
               </TouchableOpacity>
             ))}
           </View>
@@ -561,10 +567,10 @@ export default function ProfileScreen() {
                 style={[styles.menuRow, idx === CREATOR_MENU.length - 1 && styles.menuRowLast]}
                 onPress={() => router.push(menu.route as any)}>
                 <View style={styles.menuIconBox}>
-                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+                  <Ionicons name={menu.icon as any} size={17} color={GOLD} />
                 </View>
                 <Text style={styles.menuLabel}>{menu.label}</Text>
-                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+                <Ionicons name="chevron-forward" size={15} color={TEXT_MUTED} />
               </TouchableOpacity>
             ))}
           </View>
@@ -575,7 +581,7 @@ export default function ProfileScreen() {
           <View style={styles.menuSectionCard}>
             <View style={styles.sectionLabelRow}>
               <View style={styles.sectionBar} />
-              <Text style={styles.menuSectionHeader}>FINANCE & ACCOUNT</Text>
+              <Text style={styles.menuSectionHeader}>FINANCE &amp; ACCOUNT</Text>
             </View>
 
             {(activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).map((menu, idx) => (
@@ -584,10 +590,10 @@ export default function ProfileScreen() {
                 style={[styles.menuRow, idx === (activeRole === 'creator' ? CREATOR_FINANCE_MENU : FINANCE_MENU).length - 1 && styles.menuRowLast]}
                 onPress={() => router.push(menu.route as any)}>
                 <View style={styles.menuIconBox}>
-                  <Ionicons name={menu.icon as any} size={17} color={YELLOW} />
+                  <Ionicons name={menu.icon as any} size={17} color={GOLD} />
                 </View>
                 <Text style={styles.menuLabel}>{menu.label}</Text>
-                <Ionicons name="chevron-forward" size={15} color="rgba(255,255,255,0.25)" />
+                <Ionicons name="chevron-forward" size={15} color={TEXT_MUTED} />
               </TouchableOpacity>
             ))}
           </View>
@@ -606,17 +612,27 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BLACK },
-  errorText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.sm, marginTop: 8 },
+  container: { flex: 1, backgroundColor: BG_COLOR },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: BG_COLOR },
+  unauthIconBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: 'rgba(217, 154, 61, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 154, 61, 0.2)',
+  },
+  errorText: { color: TEXT_MUTED, fontSize: FontSize.sm, marginTop: 8 },
   retryBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 0,
+    borderRadius: 8,
     marginTop: 12,
   },
-  retryText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  retryText: { color: GOLD, fontSize: FontSize.xs, fontWeight: '900' },
 
   header: {
     flexDirection: 'row',
@@ -626,15 +642,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
+    backgroundColor: CARD_BG,
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
+  headerTitle: { color: TEXT_MAIN, fontSize: FontSize.md, fontWeight: '900' },
   logoutIconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -644,88 +661,93 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     padding: Spacing.four,
-    borderRadius: 0,
+    borderRadius: 16,
     gap: Spacing.three,
-    borderWidth: 2,
-    borderColor: YELLOW,
+    borderWidth: 1,
+    borderColor: BORDER,
+    ...Shadows.sm,
   },
   avatarWrapper: { position: 'relative' },
-  avatar: { width: 54, height: 54, borderRadius: 0 },
+  avatar: { width: 54, height: 54, borderRadius: 27 },
   avatarFallback: {
     width: 54,
     height: 54,
-    borderRadius: 0,
-    backgroundColor: YELLOW,
+    borderRadius: 27,
+    backgroundColor: ESPRESSO,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: BLACK, fontSize: FontSize.lg, fontWeight: '900' },
+  avatarText: { color: GOLD, fontSize: FontSize.lg, fontWeight: '900' },
   verifiedDot: {
     position: 'absolute',
     bottom: -2,
     right: -2,
-    width: 16,
-    height: 16,
-    borderRadius: 0,
-    backgroundColor: YELLOW,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: GOLD,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: BLACK,
+    borderWidth: 2,
+    borderColor: CARD_BG,
   },
 
   userInfoCol: { flex: 1, gap: 4 },
   nameRoleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  userName: { color: '#fff', fontSize: FontSize.base, fontWeight: '900', flex: 1, marginRight: 6 },
-  userEmail: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
+  userName: { color: TEXT_MAIN, fontSize: FontSize.base, fontWeight: '900', flex: 1, marginRight: 6 },
+  userEmail: { color: TEXT_MUTED, fontSize: 11 },
 
   badgePillsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
   kycBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: 7,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 0,
+    borderRadius: 6,
     gap: 4,
   },
-  kycDot: { width: 4, height: 4, borderRadius: 0, backgroundColor: BLACK },
-  kycText: { color: BLACK, fontSize: 9, fontWeight: '900' },
+  kycDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: EMERALD },
+  kycText: { color: EMERALD, fontSize: 9, fontWeight: '900' },
   planBadge: {
-    backgroundColor: BLACK,
-    paddingHorizontal: 7,
+    backgroundColor: 'rgba(217, 154, 61, 0.12)',
+    paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 0,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(217, 154, 61, 0.3)',
   },
-  planText: { color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900' },
+  planText: { color: GOLD, fontSize: 9, fontWeight: '900' },
 
   statsStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     paddingVertical: 14,
     paddingHorizontal: Spacing.four,
-    borderRadius: 0,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER,
+    ...Shadows.sm,
   },
   statCell: { flex: 1, alignItems: 'center' },
-  statValue: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900' },
-  statLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 10, marginTop: 2 },
+  statValue: { color: GOLD, fontSize: FontSize.sm, fontWeight: '900' },
+  statLabel: { color: TEXT_MUTED, fontSize: 10, marginTop: 2 },
   statDivider: { width: 1, height: 24, backgroundColor: BORDER },
 
   menuSectionCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.four,
     borderWidth: 1,
     borderColor: BORDER,
+    ...Shadows.sm,
   },
   interestsGroupWrap: {
     gap: 8,
@@ -733,7 +755,8 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   interestGroupCard: {
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 10,
@@ -745,7 +768,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   interestCategoryName: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -756,19 +779,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   subPillChip: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: 'rgba(217, 154, 61, 0.1)',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: 'rgba(217, 154, 61, 0.25)',
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   subPillText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '700',
   },
   allSubLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontStyle: 'italic',
     marginTop: 2,
@@ -784,19 +808,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: GOLD,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   interestPillText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
     fontWeight: '700',
   },
   emptyInterestsBox: {
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     padding: Spacing.four,
@@ -806,12 +832,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyInterestsTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   emptyInterestsSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 10,
     textAlign: 'center',
     lineHeight: 14,
@@ -820,20 +846,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginTop: 6,
   },
   chooseInterestsBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 11,
     fontWeight: '900',
   },
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  sectionBar: { width: 3, height: 10, borderRadius: 0, backgroundColor: YELLOW },
+  sectionBar: { width: 3, height: 10, borderRadius: 2, backgroundColor: GOLD },
   menuSectionHeader: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1,
@@ -848,16 +875,18 @@ const styles = StyleSheet.create({
   },
   menuRowLast: { borderBottomWidth: 0 },
   menuIconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 0,
-    backgroundColor: 'rgba(245,158,11,0.12)',
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: 'rgba(217, 154, 61, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 154, 61, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuLabel: {
     flex: 1,
-    color: 'rgba(255,255,255,0.85)',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: FontWeight.semibold,
   },
@@ -866,22 +895,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(239,68,68,0.1)',
+    backgroundColor: '#FEF2F2',
     paddingVertical: 14,
-    borderRadius: 0,
+    borderRadius: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.4)',
+    borderColor: '#FCA5A5',
   },
   logoutBtnText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: '900' },
 
   leadAnalyticsCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER,
     padding: Spacing.four,
     marginBottom: Spacing.four,
     gap: 12,
+    ...Shadows.sm,
   },
   leadAnalyticsHeader: {
     flexDirection: 'row',
@@ -892,7 +923,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   leadAnalyticsTitle: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 1,
@@ -903,7 +934,8 @@ const styles = StyleSheet.create({
   },
   leadGridItem: {
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 8,
     flex: 1,
@@ -913,44 +945,45 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   leadVal: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 14,
     fontWeight: '900',
   },
   leadLbl: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
   guestCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderRadius: 16,
     padding: Spacing.five,
     alignItems: 'center',
     marginBottom: Spacing.four,
     borderWidth: 1,
     borderColor: BORDER,
+    ...Shadows.sm,
   },
   guestAvatarCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: 'rgba(245,158,11,0.12)',
+    backgroundColor: 'rgba(217, 154, 61, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.3)',
+    borderColor: 'rgba(217, 154, 61, 0.2)',
   },
   guestTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 18,
     fontWeight: '900',
     marginBottom: 6,
     textAlign: 'center',
   },
   guestSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
@@ -960,16 +993,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
     width: '100%',
     gap: 8,
     marginBottom: 10,
   },
   guestPrimaryText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 13,
     fontWeight: '900',
   },
@@ -977,29 +1010,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: BORDER,
     paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
     width: '100%',
     gap: 8,
   },
   guestSecondaryText: {
-    color: YELLOW,
+    color: TEXT_MAIN,
     fontSize: 13,
     fontWeight: '700',
   },
   menuSection: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderRadius: 16,
     padding: Spacing.four,
     borderWidth: 1,
     borderColor: BORDER,
     gap: 8,
+    ...Shadows.sm,
   },
   menuSectionTitle: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 1,
@@ -1013,7 +1048,7 @@ const styles = StyleSheet.create({
   },
   menuItemLabel: {
     flex: 1,
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 13,
     fontWeight: '600',
   },

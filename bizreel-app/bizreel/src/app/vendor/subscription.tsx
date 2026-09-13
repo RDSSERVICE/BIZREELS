@@ -1,8 +1,3 @@
-/**
- * Vendor Subscription & Growth Plans Screen — Mobile Application
- * High-contrast Brutalist theme matching Web Frontend Subscription & Vendor Portal.
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -19,15 +14,18 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useWalletInfo } from '@/features/wallet/queries';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 const EMERALD = '#10B981';
 
 export default function VendorSubscriptionScreen() {
@@ -185,7 +183,7 @@ export default function VendorSubscriptionScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
@@ -196,14 +194,14 @@ export default function VendorSubscriptionScreen() {
         </View>
 
         <TouchableOpacity style={styles.walletHeaderBtn} onPress={() => router.push('/vendor/wallet' as any)}>
-          <Ionicons name="wallet-outline" size={18} color={YELLOW} />
+          <Ionicons name="wallet-outline" size={18} color={GOLD} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={YELLOW} colors={[YELLOW]} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={GOLD} colors={[GOLD]} />}
       >
         {/* Quick Action Navigation Bar */}
         <View style={styles.quickNavRow}>
@@ -211,7 +209,7 @@ export default function VendorSubscriptionScreen() {
             style={styles.quickNavCard}
             onPress={() => router.push('/vendor/verification' as any)}
           >
-            <Ionicons name="shield-checkmark" size={16} color={YELLOW} />
+            <Ionicons name="shield-checkmark" size={16} color={GOLD} />
             <Text style={styles.quickNavText}>Verification Center</Text>
           </TouchableOpacity>
 
@@ -219,8 +217,8 @@ export default function VendorSubscriptionScreen() {
             style={[styles.quickNavCard, styles.quickNavCardDark]}
             onPress={() => router.push('/vendor/wallet' as any)}
           >
-            <Ionicons name="trending-up" size={16} color={YELLOW} />
-            <Text style={[styles.quickNavText, { color: YELLOW }]}>Vendor Wallet &amp; Credits</Text>
+            <Ionicons name="trending-up" size={16} color={GOLD} />
+            <Text style={[styles.quickNavText, { color: GOLD }]}>Vendor Wallet &amp; Credits</Text>
           </TouchableOpacity>
         </View>
 
@@ -246,7 +244,7 @@ export default function VendorSubscriptionScreen() {
 
               {isVerified && (
                 <View style={styles.verifiedBadgePill}>
-                  <Ionicons name="ribbon-outline" size={12} color={YELLOW} />
+                  <Ionicons name="ribbon-outline" size={12} color={GOLD} />
                   <Text style={styles.verifiedBadgeText}>VERIFIED MERCHANT</Text>
                 </View>
               )}
@@ -263,7 +261,7 @@ export default function VendorSubscriptionScreen() {
             {/* Expiry Pill */}
             {planExpires && (
               <View style={styles.expiryBox}>
-                <Ionicons name="calendar-outline" size={13} color={YELLOW} />
+                <Ionicons name="calendar-outline" size={13} color={GOLD} />
                 <Text style={styles.expiryText}>
                   Renews / Expires on:{' '}
                   <Text style={{ color: '#fff', fontWeight: '800' }}>
@@ -291,7 +289,7 @@ export default function VendorSubscriptionScreen() {
                 onPress={() => router.push('/vendor/wallet' as any)}
               >
                 <Text style={styles.rechargeHeroBtnText}>Recharge</Text>
-                <Ionicons name="arrow-forward-outline" size={12} color={BLACK} />
+                <Ionicons name="arrow-forward-outline" size={12} color={ESPRESSO} />
               </TouchableOpacity>
             </View>
           </View>
@@ -335,13 +333,13 @@ export default function VendorSubscriptionScreen() {
         {/* Growth Tier Cards List or Empty State */}
         {loadingPlans ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="small" color={YELLOW} />
+            <ActivityIndicator size="small" color={GOLD} />
             <Text style={styles.loadingText}>Fetching growth tiers...</Text>
           </View>
         ) : plans.length === 0 ? (
           <View style={styles.emptyStateCard}>
             <View style={styles.emptyIconContainer}>
-              <Ionicons name="layers-outline" size={28} color={YELLOW} />
+              <Ionicons name="layers-outline" size={28} color={GOLD} />
             </View>
             <Text style={styles.emptyTitle}>Custom Tiers Coming Soon</Text>
             <Text style={styles.emptyDesc}>
@@ -379,7 +377,7 @@ export default function VendorSubscriptionScreen() {
                 <View style={styles.featureList}>
                   {plan.features.map((feat: string, idx: number) => (
                     <View key={idx} style={styles.featureRow}>
-                      <Ionicons name="checkmark-circle" size={16} color={YELLOW} />
+                      <Ionicons name="checkmark-circle" size={16} color={GOLD} />
                       <Text style={styles.featureText}>{feat}</Text>
                     </View>
                   ))}
@@ -415,8 +413,8 @@ export default function VendorSubscriptionScreen() {
 
           {/* Card 1 */}
           <View style={styles.bentoCard}>
-            <View style={[styles.bentoIconBox, { backgroundColor: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)' }]}>
-              <Ionicons name="shield-checkmark-outline" size={20} color={YELLOW} />
+            <View style={[styles.bentoIconBox, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={GOLD} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.bentoCardTitle}>5x Buyer Trust with Verified Badge</Text>
@@ -468,7 +466,7 @@ export default function VendorSubscriptionScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Payment Method</Text>
               <TouchableOpacity onPress={() => setSelectedPlanForModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color={TEXT_MAIN} />
               </TouchableOpacity>
             </View>
 
@@ -486,26 +484,26 @@ export default function VendorSubscriptionScreen() {
                 style={styles.modalPaymentBtn}
                 onPress={() => handleConfirmPurchase('wallet')}
               >
-                <Ionicons name="wallet-outline" size={20} color={YELLOW} />
+                <Ionicons name="wallet-outline" size={20} color={GOLD} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.modalPaymentTitle}>Pay via Vendor Wallet</Text>
                   <Text style={styles.modalPaymentSub}>
                     Balance: ₹{(walletBalance || 0).toLocaleString('en-IN')}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="chevron-forward" size={18} color={TEXT_MUTED} />
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[styles.modalPaymentBtn, styles.modalPaymentBtnRzp]}
                 onPress={() => handleConfirmPurchase('razorpay')}
               >
-                <Ionicons name="card-outline" size={20} color="#fff" />
+                <Ionicons name="card-outline" size={20} color={GOLD} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.modalPaymentTitle, { color: '#fff' }]}>Pay Online (Razorpay)</Text>
+                  <Text style={[styles.modalPaymentTitle, { color: GOLD }]}>Pay Online (Razorpay)</Text>
                   <Text style={styles.modalPaymentSub}>UPI, Credit/Debit Cards, NetBanking</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="chevron-forward" size={18} color={TEXT_MUTED} />
               </TouchableOpacity>
             </View>
           </View>
@@ -516,7 +514,7 @@ export default function VendorSubscriptionScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_COLOR },
 
   /* Header */
   header: {
@@ -524,7 +522,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     gap: 12,
@@ -532,36 +530,36 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   headerTitleContainer: {
     flex: 1,
   },
   headerSubtitleText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   headerTitleText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   walletHeaderBtn: {
     width: 36,
     height: 36,
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
 
   /* Scroll Content */
@@ -581,19 +579,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     paddingVertical: 10,
     paddingHorizontal: 8,
-    borderRadius: 8,
+    borderRadius: 10,
+    ...Shadows.sm,
   },
   quickNavCardDark: {
-    backgroundColor: '#241B15',
-    borderColor: '#3E3025',
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   quickNavText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
     fontWeight: '800',
   },
@@ -603,13 +602,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   pageIntroTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.lg,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
   pageIntroSubtitle: {
-    color: 'rgba(255, 255, 255, 0.65)',
+    color: TEXT_MUTED,
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '500',
@@ -617,12 +616,11 @@ const styles = StyleSheet.create({
 
   /* Active Hero Card */
   activeHeroCard: {
-    backgroundColor: '#1C1510',
-    borderWidth: 1,
-    borderColor: '#3E3025',
-    borderRadius: 14,
+    backgroundColor: ESPRESSO,
+    borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
+    ...Shadows.md,
   },
   activeHeroGlow: {
     position: 'absolute',
@@ -631,10 +629,10 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    backgroundColor: 'rgba(217, 154, 61, 0.15)',
   },
   activeHeroContent: {
-    padding: 16,
+    padding: 18,
     gap: 14,
   },
   activeHeroBadgeRow: {
@@ -647,9 +645,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -670,27 +668,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: 'rgba(217, 154, 61, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: 'rgba(217, 154, 61, 0.4)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   verifiedBadgeText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   activeHeroPlanName: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: FontSize.xl,
     fontWeight: '900',
     letterSpacing: -0.5,
   },
   activeHeroSubtext: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 11,
     lineHeight: 16,
   },
@@ -698,23 +696,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
     alignSelf: 'flex-start',
   },
   expiryText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 10,
   },
   walletHeroBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
     padding: 12,
     borderRadius: 10,
   },
@@ -722,7 +720,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   walletHeroLabel: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(255, 255, 255, 0.6)',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -736,13 +734,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   rechargeHeroBtnText: {
-    color: BLACK,
+    color: ESPRESSO,
     fontSize: 11,
     fontWeight: '900',
   },
@@ -755,17 +753,17 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   sectionSubtitle: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     marginTop: 2,
   },
   countBadge: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 10,
@@ -773,7 +771,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   countBadgeText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -781,59 +779,60 @@ const styles = StyleSheet.create({
   /* Cycle Toggle */
   cycleToggleRow: {
     flexDirection: 'row',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     padding: 4,
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 8,
+    borderRadius: 10,
+    ...Shadows.sm,
   },
   cycleBtn: {
     flex: 1,
     paddingVertical: 8,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   cycleBtnActive: {
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
   },
   cycleBtnText: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: TEXT_MUTED,
     fontSize: 11,
     fontWeight: '800',
   },
   cycleBtnTextActive: {
-    color: BLACK,
+    color: GOLD,
     fontWeight: '900',
   },
 
   /* Empty State */
   emptyStateCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 24,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
-    textAlign: 'center',
     gap: 10,
+    ...Shadows.sm,
   },
   emptyIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: 'rgba(217, 154, 61, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
+    borderColor: 'rgba(217, 154, 61, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   emptyDesc: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     textAlign: 'center',
     lineHeight: 16,
@@ -846,35 +845,36 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   loadingText: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
   },
 
   /* Plan Cards */
   planCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    padding: 16,
-    borderRadius: 10,
-    gap: 12,
+    padding: 18,
+    borderRadius: 14,
+    gap: 14,
+    ...Shadows.sm,
   },
   planCardPopular: {
-    borderColor: YELLOW,
+    borderColor: GOLD,
     borderWidth: 2,
   },
   planCardCurrent: {
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: BORDER,
   },
   popularBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   popularBadgeText: {
-    color: BLACK,
+    color: ESPRESSO,
     fontSize: 9,
     fontWeight: '900',
   },
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   planName: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
@@ -892,16 +892,16 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   planPrice: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 22,
     fontWeight: '900',
   },
   planPeriod: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
   },
   planDesc: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: TEXT_MUTED,
     fontSize: 11,
     marginTop: 4,
   },
@@ -918,38 +918,38 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   featureText: {
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: TEXT_MAIN,
     fontSize: 11,
     fontWeight: '700',
   },
   planBtn: {
-    backgroundColor: BLACK,
+    backgroundColor: ESPRESSO,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: ESPRESSO,
     paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
     marginTop: 6,
   },
   planBtnPopular: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: GOLD,
+    borderColor: GOLD,
   },
   planBtnCurrent: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#F1F5F9',
     borderColor: BORDER,
   },
   planBtnText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   planBtnTextPopular: {
-    color: BLACK,
+    color: ESPRESSO,
   },
   planBtnTextCurrent: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: TEXT_MUTED,
   },
 
   /* Bento Highlights Section */
@@ -958,7 +958,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   bentoSectionTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -966,12 +966,13 @@ const styles = StyleSheet.create({
   bentoCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    padding: 12,
-    borderRadius: 10,
+    padding: 14,
+    borderRadius: 14,
     gap: 12,
+    ...Shadows.sm,
   },
   bentoIconBox: {
     width: 36,
@@ -982,12 +983,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   bentoCardTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 12,
     fontWeight: '900',
   },
   bentoCardDesc: {
-    color: 'rgba(255, 255, 255, 0.55)',
+    color: TEXT_MUTED,
     fontSize: 11,
     lineHeight: 15,
   },
@@ -995,17 +996,18 @@ const styles = StyleSheet.create({
   /* Modal */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: DARK_CARD,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: CARD_BG,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     borderTopWidth: 2,
-    borderTopColor: YELLOW,
+    borderTopColor: GOLD,
     padding: 20,
     gap: 16,
+    ...Shadows.md,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1013,51 +1015,51 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   modalTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   modalPlanSummary: {
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   modalPlanTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 12,
     fontWeight: '900',
   },
   modalPlanPrice: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 13,
     fontWeight: '900',
   },
   modalPaymentBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 14,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 12,
   },
   modalPaymentBtnRzp: {
-    backgroundColor: '#241B15',
-    borderColor: '#3E3025',
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   modalPaymentTitle: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 12,
     fontWeight: '900',
   },
   modalPaymentSub: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
     marginTop: 2,
   },

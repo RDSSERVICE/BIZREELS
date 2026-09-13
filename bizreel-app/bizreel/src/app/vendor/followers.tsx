@@ -1,8 +1,3 @@
-/**
- * Vendor Followers Screen — Mobile Application
- * Displays live store followers list with search and direct chat option.
- */
-
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -19,9 +14,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/image';
+
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 interface FollowerUser {
   _id?: string;
@@ -122,11 +125,11 @@ export default function VendorFollowersScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Store Audience ({followers.length})</Text>
         <TouchableOpacity style={styles.refreshBtn} onPress={fetchFollowers}>
-          <Ionicons name="refresh-outline" size={18} color="#F59E0B" />
+          <Ionicons name="refresh-outline" size={18} color={GOLD} />
         </TouchableOpacity>
       </View>
 
@@ -143,7 +146,7 @@ export default function VendorFollowersScreen() {
                 <View style={styles.statHeader}>
                   <Text style={styles.statLabel}>TOTAL FOLLOWERS</Text>
                   <View style={styles.statIconBox}>
-                    <Ionicons name="people" size={16} color="#F59E0B" />
+                    <Ionicons name="people" size={16} color={GOLD} />
                   </View>
                 </View>
                 <Text style={styles.statValue}>{followers.length.toLocaleString('en-IN')}</Text>
@@ -164,17 +167,17 @@ export default function VendorFollowersScreen() {
 
             {/* Search Input Bar */}
             <View style={styles.searchInputWrapper}>
-              <Ionicons name="search-outline" size={16} color="rgba(255,255,255,0.4)" style={styles.searchIcon} />
+              <Ionicons name="search-outline" size={16} color={TEXT_MUTED} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search followers by name..."
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
                 value={searchTerm}
                 onChangeText={setSearchTerm}
               />
               {searchTerm ? (
                 <TouchableOpacity onPress={() => setSearchTerm('')}>
-                  <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+                  <Ionicons name="close-circle" size={16} color={TEXT_MUTED} />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -185,12 +188,12 @@ export default function VendorFollowersScreen() {
         ListEmptyComponent={
           loading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color="#F59E0B" />
+              <ActivityIndicator size="small" color={GOLD} />
               <Text style={styles.loadingText}>Loading store followers...</Text>
             </View>
           ) : (
             <View style={styles.emptyBox}>
-              <Ionicons name="people-outline" size={36} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="people-outline" size={36} color={TEXT_MUTED} />
               <Text style={styles.emptyText}>
                 {searchTerm
                   ? 'No followers match your search criteria.'
@@ -233,10 +236,10 @@ export default function VendorFollowersScreen() {
                 onPress={() => handleChatWithFollower(item)}
                 disabled={isProcessing}>
                 {isProcessing ? (
-                  <ActivityIndicator size="small" color="#0F0F12" />
+                  <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Ionicons name="chatbubbles-outline" size={14} color="#0F0F12" />
+                    <Ionicons name="chatbubbles-outline" size={14} color="#fff" />
                     <Text style={styles.chatBtnText}>Chat</Text>
                   </>
                 )}
@@ -250,34 +253,35 @@ export default function VendorFollowersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0F0F12' },
+  container: { flex: 1, backgroundColor: BG_COLOR },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D2D36',
+    borderBottomColor: BORDER,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#18181C',
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.base, fontWeight: FontWeight.bold },
+  headerTitle: { color: TEXT_MAIN, fontSize: FontSize.base, fontWeight: FontWeight.bold },
   refreshBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: '#18181C',
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -288,100 +292,103 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: Spacing.three },
   statCard: {
     flex: 1,
-    backgroundColor: '#18181C',
+    backgroundColor: CARD_BG,
     borderRadius: 14,
     padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     gap: 2,
+    ...Shadows.sm,
   },
   statHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5 },
+  statLabel: { color: TEXT_MUTED, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5 },
   statIconBox: {
     width: 26,
     height: 26,
     borderRadius: 8,
-    backgroundColor: 'rgba(245,158,11,0.15)',
+    backgroundColor: '#FFFBEB',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statValue: { color: '#FFF', fontSize: FontSize.lg, fontWeight: '900', marginTop: 4 },
-  statSub: { color: 'rgba(255,255,255,0.4)', fontSize: 10 },
+  statValue: { color: TEXT_MAIN, fontSize: FontSize.lg, fontWeight: '900', marginTop: 4 },
+  statSub: { color: TEXT_MUTED, fontSize: 10 },
 
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#18181C',
-    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     paddingHorizontal: 12,
     height: 42,
   },
   searchIcon: { marginRight: 8 },
-  searchInput: { flex: 1, color: '#FFF', fontSize: 12 },
+  searchInput: { flex: 1, color: TEXT_MAIN, fontSize: 12 },
 
-  sectionTitle: { color: '#F59E0B', fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, marginTop: 4 },
+  sectionTitle: { color: GOLD, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1, marginTop: 4 },
 
   loadingBox: { height: 160, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  loadingText: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
+  loadingText: { color: TEXT_MUTED, fontSize: 11 },
 
   emptyBox: {
-    backgroundColor: '#18181C',
-    borderRadius: 16,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     padding: Spacing.six,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     marginVertical: Spacing.two,
+    ...Shadows.sm,
   },
-  emptyText: { color: 'rgba(255,255,255,0.5)', fontSize: 11, textAlign: 'center', lineHeight: 16 },
+  emptyText: { color: TEXT_MUTED, fontSize: 11, textAlign: 'center', lineHeight: 16 },
 
   followerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#18181C',
+    backgroundColor: CARD_BG,
     borderRadius: 14,
     padding: Spacing.three,
     gap: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2D2D36',
+    borderColor: BORDER,
     marginBottom: Spacing.two,
+    ...Shadows.sm,
   },
   avatarBox: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
   avatarImg: { width: '100%', height: '100%' },
   avatarFallback: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#F59E0B',
+    backgroundColor: GOLD,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#0F0F12', fontWeight: FontWeight.bold, fontSize: FontSize.md },
+  avatarText: { color: ESPRESSO, fontWeight: FontWeight.bold, fontSize: FontSize.md },
 
   infoCol: { flex: 1, gap: 4 },
-  nameText: { color: '#FFF', fontSize: FontSize.xs, fontWeight: FontWeight.bold },
+  nameText: { color: TEXT_MAIN, fontSize: FontSize.xs, fontWeight: FontWeight.bold },
   roleBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#26262E',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#3F3F46',
+    borderColor: BORDER,
   },
-  roleBadgeText: { color: '#F59E0B', fontSize: 8, fontWeight: FontWeight.bold },
+  roleBadgeText: { color: GOLD, fontSize: 8, fontWeight: FontWeight.bold },
 
   chatBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F59E0B',
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 8,
     gap: 4,
   },
-  chatBtnText: { color: '#0F0F12', fontSize: 11, fontWeight: FontWeight.bold },
+  chatBtnText: { color: GOLD, fontSize: 11, fontWeight: FontWeight.bold },
 });

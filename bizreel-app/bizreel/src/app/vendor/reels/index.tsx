@@ -55,26 +55,26 @@ export default function VendorReelsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={18} color="#1E1B18" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Video Reels Studio</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.analyticsHeaderBtn}
             onPress={() => router.push('/vendor/dashboard' as any)}>
-            <Ionicons name="bar-chart" size={18} color="#fff" />
+            <Ionicons name="bar-chart" size={18} color="#D99A3D" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.addHeaderBtn}
             onPress={() => router.push('/vendor/reels/create' as any)}>
-            <Ionicons name="add" size={20} color="#fff" />
+            <Ionicons name="add" size={20} color="#D99A3D" />
           </TouchableOpacity>
         </View>
       </View>
 
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={BrandColors.primary} />
+          <ActivityIndicator size="large" color="#D99A3D" />
         </View>
       ) : (
         <FlatList
@@ -85,8 +85,8 @@ export default function VendorReelsScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor={BrandColors.primary}
-              colors={[BrandColors.primary]}
+              tintColor="#D99A3D"
+              colors={['#D99A3D']}
             />
           }
           ListHeaderComponent={
@@ -111,7 +111,7 @@ export default function VendorReelsScreen() {
                     contentFit="cover"
                   />
                   <View style={styles.playOverlayIcon}>
-                    <Ionicons name="play" size={16} color="#fff" />
+                    <Ionicons name="play" size={14} color="#fff" />
                   </View>
                 </View>
 
@@ -122,22 +122,22 @@ export default function VendorReelsScreen() {
 
                   <View style={styles.metricsRow}>
                     <View style={styles.metricBadge}>
-                      <Ionicons name="heart" size={12} color="#FF2D55" />
+                      <Ionicons name="heart" size={11} color="#FF2D55" />
                       <Text style={styles.metricText}>{item.likesCount || 0}</Text>
                     </View>
                     <View style={styles.metricBadge}>
-                      <Ionicons name="chatbubble" size={12} color={BrandColors.primaryLight} />
+                      <Ionicons name="chatbubble" size={11} color="#D99A3D" />
                       <Text style={styles.metricText}>{item.commentsCount || 0}</Text>
                     </View>
                     <View style={styles.metricBadge}>
-                      <Ionicons name="eye" size={12} color="rgba(255,255,255,0.7)" />
+                      <Ionicons name="eye" size={11} color="#6E675F" />
                       <Text style={styles.metricText}>{(item as any).views ?? item.viewsCount ?? (item as any).views_count ?? 0}</Text>
                     </View>
                   </View>
 
                   {item.isBoosted && (
                     <View style={styles.boostedTag}>
-                      <Ionicons name="flame" size={10} color="#fff" />
+                      <Ionicons name="flame" size={10} color="#1E1B18" />
                       <Text style={styles.boostedText}>Sponsored Boosted</Text>
                     </View>
                   )}
@@ -153,7 +153,7 @@ export default function VendorReelsScreen() {
                       params: { id: item._id, videoUrl: item.videoUrl || item.mediaUrls?.[0] || '' },
                     } as any)
                   }>
-                  <Ionicons name="play-circle" size={16} color="#F59E0B" />
+                  <Ionicons name="play-circle" size={15} color="#D99A3D" />
                   <Text style={styles.playActionBtnText}>Play</Text>
                 </TouchableOpacity>
 
@@ -161,20 +161,20 @@ export default function VendorReelsScreen() {
                   style={styles.boostBtn}
                   onPress={() => handleBoost(item._id)}
                   disabled={boostMutation.isPending}>
-                  <Ionicons name="rocket-outline" size={16} color={BrandColors.primary} />
+                  <Ionicons name="rocket-outline" size={15} color="#D99A3D" />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.deleteBtn}
                   onPress={() => handleDelete(item._id, item.caption)}>
-                  <Ionicons name="trash-outline" size={16} color={BrandColors.error} />
+                  <Ionicons name="trash-outline" size={15} color="#EF4444" />
                 </TouchableOpacity>
               </View>
             </View>
           )}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="videocam-outline" size={56} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="videocam-outline" size={56} color="#94A3B8" />
               <Text style={styles.emptyTitle}>No Reels Uploaded</Text>
               <Text style={styles.emptySub}>
                 Publish short video reels showcasing your products in action to attract 10x more buyers.
@@ -182,7 +182,7 @@ export default function VendorReelsScreen() {
               <TouchableOpacity
                 style={styles.createBtn}
                 onPress={() => router.push('/vendor/reels/create' as any)}>
-                <Ionicons name="add" size={16} color="#fff" />
+                <Ionicons name="add" size={16} color="#D99A3D" />
                 <Text style={styles.createBtnText}>Upload New Reel</Text>
               </TouchableOpacity>
             </View>
@@ -193,10 +193,19 @@ export default function VendorReelsScreen() {
   );
 }
 
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_MATTE = '#F6F4EE';
+const CARD_MATTE = '#FBF9F5';
+const INSET_MATTE = '#F0EDE4';
+const BORDER_MATTE = '#E5E0D4';
+const TEXT_MAIN = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: BG_MATTE,
   },
   header: {
     flexDirection: 'row',
@@ -204,21 +213,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
+    backgroundColor: CARD_MATTE,
     borderBottomWidth: 1,
-    borderBottomColor: '#222',
+    borderBottomColor: BORDER_MATTE,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#1c1c1e',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: BG_MATTE,
+    borderWidth: 1,
+    borderColor: BORDER_MATTE,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   headerActions: {
     flexDirection: 'row',
@@ -226,18 +238,22 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   analyticsHeaderBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#2c2c2e',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: INSET_MATTE,
+    borderWidth: 1,
+    borderColor: BORDER_MATTE,
     alignItems: 'center',
     justifyContent: 'center',
   },
   addHeaderBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: BrandColors.primary,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: ESPRESSO,
+    borderWidth: 1,
+    borderColor: GOLD,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -254,19 +270,24 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.two,
   },
   summaryText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '800',
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
-    padding: Spacing.two,
+    backgroundColor: CARD_MATTE,
+    borderRadius: 16,
+    padding: Spacing.three,
     borderWidth: 1,
-    borderColor: '#2c2c2e',
+    borderColor: BORDER_MATTE,
     gap: Spacing.three,
+    shadowColor: '#1E1B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardMainTouch: {
     flex: 1,
@@ -282,8 +303,8 @@ const styles = StyleSheet.create({
   cardThumbnail: {
     width: 60,
     height: 90,
-    borderRadius: 8,
-    backgroundColor: '#2c2c2e',
+    borderRadius: 10,
+    backgroundColor: INSET_MATTE,
   },
   playOverlayIcon: {
     position: 'absolute',
@@ -292,21 +313,21 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(36,27,21,0.75)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: GOLD,
   },
   cardInfo: {
     flex: 1,
     gap: 4,
   },
   cardCaption: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
-    lineHeight: 16,
+    fontWeight: '800',
+    lineHeight: 17,
   },
   metricsRow: {
     flexDirection: 'row',
@@ -318,27 +339,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+    backgroundColor: INSET_MATTE,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
   metricText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 10,
-    fontWeight: FontWeight.bold,
+    fontWeight: '800',
   },
   boostedTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BrandColors.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    gap: 2,
+    backgroundColor: GOLD,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    gap: 3,
     alignSelf: 'flex-start',
-    marginTop: 2,
+    marginTop: 3,
   },
   boostedText: {
-    color: '#fff',
-    fontSize: 9,
-    fontWeight: FontWeight.bold,
+    color: '#1E1B18',
+    fontSize: 9.5,
+    fontWeight: '900',
   },
   cardActions: {
     gap: Spacing.two,
@@ -347,24 +372,38 @@ const styles = StyleSheet.create({
   playActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: 4,
+    backgroundColor: ESPRESSO,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderColor: GOLD,
   },
   playActionBtnText: {
-    color: '#F59E0B',
+    color: GOLD,
     fontSize: 10,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   boostBtn: {
-    padding: Spacing.one,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: INSET_MATTE,
+    borderWidth: 1,
+    borderColor: BORDER_MATTE,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteBtn: {
-    padding: Spacing.one,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -373,28 +412,31 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   emptyTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
   emptySub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: FontSize.sm,
     textAlign: 'center',
+    maxWidth: 280,
   },
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BrandColors.primary,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
-    borderRadius: 20,
+    paddingVertical: 12,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: GOLD,
     gap: 6,
     marginTop: Spacing.two,
   },
   createBtnText: {
-    color: '#fff',
+    color: GOLD,
     fontSize: FontSize.xs,
-    fontWeight: FontWeight.bold,
+    fontWeight: '900',
   },
 });

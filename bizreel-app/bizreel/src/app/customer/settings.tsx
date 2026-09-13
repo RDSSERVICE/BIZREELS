@@ -21,14 +21,17 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FontSize, Spacing } from '@/constants/theme';
+import { FontSize, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 const CUSTOMER_PROFESSIONS = [
   'Business Owner / Entrepreneur',
@@ -98,67 +101,52 @@ export default function CustomerSettingsScreen() {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
-      setPhone((user as any).phone || (user as any).mobile || '');
-      setGender((user as any).gender || 'male');
-      setDob((user as any).dob || '');
-      setLanguage((user as any).language || 'English');
-
-      const uProf = (user as any).profession || (user as any).occupation || '';
-      if (uProf) {
-        if (CUSTOMER_PROFESSIONS.includes(uProf)) {
-          setProfession(uProf);
-        } else {
-          setProfession('Other / Custom Profession');
-          setCustomProfession(uProf);
-        }
+      setPhone((user as any).phone || (user as any).mobileNumber || '');
+      const custProf = (user as any).customerProfile || {};
+      setGender(custProf.gender || (user as any).gender || 'male');
+      
+      const userProf = custProf.profession || (user as any).profession || '';
+      if (CUSTOMER_PROFESSIONS.includes(userProf)) {
+        setProfession(userProf);
+      } else if (userProf) {
+        setProfession('Other / Custom Profession');
+        setCustomProfession(userProf);
+      } else {
+        setProfession(CUSTOMER_PROFESSIONS[0]);
       }
 
-      const loc = (user as any).location || {};
+      setDob(custProf.dob || (user as any).dob || '');
+      setLanguage(custProf.language || (user as any).language || 'English');
+
+      const loc = custProf.location || (user as any).location || {};
       setPincode(loc.pincode || (user as any).pincode || '');
       setCity(loc.city || (user as any).city || '');
       setDistrict(loc.district || (user as any).district || '');
       setState(loc.state || (user as any).state || '');
-      setAddress(loc.address || (user as any).address || '');
+      setAddress(loc.address || custProf.address || (user as any).address || '');
     }
   }, [user]);
 
   // Pincode auto-lookup
-  const handlePincodeChange = async (val: string) => {
-    const cleaned = val.replace(/\D/g, '').slice(0, 6);
-    setPincode(cleaned);
+  const handlePincodeLookup = async (val: string) => {
+    setPincode(val);
     setPincodeMsg(null);
-
-    if (cleaned.length === 6) {
+    if (val.length === 6) {
       setFetchingPincode(true);
       try {
-        const res = await api.post('/v1/location/pincode-lookup', { pincode: cleaned }).catch(() => null);
-        let locData = res?.data;
-
-        if (!locData || !locData.state) {
-          const postalRes = await fetch(`https://api.postalpincode.in/pincode/${cleaned}`);
-          const pData = await postalRes.json();
-          const entry = Array.isArray(pData) ? pData[0] : pData;
-          if (entry && entry.Status === 'Success' && entry.PostOffice?.[0]) {
-            const po = entry.PostOffice[0];
-            locData = {
-              state: po.State,
-              district: po.District,
-              city: po.District,
-              area: po.Name,
-            };
-          }
-        }
-
-        if (locData && locData.state) {
-          setState(locData.state);
-          setDistrict(locData.district || locData.city || '');
-          setCity(locData.area || locData.city || locData.district || '');
-          setPincodeMsg(`✓ Auto-filled: ${locData.city || locData.district}, ${locData.state}`);
+        const res = await fetch(`https://api.postalpincode.in/pincode/${val}`);
+        const data = await res.json();
+        if (data?.[0]?.Status === 'Success' && data[0].PostOffice?.length > 0) {
+          const po = data[0].PostOffice[0];
+          setDistrict(po.District || '');
+          setState(po.State || '');
+          if (!city) setCity(po.Block !== 'NA' ? po.Block : po.District);
+          setPincodeMsg(`✓ Auto-filled: ${po.District}, ${po.State}`);
         } else {
-          setPincodeMsg('⚠ Pincode not found. Enter city & state manually.');
+          setPincodeMsg('⚠️ Invalid Pincode or location data not found');
         }
       } catch (err) {
-        setPincodeMsg('⚠ Lookup failed. Enter details manually.');
+        console.warn('Pincode fetch error:', err);
       } finally {
         setFetchingPincode(false);
       }
@@ -175,30 +163,31 @@ export default function CustomerSettingsScreen() {
     try {
       const finalProf = profession === 'Other / Custom Profession' ? customProfession : profession;
       const payload = {
-        name: name.trim(),
-        gender,
+        name,
         profession: finalProf,
+        gender,
         dob,
         language,
         location: {
           pincode,
-          city: city.trim(),
-          district: district.trim(),
-          state: state.trim(),
-          address: address.trim(),
+          city,
+          district,
+          state,
+          address,
         },
       };
 
-      const res = await api.patch('/v1/users/me', payload).catch(() =>
-        api.put('/users/me', payload)
-      );
+      const res = await api
+        .put('/v1/users/me/profile', payload)
+        .catch(() => api.put('/users/me', payload))
+        .catch(() => api.post('/v1/customer/profile', payload));
 
-      const updatedUser = res.data?.data?.user || res.data?.user || res.data;
+      const updatedUser = res.data?.data || res.data?.user || res.data;
       if (updatedUser) {
         setUser({ ...user, ...updatedUser });
       }
 
-      Alert.alert('✅ Profile Saved!', 'Your account settings have been updated successfully.');
+      Alert.alert('Success 🎉', 'Profile settings updated successfully!');
     } catch (err: any) {
       Alert.alert('Save Failed', err.response?.data?.message || 'Could not update profile settings.');
     } finally {
@@ -208,33 +197,45 @@ export default function CustomerSettingsScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Validation Error', 'Please fill all password fields.');
+      Alert.alert('Validation Error', 'All password fields are required.');
       return;
     }
+
     if (newPassword !== confirmPassword) {
-      Alert.alert('Validation Error', 'New Password and Confirm Password do not match.');
+      Alert.alert('Validation Error', 'New passwords do not match.');
       return;
     }
+
     if (newPassword.length < 6) {
-      Alert.alert('Validation Error', 'New Password must be at least 6 characters.');
+      Alert.alert('Validation Error', 'New password must be at least 6 characters.');
       return;
     }
 
     setChangingPassword(true);
     try {
-      await api.post('/v1/auth/change-password', {
-        currentPassword,
-        newPassword,
-      }).catch(() =>
-        api.post('/auth/change-password', { currentPassword, newPassword })
-      );
+      await api
+        .post('/v1/auth/change-password', {
+          currentPassword,
+          newPassword,
+        })
+        .catch(() =>
+          api.put('/v1/users/me/password', {
+            oldPassword: currentPassword,
+            newPassword,
+          })
+        );
 
+      Alert.alert('Success 🎉', 'Password changed successfully! Please log back in.', [
+        {
+          text: 'OK',
+          onPress: () => signOut(),
+        },
+      ]);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      Alert.alert('🔑 Password Changed!', 'Your password has been changed successfully.');
     } catch (err: any) {
-      Alert.alert('Password Error', err.response?.data?.message || 'Failed to change password.');
+      Alert.alert('Change Failed', err.response?.data?.message || 'Failed to update password.');
     } finally {
       setChangingPassword(false);
     }
@@ -242,21 +243,18 @@ export default function CustomerSettingsScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      '⚠️ Delete Account',
-      'Are you sure you want to permanently delete your BizReels account? This action cannot be undone.',
+      'Delete Account Permanently ⚠️',
+      'Are you sure you want to permanently delete your BizReels account? This action CANNOT be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete Account',
+          text: 'Delete Permanently',
           style: 'destructive',
           onPress: async () => {
             try {
               await api.delete('/v1/auth/profile').catch(() => api.delete('/v1/users/me')).catch(() => api.delete('/users/me'));
-              Alert.alert('Account Deleted', 'Your customer account has been permanently deleted.');
-              if (signOut) {
-                await signOut();
-              }
-              router.replace('/(auth)/login' as any);
+              Alert.alert('Account Deleted', 'Your account has been deleted.');
+              signOut();
             } catch (err: any) {
               Alert.alert('Error', err.response?.data?.message || 'Could not delete account.');
             }
@@ -271,11 +269,11 @@ export default function CustomerSettingsScreen() {
       {/* Header Bar */}
       <View style={styles.headerBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>ACCOUNT & PROFILE SETTINGS</Text>
-          <Text style={styles.headerSub}>Edit Details, Address & Security</Text>
+          <Text style={styles.headerTitle}>ACCOUNT &amp; PROFILE SETTINGS</Text>
+          <Text style={styles.headerSub}>Edit Details, Address &amp; Security</Text>
         </View>
       </View>
 
@@ -287,7 +285,7 @@ export default function CustomerSettingsScreen() {
           <Ionicons
             name="person-outline"
             size={16}
-            color={activeTab === 'profile' ? YELLOW : 'rgba(255,255,255,0.6)'}
+            color={activeTab === 'profile' ? GOLD : TEXT_MUTED}
           />
           <Text style={[styles.subTabBtnText, activeTab === 'profile' && styles.subTabBtnTextActive]}>
             Profile Info
@@ -300,10 +298,10 @@ export default function CustomerSettingsScreen() {
           <Ionicons
             name="lock-closed-outline"
             size={16}
-            color={activeTab === 'security' ? YELLOW : 'rgba(255,255,255,0.6)'}
+            color={activeTab === 'security' ? GOLD : TEXT_MUTED}
           />
           <Text style={[styles.subTabBtnText, activeTab === 'security' && styles.subTabBtnTextActive]}>
-            Security & Auth
+            Security &amp; Auth
           </Text>
         </TouchableOpacity>
       </View>
@@ -319,11 +317,11 @@ export default function CustomerSettingsScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Full Name *</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="person-outline" size={16} color={YELLOW} style={styles.icon} />
+                  <Ionicons name="person-outline" size={16} color={GOLD} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter full name..."
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     value={name}
                     onChangeText={setName}
                   />
@@ -335,16 +333,16 @@ export default function CustomerSettingsScreen() {
                 <View style={[styles.fieldGroup, { flex: 1 }]}>
                   <Text style={styles.label}>Email Address (Verified)</Text>
                   <View style={[styles.inputRow, styles.inputDisabled]}>
-                    <Ionicons name="mail-outline" size={16} color="rgba(255,255,255,0.4)" style={styles.icon} />
-                    <TextInput style={[styles.input, { color: 'rgba(255,255,255,0.5)' }]} value={email} editable={false} />
+                    <Ionicons name="mail-outline" size={16} color={TEXT_MUTED} style={styles.icon} />
+                    <TextInput style={[styles.input, { color: TEXT_MUTED }]} value={email} editable={false} />
                   </View>
                 </View>
 
                 <View style={[styles.fieldGroup, { flex: 1 }]}>
                   <Text style={styles.label}>Mobile Number</Text>
                   <View style={[styles.inputRow, styles.inputDisabled]}>
-                    <Ionicons name="call-outline" size={16} color="rgba(255,255,255,0.4)" style={styles.icon} />
-                    <TextInput style={[styles.input, { color: 'rgba(255,255,255,0.5)' }]} value={phone} editable={false} />
+                    <Ionicons name="call-outline" size={16} color={TEXT_MUTED} style={styles.icon} />
+                    <TextInput style={[styles.input, { color: TEXT_MUTED }]} value={phone} editable={false} />
                   </View>
                 </View>
               </View>
@@ -363,7 +361,7 @@ export default function CustomerSettingsScreen() {
                         <Ionicons
                           name={g === 'male' ? 'male' : g === 'female' ? 'female' : 'person'}
                           size={14}
-                          color={active ? BLACK : YELLOW}
+                          color={active ? GOLD : TEXT_MUTED}
                         />
                         <Text style={[styles.genderText, active && styles.genderTextActive]}>
                           {g.toUpperCase()}
@@ -378,9 +376,9 @@ export default function CustomerSettingsScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Profession / Occupation</Text>
                 <TouchableOpacity style={styles.dropdownBtn} onPress={() => setProfessionModalOpen(true)}>
-                  <Ionicons name="briefcase-outline" size={16} color={YELLOW} style={styles.icon} />
+                  <Ionicons name="briefcase-outline" size={16} color={GOLD} style={styles.icon} />
                   <Text style={styles.dropdownText}>{profession || 'Select Profession...'}</Text>
-                  <Ionicons name="chevron-down" size={16} color="rgba(255,255,255,0.6)" />
+                  <Ionicons name="chevron-down" size={16} color={TEXT_MUTED} />
                 </TouchableOpacity>
               </View>
 
@@ -391,7 +389,7 @@ export default function CustomerSettingsScreen() {
                     <TextInput
                       style={styles.input}
                       placeholder="Enter custom profession..."
-                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      placeholderTextColor={TEXT_MUTED}
                       value={customProfession}
                       onChangeText={setCustomProfession}
                     />
@@ -404,11 +402,11 @@ export default function CustomerSettingsScreen() {
                 <View style={[styles.fieldGroup, { flex: 1 }]}>
                   <Text style={styles.label}>Date of Birth</Text>
                   <View style={styles.inputRow}>
-                    <Ionicons name="calendar-outline" size={16} color={YELLOW} style={styles.icon} />
+                    <Ionicons name="calendar-outline" size={16} color={GOLD} style={styles.icon} />
                     <TextInput
                       style={styles.input}
                       placeholder="YYYY-MM-DD"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      placeholderTextColor={TEXT_MUTED}
                       value={dob}
                       onChangeText={setDob}
                     />
@@ -436,36 +434,36 @@ export default function CustomerSettingsScreen() {
 
             {/* SECTION 2: LOCATION & ADDRESS */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionHeader}>2. LOCATION & DELIVERY ADDRESS</Text>
+              <Text style={styles.sectionHeader}>2. LOCATION &amp; DELIVERY ADDRESS</Text>
 
               {/* Pincode Lookup */}
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Enter 6-Digit Pincode (Auto-Fills Location)</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="keypad-outline" size={16} color={YELLOW} style={styles.icon} />
+                  <Ionicons name="keypad-outline" size={16} color={GOLD} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     placeholder="e.g. 110001 or 400001"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     keyboardType="numeric"
                     maxLength={6}
                     value={pincode}
-                    onChangeText={handlePincodeChange}
+                    onChangeText={handlePincodeLookup}
                   />
-                  {fetchingPincode && <ActivityIndicator size="small" color={YELLOW} />}
+                  {fetchingPincode && <ActivityIndicator size="small" color={GOLD} />}
                 </View>
-                {!!pincodeMsg && <Text style={{ color: YELLOW, fontSize: 10, marginTop: 4 }}>{pincodeMsg}</Text>}
+                {!!pincodeMsg && <Text style={{ color: GOLD, fontSize: 10, marginTop: 4 }}>{pincodeMsg}</Text>}
               </View>
 
               <View style={styles.rowTwo}>
                 <View style={[styles.fieldGroup, { flex: 1 }]}>
                   <Text style={styles.label}>City / District</Text>
                   <View style={styles.inputRow}>
-                    <Ionicons name="location-outline" size={16} color={YELLOW} style={styles.icon} />
+                    <Ionicons name="location-outline" size={16} color={GOLD} style={styles.icon} />
                     <TextInput
                       style={styles.input}
                       placeholder="e.g. Delhi"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      placeholderTextColor={TEXT_MUTED}
                       value={city}
                       onChangeText={setCity}
                     />
@@ -478,7 +476,7 @@ export default function CustomerSettingsScreen() {
                     <TextInput
                       style={styles.input}
                       placeholder="e.g. Delhi"
-                      placeholderTextColor="rgba(255,255,255,0.4)"
+                      placeholderTextColor={TEXT_MUTED}
                       value={state}
                       onChangeText={setState}
                     />
@@ -489,11 +487,11 @@ export default function CustomerSettingsScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Full House / Street Address</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="home-outline" size={16} color={YELLOW} style={styles.icon} />
+                  <Ionicons name="home-outline" size={16} color={GOLD} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     placeholder="e.g. Flat 302, B-Block, Connaught Place"
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     value={address}
                     onChangeText={setAddress}
                   />
@@ -506,22 +504,22 @@ export default function CustomerSettingsScreen() {
               style={styles.interestsShortcutCard}
               onPress={() => router.push('/customer/choose-interests')}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <Ionicons name="options-outline" size={24} color={YELLOW} />
+                <Ionicons name="options-outline" size={24} color={GOLD} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.interestsShortcutTitle}>Personalize Feed & Interests ›</Text>
-                  <Text style={styles.interestsShortcutSub}>Select your favorite categories & subcategories to tailor video reels.</Text>
+                  <Text style={styles.interestsShortcutTitle}>Personalize Feed &amp; Interests ›</Text>
+                  <Text style={styles.interestsShortcutSub}>Select your favorite categories &amp; subcategories to tailor video reels.</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={YELLOW} />
+              <Ionicons name="chevron-forward" size={18} color={GOLD} />
             </TouchableOpacity>
 
             {/* Save Profile Button */}
             <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={saving}>
               {saving ? (
-                <ActivityIndicator color={BLACK} />
+                <ActivityIndicator color={GOLD} />
               ) : (
                 <>
-                  <Ionicons name="checkmark-circle" size={18} color={BLACK} />
+                  <Ionicons name="checkmark-circle" size={18} color={GOLD} />
                   <Text style={styles.saveBtnText}>Save Account Settings</Text>
                 </>
               )}
@@ -536,17 +534,17 @@ export default function CustomerSettingsScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Current Password</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="key-outline" size={16} color={YELLOW} style={styles.icon} />
+                  <Ionicons name="key-outline" size={16} color={GOLD} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter current password..."
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     secureTextEntry={!showCurrentPw}
                     value={currentPassword}
                     onChangeText={setCurrentPassword}
                   />
                   <TouchableOpacity onPress={() => setShowCurrentPw(!showCurrentPw)} style={{ padding: 4 }}>
-                    <Ionicons name={showCurrentPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={YELLOW} />
+                    <Ionicons name={showCurrentPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={GOLD} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -554,17 +552,17 @@ export default function CustomerSettingsScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>New Password</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="lock-closed-outline" size={16} color={YELLOW} style={styles.icon} />
+                  <Ionicons name="lock-closed-outline" size={16} color={GOLD} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter new password (min 6 chars)..."
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     secureTextEntry={!showNewPw}
                     value={newPassword}
                     onChangeText={setNewPassword}
                   />
                   <TouchableOpacity onPress={() => setShowNewPw(!showNewPw)} style={{ padding: 4 }}>
-                    <Ionicons name={showNewPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={YELLOW} />
+                    <Ionicons name={showNewPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={GOLD} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -572,17 +570,17 @@ export default function CustomerSettingsScreen() {
               <View style={styles.fieldGroup}>
                 <Text style={styles.label}>Confirm New Password</Text>
                 <View style={styles.inputRow}>
-                  <Ionicons name="lock-closed-outline" size={16} color={YELLOW} style={styles.icon} />
+                  <Ionicons name="lock-closed-outline" size={16} color={GOLD} style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Re-enter new password..."
-                    placeholderTextColor="rgba(255,255,255,0.4)"
+                    placeholderTextColor={TEXT_MUTED}
                     secureTextEntry={!showConfirmPw}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                   />
                   <TouchableOpacity onPress={() => setShowConfirmPw(!showConfirmPw)} style={{ padding: 4 }}>
-                    <Ionicons name={showConfirmPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={YELLOW} />
+                    <Ionicons name={showConfirmPw ? 'eye-off-outline' : 'eye-outline'} size={18} color={GOLD} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -592,10 +590,10 @@ export default function CustomerSettingsScreen() {
                 onPress={handleChangePassword}
                 disabled={changingPassword}>
                 {changingPassword ? (
-                  <ActivityIndicator color={BLACK} />
+                  <ActivityIndicator color={GOLD} />
                 ) : (
                   <>
-                    <Ionicons name="shield-checkmark" size={18} color={BLACK} />
+                    <Ionicons name="shield-checkmark" size={18} color={GOLD} />
                     <Text style={styles.saveBtnText}>Update Password</Text>
                   </>
                 )}
@@ -608,23 +606,23 @@ export default function CustomerSettingsScreen() {
               onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Ionicons name="document-text-outline" size={20} color={YELLOW} />
+                <Ionicons name="document-text-outline" size={20} color={GOLD} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.sectionHeader}>PRIVACY POLICY &amp; TERMS</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs }}>https://bizreels.in/privacy-policy</Text>
+                  <Text style={{ color: TEXT_MUTED, fontSize: FontSize.xs }}>https://bizreels.in/privacy-policy</Text>
                 </View>
-                <Ionicons name="open-outline" size={16} color={YELLOW} />
+                <Ionicons name="open-outline" size={16} color={GOLD} />
               </View>
             </TouchableOpacity>
 
             {/* DANGER ZONE */}
-            <View style={[styles.sectionCard, { borderColor: '#EF4444' }]}>
+            <View style={[styles.sectionCard, { borderColor: '#FCA5A5' }]}>
               <Text style={[styles.sectionHeader, { color: '#EF4444' }]}>ACCOUNT DANGER ZONE</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: FontSize.xs, lineHeight: 18 }}>
+              <Text style={{ color: TEXT_MUTED, fontSize: FontSize.xs, lineHeight: 18 }}>
                 Deleting your account will permanently wipe your profile, saved reels, cart items, and order history.
               </Text>
               <TouchableOpacity style={styles.deleteBtn} onPress={handleDeleteAccount}>
-                <Ionicons name="trash-outline" size={16} color="#fff" />
+                <Ionicons name="trash-outline" size={16} color="#EF4444" />
                 <Text style={styles.deleteBtnText}>Permanently Delete Account</Text>
               </TouchableOpacity>
             </View>
@@ -639,7 +637,7 @@ export default function CustomerSettingsScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Profession</Text>
               <TouchableOpacity onPress={() => setProfessionModalOpen(false)}>
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={TEXT_MAIN} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -655,7 +653,7 @@ export default function CustomerSettingsScreen() {
                   <Text style={[styles.modalItemText, profession === item && styles.modalItemTextActive]}>
                     {item}
                   </Text>
-                  {profession === item && <Ionicons name="checkmark" size={16} color={YELLOW} />}
+                  {profession === item && <Ionicons name="checkmark" size={16} color={GOLD} />}
                 </TouchableOpacity>
               )}
             />
@@ -667,13 +665,13 @@ export default function CustomerSettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_COLOR },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     gap: Spacing.three,
@@ -681,65 +679,66 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
-  headerSub: { color: '#fff', fontSize: FontSize.xs, fontWeight: '600' },
+  headerTitle: { color: GOLD, fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 0.5 },
+  headerSub: { color: TEXT_MAIN, fontSize: FontSize.xs, fontWeight: '600' },
 
-  subTabBar: { flexDirection: 'row', backgroundColor: DARK_CARD, borderBottomWidth: 1, borderBottomColor: BORDER },
+  subTabBar: { flexDirection: 'row', backgroundColor: CARD_BG, borderBottomWidth: 1, borderBottomColor: BORDER },
   subTabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  subTabBtnActive: { borderBottomColor: YELLOW, backgroundColor: BLACK },
-  subTabBtnText: { color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, fontWeight: '700' },
-  subTabBtnTextActive: { color: YELLOW, fontWeight: '900' },
+  subTabBtnActive: { borderBottomColor: GOLD, backgroundColor: ESPRESSO },
+  subTabBtnText: { color: TEXT_MUTED, fontSize: FontSize.xs, fontWeight: '700' },
+  subTabBtnTextActive: { color: GOLD, fontWeight: '900' },
 
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.four, paddingBottom: 40 },
 
-  sectionCard: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, gap: Spacing.three },
-  sectionHeader: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 1 },
+  sectionCard: { backgroundColor: CARD_BG, borderWidth: 1, borderColor: BORDER, borderRadius: 14, padding: Spacing.four, gap: Spacing.three, ...Shadows.sm },
+  sectionHeader: { color: GOLD, fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 0.5 },
   fieldGroup: { gap: 4 },
-  label: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' },
-  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 10, height: 42 },
+  label: { color: TEXT_MUTED, fontSize: 11, fontWeight: '700' },
+  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: BG_COLOR, borderWidth: 1, borderColor: BORDER, borderRadius: 8, paddingHorizontal: 10, height: 42 },
   inputDisabled: { opacity: 0.6 },
   icon: { marginRight: 8 },
-  input: { flex: 1, color: '#fff', fontSize: FontSize.xs },
+  input: { flex: 1, color: TEXT_MAIN, fontSize: FontSize.xs },
 
   rowTwo: { flexDirection: 'row', gap: 8 },
   genderRow: { flexDirection: 'row', gap: 8 },
-  genderBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, height: 40 },
-  genderBtnActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  genderText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  genderTextActive: { color: BLACK, fontWeight: '900' },
+  genderBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: BG_COLOR, borderWidth: 1, borderColor: BORDER, borderRadius: 8, height: 40 },
+  genderBtnActive: { backgroundColor: ESPRESSO, borderColor: ESPRESSO },
+  genderText: { color: TEXT_MUTED, fontSize: 11, fontWeight: '700' },
+  genderTextActive: { color: GOLD, fontWeight: '900' },
 
-  dropdownBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 10, height: 42 },
-  dropdownText: { flex: 1, color: '#fff', fontSize: FontSize.xs },
+  dropdownBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: BG_COLOR, borderWidth: 1, borderColor: BORDER, borderRadius: 8, paddingHorizontal: 10, height: 42 },
+  dropdownText: { flex: 1, color: TEXT_MAIN, fontSize: FontSize.xs },
 
   optionsRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  langChip: { backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 8, paddingVertical: 5 },
-  langChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  langText: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '700' },
-  langTextActive: { color: BLACK, fontWeight: '900' },
+  langChip: { backgroundColor: BG_COLOR, borderWidth: 1, borderColor: BORDER, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 5 },
+  langChipActive: { backgroundColor: ESPRESSO, borderColor: ESPRESSO },
+  langText: { color: TEXT_MUTED, fontSize: 10, fontWeight: '700' },
+  langTextActive: { color: GOLD, fontWeight: '900' },
 
-  interestsShortcutCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: DARK_CARD, borderWidth: 1, borderColor: YELLOW, padding: Spacing.four, gap: Spacing.three },
-  interestsShortcutTitle: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
-  interestsShortcutSub: { color: 'rgba(255,255,255,0.6)', fontSize: 10, marginTop: 2 },
+  interestsShortcutCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: CARD_BG, borderWidth: 1, borderColor: BORDER, borderRadius: 14, padding: Spacing.four, gap: Spacing.three, ...Shadows.sm },
+  interestsShortcutTitle: { color: TEXT_MAIN, fontSize: FontSize.xs, fontWeight: '900' },
+  interestsShortcutSub: { color: TEXT_MUTED, fontSize: 10, marginTop: 2 },
 
-  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: YELLOW, height: 46, marginTop: 6 },
-  saveBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  saveBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: ESPRESSO, borderRadius: 8, height: 46, marginTop: 6 },
+  saveBtnText: { color: GOLD, fontSize: FontSize.xs, fontWeight: '900' },
 
-  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#EF4444', height: 42, marginTop: 8 },
-  deleteBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FCA5A5', borderRadius: 8, height: 42, marginTop: 8 },
+  deleteBtnText: { color: '#EF4444', fontSize: FontSize.xs, fontWeight: '900' },
 
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: Spacing.four },
-  modalBox: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, maxHeight: 400 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'center', padding: Spacing.four },
+  modalBox: { backgroundColor: CARD_BG, borderWidth: 1, borderColor: BORDER, borderRadius: 14, maxHeight: 400, ...Shadows.md },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.three, borderBottomWidth: 1, borderBottomColor: BORDER },
-  modalTitle: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
+  modalTitle: { color: GOLD, fontSize: FontSize.xs, fontWeight: '900' },
   modalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.three, borderBottomWidth: 1, borderBottomColor: BORDER },
-  modalItemActive: { backgroundColor: BLACK },
-  modalItemText: { color: '#fff', fontSize: FontSize.xs },
-  modalItemTextActive: { color: YELLOW, fontWeight: '900' },
+  modalItemActive: { backgroundColor: BG_COLOR },
+  modalItemText: { color: TEXT_MAIN, fontSize: FontSize.xs },
+  modalItemTextActive: { color: GOLD, fontWeight: '900' },
 });

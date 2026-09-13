@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import {
   useVerificationStatus,
@@ -32,11 +32,13 @@ import {
 } from '@/features/vendor/queries';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
-const GREEN = '#10B981';
+const YELLOW = '#D99A3D';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BLACK = '#F8FAFC';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const GREEN = '#059669';
 
 export default function VendorVerificationCenterScreen() {
   const router = useRouter();
@@ -1036,7 +1038,7 @@ export default function VendorVerificationCenterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
@@ -1044,32 +1046,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    backgroundColor: '#241B15',
+    borderBottomWidth: 2,
+    borderBottomColor: '#D99A3D',
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#1c1c1e',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
   },
   statusPillHeader: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: '#FFFBEB',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: '#D99A3D',
   },
   statusPillText: {
-    color: YELLOW,
+    color: '#D99A3D',
     fontSize: 10,
     fontWeight: FontWeight.bold,
   },
@@ -1080,12 +1083,13 @@ const styles = StyleSheet.create({
 
   // Hero Banner
   heroBanner: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: Spacing.four,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     gap: 12,
+    ...Shadows.sm,
   },
   heroHeaderRow: {
     flexDirection: 'row',
@@ -1094,13 +1098,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heroTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.md,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   heroSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#64748B',
     fontSize: FontSize.xs,
     marginTop: 4,
     lineHeight: 16,
@@ -1109,34 +1113,34 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#24242C',
+    backgroundColor: '#FFFBEB',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: YELLOW,
+    borderColor: '#D99A3D',
   },
   progressPercentText: {
-    color: YELLOW,
+    color: '#D99A3D',
     fontSize: 16,
     fontWeight: '900',
   },
   progressReadyText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#64748B',
     fontSize: 8,
     fontWeight: FontWeight.bold,
   },
   noticeBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: '#FFFBEB',
     borderRadius: 12,
     padding: 10,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderColor: '#D99A3D',
   },
   noticeText: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: 11,
     flex: 1,
     lineHeight: 16,
@@ -1152,25 +1156,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#1c1c1e',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 9,
+    borderRadius: 9999,
     gap: 6,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
   },
   tabBtnActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: '#241B15',
+    borderColor: '#D99A3D',
   },
   tabBtnText: {
-    color: '#fff',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: FontWeight.bold,
   },
   tabBtnTextActive: {
-    color: BLACK,
+    color: '#D99A3D',
   },
 
   // Tab Section
@@ -1183,7 +1187,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitleText: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
     letterSpacing: 0.5,
@@ -1194,25 +1198,26 @@ const styles = StyleSheet.create({
 
   // Channel Card
   channelCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: Spacing.four,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     gap: 6,
+    ...Shadows.sm,
   },
   channelLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: FontWeight.bold,
   },
   channelVal: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
   },
   channelSub: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#64748B',
     fontSize: 10,
   },
   statusBadgeRow: {
@@ -1226,68 +1231,72 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
   verifyOtpBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: '#241B15',
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 9999,
     alignItems: 'center',
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#D99A3D',
   },
   verifyOtpBtnDone: {
-    backgroundColor: '#24242C',
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
   },
   verifyOtpBtnText: {
-    color: BLACK,
+    color: '#D99A3D',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },
   urlInput: {
-    backgroundColor: '#24242C',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.xs,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     marginTop: 4,
   },
   pingWebsiteBtn: {
-    backgroundColor: '#2A2A34',
+    backgroundColor: '#F1F5F9',
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 9999,
     alignItems: 'center',
     marginTop: 4,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
   },
   pingWebsiteBtnText: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },
   nextPartBtn: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: '#FFFBEB',
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 9999,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.4)',
+    borderColor: '#D99A3D',
     marginTop: 8,
   },
   nextPartBtnText: {
-    color: YELLOW,
+    color: '#D99A3D',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },
 
   // Document Cards
   docCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: Spacing.four,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
     gap: 8,
+    ...Shadows.sm,
   },
   docHeaderRow: {
     flexDirection: 'row',
@@ -1295,29 +1304,30 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   docTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
   },
   docDesc: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748B',
     fontSize: FontSize.xs,
   },
 
   // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(15,23,42,0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: Spacing.four,
     gap: Spacing.three,
-    borderTopWidth: 1,
-    borderColor: BORDER,
+    borderTopWidth: 1.5,
+    borderColor: '#D99A3D',
+    ...Shadows.lg,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1325,33 +1335,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
   },
   modalSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: '#64748B',
     fontSize: FontSize.xs,
   },
   input: {
-    backgroundColor: '#24242C',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.sm,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#E2E8F0',
   },
   confirmModalBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: '#241B15',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 9999,
     alignItems: 'center',
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#D99A3D',
   },
   confirmModalBtnText: {
-    color: BLACK,
+    color: '#D99A3D',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },

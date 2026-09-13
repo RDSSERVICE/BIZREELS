@@ -7,6 +7,7 @@
  * 4. Recent Customer Enquiries Panel (with status tags NEW / REPLIED / CLOSED)
  * 5. Active Subscription & Verification Panel (KYC Badge & Perks)
  * 6. Vendor Operations & Management Shortcuts Grid
+ * Updated to Light Theme & Warm Gold Editorial Bento Grid Design System
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -24,14 +25,17 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VendorDrawerModal } from '@/components/vendor-drawer-modal';
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER_COLOR = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 export default function VendorDashboardScreen() {
   const router = useRouter();
@@ -142,14 +146,14 @@ export default function VendorDashboardScreen() {
   const isKycApproved = (user as any)?.kyc_status === 'approved';
 
   const bentoStats = [
-    { label: 'TOTAL PRODUCTS', value: metrics.totalProducts, icon: 'cube-outline', color: '#3B82F6' },
-    { label: 'TOTAL SERVICES', value: metrics.totalServices, icon: 'key-outline', color: '#8B5CF6' },
-    { label: 'TOTAL REELS', value: metrics.totalReels, icon: 'videocam-outline', color: '#EC4899' },
-    { label: 'TOTAL VIEWS', value: metrics.totalViews.toLocaleString('en-IN'), icon: 'eye-outline', color: '#F59E0B' },
-    { label: 'FOLLOWERS', value: metrics.followers.toLocaleString('en-IN'), icon: 'people-outline', color: '#10B981' },
-    { label: 'ENQUIRIES', value: metrics.leadEnquiries, icon: 'mail-outline', color: '#06B6D4' },
-    { label: 'ORDER REQUESTS', value: metrics.totalOrders, icon: 'cart-outline', color: '#6366F1' },
-    { label: 'REVENUE (GROSS)', value: `₹${metrics.totalSales.toLocaleString('en-IN')}`, icon: 'cash-outline', color: '#10B981' },
+    { label: 'TOTAL PRODUCTS', value: metrics.totalProducts, icon: 'cube-outline', color: '#2563EB' },
+    { label: 'TOTAL SERVICES', value: metrics.totalServices, icon: 'key-outline', color: '#7C3AED' },
+    { label: 'TOTAL REELS', value: metrics.totalReels, icon: 'videocam-outline', color: '#DB2777' },
+    { label: 'TOTAL VIEWS', value: metrics.totalViews.toLocaleString('en-IN'), icon: 'eye-outline', color: '#D99A3D' },
+    { label: 'FOLLOWERS', value: metrics.followers.toLocaleString('en-IN'), icon: 'people-outline', color: '#059669' },
+    { label: 'ENQUIRIES', value: metrics.leadEnquiries, icon: 'mail-outline', color: '#0891B2' },
+    { label: 'ORDER REQUESTS', value: metrics.totalOrders, icon: 'cart-outline', color: '#4F46E5' },
+    { label: 'REVENUE (GROSS)', value: `₹${metrics.totalSales.toLocaleString('en-IN')}`, icon: 'cash-outline', color: '#059669' },
   ];
 
   return (
@@ -157,7 +161,7 @@ export default function VendorDashboardScreen() {
       {/* Top Bar Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setDrawerOpen(true)}>
-          <Ionicons name="menu-outline" size={24} color="#fff" />
+          <Ionicons name="menu-outline" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <TouchableOpacity
           style={{ flex: 1, alignItems: 'center' }}
@@ -168,7 +172,7 @@ export default function VendorDashboardScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.replace('/(tabs)/home')}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
 
@@ -176,7 +180,7 @@ export default function VendorDashboardScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={YELLOW} />
+          <ActivityIndicator size="large" color={GOLD} />
         </View>
       ) : (
         <ScrollView
@@ -186,15 +190,15 @@ export default function VendorDashboardScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={YELLOW}
-              colors={[YELLOW]}
+              tintColor={GOLD}
+              colors={[GOLD]}
             />
           }>
           {/* ── 0. VERIFICATION ALERT BANNER ── */}
           {!isKycApproved && (
             <View style={styles.verifyBanner}>
               <View style={styles.verifyBannerLeft}>
-                <Text style={styles.verifyDot}>●</Text>
+                <Ionicons name="shield-outline" size={18} color="#D99A3D" />
                 <Text style={styles.verifyText} numberOfLines={2}>
                   Verify your business to get 5x more leads & maximum buyer trust!
                 </Text>
@@ -227,7 +231,7 @@ export default function VendorDashboardScreen() {
                 style={styles.topupBtn}
                 onPress={() => router.push('/vendor/wallet' as any)}>
                 <Text style={styles.topupBtnText}>+ TOP-UP</Text>
-                <Ionicons name="arrow-forward" size={12} color={BLACK} />
+                <Ionicons name="arrow-forward" size={12} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
@@ -235,25 +239,25 @@ export default function VendorDashboardScreen() {
             <View style={styles.creditGrid}>
               <View style={styles.creditCell}>
                 <Text style={styles.creditCellLabel}>AVAILABLE</Text>
-                <Text style={[styles.creditCellValue, { color: '#10B981' }]}>{credits.available}</Text>
+                <Text style={[styles.creditCellValue, { color: '#059669' }]}>{credits.available}</Text>
                 <Text style={styles.creditCellSub}>₹{credits.available} Balance</Text>
               </View>
 
               <View style={styles.creditCell}>
                 <Text style={styles.creditCellLabel}>DEPOSITED</Text>
-                <Text style={[styles.creditCellValue, { color: '#3B82F6' }]}>{credits.deposited}</Text>
+                <Text style={[styles.creditCellValue, { color: '#2563EB' }]}>{credits.deposited}</Text>
                 <Text style={styles.creditCellSub}>₹{credits.deposited} Added</Text>
               </View>
 
               <View style={styles.creditCell}>
                 <Text style={styles.creditCellLabel}>EARNED</Text>
-                <Text style={[styles.creditCellValue, { color: YELLOW }]}>{credits.earned}</Text>
+                <Text style={[styles.creditCellValue, { color: GOLD }]}>{credits.earned}</Text>
                 <Text style={styles.creditCellSub}>Rewards</Text>
               </View>
 
               <View style={styles.creditCell}>
                 <Text style={styles.creditCellLabel}>USED SPENT</Text>
-                <Text style={[styles.creditCellValue, { color: '#9CA3AF' }]}>{credits.used}</Text>
+                <Text style={[styles.creditCellValue, { color: TEXT_MUTED }]}>{credits.used}</Text>
                 <Text style={styles.creditCellSub}>Credits</Text>
               </View>
             </View>
@@ -263,14 +267,14 @@ export default function VendorDashboardScreen() {
               <TouchableOpacity
                 style={styles.walletActionBtn}
                 onPress={() => router.push('/vendor/rates' as any)}>
-                <Ionicons name="pricetag-outline" size={13} color={YELLOW} />
+                <Ionicons name="pricetag-outline" size={14} color={ESPRESSO} />
                 <Text style={styles.walletActionBtnText}>Credit Rates</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.walletActionBtn}
                 onPress={() => router.push('/vendor/referrals' as any)}>
-                <Ionicons name="gift-outline" size={13} color={YELLOW} />
+                <Ionicons name="gift-outline" size={14} color={ESPRESSO} />
                 <Text style={styles.walletActionBtnText}>Refer & Earn</Text>
               </TouchableOpacity>
             </View>
@@ -287,21 +291,21 @@ export default function VendorDashboardScreen() {
               <TouchableOpacity
                 style={styles.ctaYellowBtn}
                 onPress={() => router.push('/vendor/reels/create' as any)}>
-                <Ionicons name="videocam" size={16} color={BLACK} />
+                <Ionicons name="videocam" size={15} color="#0F172A" />
                 <Text style={styles.ctaYellowBtnText}>+ REEL</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.ctaDarkBtn}
                 onPress={() => router.push('/vendor/listings/create' as any)}>
-                <Ionicons name="cube-outline" size={16} color="#fff" />
+                <Ionicons name="cube-outline" size={15} color={GOLD} />
                 <Text style={styles.ctaDarkBtnText}>+ ITEM</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.ctaDarkBtn}
                 onPress={() => router.push('/vendor/offers' as any)}>
-                <Ionicons name="pricetag-outline" size={16} color={YELLOW} />
+                <Ionicons name="pricetag-outline" size={15} color={GOLD} />
                 <Text style={styles.ctaDarkBtnText}>+ OFFER</Text>
               </TouchableOpacity>
             </View>
@@ -317,7 +321,7 @@ export default function VendorDashboardScreen() {
                   <Text style={styles.bentoLabel} numberOfLines={1}>
                     {stat.label}
                   </Text>
-                  <View style={[styles.bentoIconBox, { backgroundColor: stat.color + '20' }]}>
+                  <View style={[styles.bentoIconBox, { backgroundColor: stat.color + '15' }]}>
                     <Ionicons name={stat.icon as any} size={16} color={stat.color} />
                   </View>
                 </View>
@@ -330,7 +334,7 @@ export default function VendorDashboardScreen() {
           <View style={styles.panelCard}>
             <View style={styles.panelHeaderRow}>
               <View style={styles.panelTitleGroup}>
-                <Ionicons name="mail" size={16} color={YELLOW} />
+                <Ionicons name="mail" size={16} color={GOLD} />
                 <Text style={styles.panelTitle}>RECENT CUSTOMER ENQUIRIES</Text>
                 <View style={styles.countPill}>
                   <Text style={styles.countPillText}>{recentLeads.length}</Text>
@@ -375,7 +379,7 @@ export default function VendorDashboardScreen() {
           <View style={styles.panelCard}>
             <View style={styles.panelHeaderRow}>
               <View style={styles.panelTitleGroup}>
-                <Ionicons name="shield-checkmark" size={16} color={YELLOW} />
+                <Ionicons name="shield-checkmark" size={16} color={GOLD} />
                 <Text style={styles.panelTitle}>ACTIVE SUBSCRIPTION FEATURES</Text>
               </View>
               <TouchableOpacity onPress={() => router.push('/vendor/subscription' as any)}>
@@ -415,61 +419,79 @@ export default function VendorDashboardScreen() {
             <TouchableOpacity
               style={styles.opsCard}
               onPress={() => router.push('/vendor/reels' as any)}>
-              <View style={[styles.opsIconCircle, { backgroundColor: 'rgba(236, 72, 153, 0.15)' }]}>
-                <Ionicons name="videocam" size={20} color="#EC4899" />
+              <View style={[styles.opsIconCircle, { backgroundColor: '#FDF2F8' }]}>
+                <Ionicons name="videocam" size={20} color="#DB2777" />
               </View>
-              <Text style={styles.opsTitle}>Video Reels Studio</Text>
-              <Text style={styles.opsSub}>Create & boost product videos</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.opsTitle}>Video Reels Studio</Text>
+                <Text style={styles.opsSub}>Create & boost product videos</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.opsCard}
               onPress={() => router.push('/vendor/listings' as any)}>
-              <View style={[styles.opsIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
-                <Ionicons name="cube" size={20} color="#3B82F6" />
+              <View style={[styles.opsIconCircle, { backgroundColor: '#EFF6FF' }]}>
+                <Ionicons name="cube" size={20} color="#2563EB" />
               </View>
-              <Text style={styles.opsTitle}>Product Catalog</Text>
-              <Text style={styles.opsSub}>Manage stock & prices</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.opsTitle}>Product Catalog</Text>
+                <Text style={styles.opsSub}>Manage stock & prices</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.opsCard}
               onPress={() => router.push('/vendor/orders' as any)}>
-              <View style={[styles.opsIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
-                <Ionicons name="receipt" size={20} color={YELLOW} />
+              <View style={[styles.opsIconCircle, { backgroundColor: '#FFFBEB' }]}>
+                <Ionicons name="receipt" size={20} color={GOLD} />
               </View>
-              <Text style={styles.opsTitle}>Customer Orders</Text>
-              <Text style={styles.opsSub}>Fulfill buyer requests</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.opsTitle}>Customer Orders</Text>
+                <Text style={styles.opsSub}>Fulfill buyer requests</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.opsCard}
               onPress={() => router.push('/vendor/verification' as any)}>
-              <View style={[styles.opsIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+              <View style={[styles.opsIconCircle, { backgroundColor: '#ECFDF5' }]}>
+                <Ionicons name="shield-checkmark" size={20} color="#059669" />
               </View>
-              <Text style={styles.opsTitle}>KYC Verification</Text>
-              <Text style={styles.opsSub}>Upload PAN / GSTIN / Aadhaar</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.opsTitle}>KYC Verification</Text>
+                <Text style={styles.opsSub}>Upload PAN / GSTIN / Aadhaar</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.opsCard}
               onPress={() => router.push('/vendor/wallet' as any)}>
-              <View style={[styles.opsIconCircle, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-                <Ionicons name="wallet" size={20} color="#8B5CF6" />
+              <View style={[styles.opsIconCircle, { backgroundColor: '#F3E8FF' }]}>
+                <Ionicons name="wallet" size={20} color="#7C3AED" />
               </View>
-              <Text style={styles.opsTitle}>Credit Wallet</Text>
-              <Text style={styles.opsSub}>Top-up & rates</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.opsTitle}>Credit Wallet</Text>
+                <Text style={styles.opsSub}>Top-up & rates</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.opsCard}
               onPress={() => router.push('/vendor/settings' as any)}>
-              <View style={[styles.opsIconCircle, { backgroundColor: 'rgba(255, 255, 255, 0.15)' }]}>
-                <Ionicons name="options" size={20} color="#fff" />
+              <View style={[styles.opsIconCircle, { backgroundColor: '#F1F5F9' }]}>
+                <Ionicons name="options" size={20} color={ESPRESSO} />
               </View>
-              <Text style={styles.opsTitle}>Store Settings</Text>
-              <Text style={styles.opsSub}>Hours, contact & profile</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.opsTitle}>Store Settings</Text>
+                <Text style={styles.opsSub}>Hours, contact & profile</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -481,7 +503,7 @@ export default function VendorDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
   },
   header: {
     flexDirection: 'row',
@@ -489,9 +511,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
+    backgroundColor: ESPRESSO,
     borderBottomWidth: 2,
-    borderBottomColor: YELLOW,
+    borderBottomColor: GOLD,
   },
   iconBtn: {
     width: 36,
@@ -500,13 +522,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 1,
   },
   headerSub: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -517,27 +539,28 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
+    paddingVertical: Spacing.four,
     gap: 16,
   },
 
   /* Section Title */
   sectionHeaderTitle: {
-    color: YELLOW,
+    color: ESPRESSO,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 1,
-    marginTop: 4,
+    marginTop: 6,
   },
 
   /* 1. Credit Wallet Card */
   walletCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 8,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
-    padding: 14,
-    gap: 12,
+    borderColor: BORDER_COLOR,
+    padding: 16,
+    gap: 14,
+    ...Shadows.sm,
   },
   walletHeaderRow: {
     flexDirection: 'row',
@@ -554,29 +577,29 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
   },
   walletTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   rateBadge: {
-    backgroundColor: 'rgba(245,158,11,0.15)',
-    paddingHorizontal: 6,
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 3,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.3)',
+    borderColor: GOLD,
   },
   rateBadgeText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   walletSubText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     marginTop: 4,
   },
@@ -584,23 +607,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
+    backgroundColor: ESPRESSO,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
   },
   topupBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   creditGrid: {
     flexDirection: 'row',
-    backgroundColor: '#121216',
-    borderRadius: 6,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 10,
+    borderColor: BORDER_COLOR,
+    paddingVertical: 12,
   },
   creditCell: {
     flex: 1,
@@ -609,7 +632,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   creditCellLabel: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -619,7 +642,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   creditCellSub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 9,
   },
   walletActionsRow: {
@@ -629,18 +652,18 @@ const styles = StyleSheet.create({
   walletActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
   },
   walletActionBtnText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   /* 2. Hero CTA Banner */
@@ -648,20 +671,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#241B15',
-    borderRadius: 8,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    ...Shadows.md,
   },
   heroCtaTag: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1,
   },
   heroCtaTitle: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: FontSize.sm,
     fontWeight: '900',
     marginTop: 2,
@@ -674,13 +698,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
+    backgroundColor: GOLD,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 4,
+    borderRadius: 9999,
   },
   ctaYellowBtnText: {
-    color: BLACK,
+    color: '#0F172A',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -688,15 +712,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: DARK_CARD,
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 4,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: GOLD,
   },
   ctaDarkBtnText: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: FontSize.xs,
     fontWeight: '800',
   },
@@ -705,16 +729,17 @@ const styles = StyleSheet.create({
   bentoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
   },
   bentoCard: {
     width: '48.5%',
-    backgroundColor: DARK_CARD,
-    borderRadius: 6,
+    backgroundColor: CARD_BG,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: BORDER,
-    padding: 12,
-    gap: 6,
+    borderColor: BORDER_COLOR,
+    padding: 14,
+    gap: 8,
+    ...Shadows.sm,
   },
   bentoHeaderRow: {
     flexDirection: 'row',
@@ -722,41 +747,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   bentoLabel: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
     flex: 1,
   },
   bentoIconBox: {
-    width: 26,
-    height: 26,
-    borderRadius: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bentoValue: {
-    color: '#fff',
-    fontSize: FontSize.md,
+    color: TEXT_MAIN,
+    fontSize: FontSize.lg,
     fontWeight: '900',
   },
 
   /* 4 & 5. Panels */
   panelCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 8,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
-    padding: 14,
-    gap: 10,
+    borderColor: BORDER_COLOR,
+    padding: 16,
+    gap: 12,
+    ...Shadows.sm,
   },
   panelHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    paddingBottom: 8,
+    borderBottomColor: BORDER_COLOR,
+    paddingBottom: 10,
   },
   panelTitleGroup: {
     flexDirection: 'row',
@@ -764,71 +790,71 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   panelTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   countPill: {
-    backgroundColor: YELLOW,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 10,
+    backgroundColor: ESPRESSO,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 9999,
   },
   countPillText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
   },
   panelLinkText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: FontSize.xs,
     fontWeight: '800',
   },
   emptyPanelBox: {
-    backgroundColor: '#121216',
-    borderRadius: 4,
-    padding: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 14,
     alignItems: 'center',
   },
   emptyPanelText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
   },
   leadRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#121216',
-    padding: 10,
-    borderRadius: 4,
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
   },
   leadSubject: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '800',
   },
   leadCustomerText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
     marginTop: 2,
   },
   statusBadge: {
-    backgroundColor: 'rgba(245,158,11,0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: GOLD,
   },
   statusBadgeReplied: {
-    backgroundColor: 'rgba(34,197,94,0.15)',
-    borderColor: '#22C55E',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#059669',
   },
   statusBadgeText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 8,
     fontWeight: '900',
   },
@@ -843,26 +869,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#121216',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
   },
   featureDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#94A3B8',
   },
   featureDotActive: {
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
   },
   featureChipText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   /* 6. Operations Shortcuts Grid */
@@ -872,32 +898,33 @@ const styles = StyleSheet.create({
   opsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
-    padding: 12,
-    borderRadius: 6,
+    backgroundColor: CARD_BG,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     gap: 12,
+    ...Shadows.sm,
   },
   opsIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 6,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   opsTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '800',
   },
   opsDesc: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 10,
     marginTop: 2,
   },
   opsSub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     marginTop: 1,
   },
@@ -905,37 +932,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E1E12',
-    borderWidth: 1,
-    borderColor: YELLOW,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: GOLD,
     paddingHorizontal: Spacing.four,
-    paddingVertical: 10,
-    borderRadius: 6,
-    gap: 8,
-    marginBottom: 10,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 10,
+    marginBottom: 4,
+    ...Shadows.sm,
   },
   verifyBannerLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  verifyDot: {
-    color: '#10B981',
-    fontSize: 12,
+    gap: 8,
   },
   verifyText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
+    color: TEXT_MAIN,
+    fontSize: 11,
+    fontWeight: '800',
   },
   verifyBtn: {
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: ESPRESSO,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
   },
   verifyBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
   },

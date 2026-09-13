@@ -28,10 +28,10 @@ import { useCreateReview, useListingReviews } from '@/features/reviews/queries';
 import { api } from '@/lib/api';
 import { getListingImage, resolveImageUrl } from '@/utils/image';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#D99A3D';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
 
 export default function ListingDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -313,7 +313,7 @@ export default function ListingDetailsScreen() {
       {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {listing.title}
@@ -325,11 +325,11 @@ export default function ListingDetailsScreen() {
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.iconBtn} onPress={handleShare}>
-            <Ionicons name="share-social-outline" size={20} color="#fff" />
+            <Ionicons name="share-social-outline" size={20} color="#0F172A" />
           </TouchableOpacity>
           {!hideCustomerActions && (
             <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/cart')}>
-              <Ionicons name="cart-outline" size={20} color="#fff" />
+              <Ionicons name="cart-outline" size={20} color="#0F172A" />
             </TouchableOpacity>
           )}
         </View>
@@ -341,7 +341,7 @@ export default function ListingDetailsScreen() {
           <Image source={{ uri: mainImage }} style={styles.heroImage} contentFit="cover" />
         ) : (
           <View style={styles.heroPlaceholder}>
-            <Ionicons name="bag" size={48} color="rgba(255,255,255,0.4)" />
+            <Ionicons name="bag" size={48} color="#94A3B8" />
           </View>
         )}
 
@@ -370,7 +370,7 @@ export default function ListingDetailsScreen() {
           {/* Calculated Distance Banner */}
           {!!distanceStr && (
             <View style={styles.distanceBanner}>
-              <Ionicons name="navigate" size={14} color={BLACK} />
+              <Ionicons name="navigate" size={14} color="#D97706" />
               <Text style={styles.distanceBannerText}>📍 {distanceStr} from your location</Text>
             </View>
           )}
@@ -384,12 +384,12 @@ export default function ListingDetailsScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.actionPillCall} onPress={handleCall}>
-                <Ionicons name="call" size={16} color={BLACK} />
+                <Ionicons name="call" size={16} color={YELLOW} />
                 <Text style={styles.actionPillTextBlack}>Call Seller</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.actionPillInquire} onPress={() => setInquiryModalVisible(true)}>
-                <Ionicons name="chatbubble-ellipses" size={16} color={YELLOW} />
+                <Ionicons name="chatbubble-ellipses" size={16} color="#D97706" />
                 <Text style={styles.actionPillTextYellow}>Inquire</Text>
               </TouchableOpacity>
             </View>
@@ -403,14 +403,14 @@ export default function ListingDetailsScreen() {
               {vendorAvatar ? (
                 <Image source={{ uri: vendorAvatar }} style={styles.vendorAvatarImg} contentFit="cover" />
               ) : (
-                <View style={[styles.vendorAvatarImg, { backgroundColor: BLACK, alignItems: 'center', justifyContent: 'center' }]}>
+                <View style={[styles.vendorAvatarImg, { backgroundColor: '#241B15', alignItems: 'center', justifyContent: 'center' }]}>
                   <Ionicons name="storefront-outline" size={20} color={YELLOW} />
                 </View>
               )}
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <Text style={styles.vendorName}>{vendorName}</Text>
-                  <Ionicons name="checkmark-circle" size={14} color={YELLOW} />
+                  <Ionicons name="checkmark-circle" size={14} color="#D97706" />
                 </View>
                 <Text style={styles.vendorRole}>
                   Verified Supplier • {listing.city || listing.location?.city || vendorObj.city || vendorObj.location?.city || vendorObj.address?.city || (typeof (listing.location?.address || vendorObj.location?.address || vendorObj.address) === 'string' ? (listing.location?.address || vendorObj.location?.address || vendorObj.address).split(',')[0].trim() : '') || listing.category || 'India'}
@@ -455,7 +455,7 @@ export default function ListingDetailsScreen() {
               </View>
               <View style={styles.specCell}>
                 <Text style={styles.specLabel}>Stock Status:</Text>
-                <Text style={[styles.specValue, { color: '#22C55E' }]}>
+                <Text style={[styles.specValue, { color: '#10B981' }]}>
                   {listing.stock > 0 ? `In Stock (${listing.stock} items)` : 'Available on Order'}
                 </Text>
               </View>
@@ -469,14 +469,14 @@ export default function ListingDetailsScreen() {
               <View style={styles.paymentCard}>
                 {vendorPayment.upiId && (
                   <View style={styles.paymentRow}>
-                    <Ionicons name="card-outline" size={16} color={YELLOW} />
+                    <Ionicons name="card-outline" size={16} color="#D97706" />
                     <Text style={styles.paymentLabel}>Verified UPI ID:</Text>
                     <Text style={styles.paymentVal}>{vendorPayment.upiId}</Text>
                   </View>
                 )}
                 {vendorPayment.bankAccount && (
                   <View style={styles.paymentRow}>
-                    <Ionicons name="business-outline" size={16} color={YELLOW} />
+                    <Ionicons name="business-outline" size={16} color="#D97706" />
                     <Text style={styles.paymentLabel}>Bank Account:</Text>
                     <Text style={styles.paymentVal}>{vendorPayment.bankAccount} ({vendorPayment.bankName || 'Verified'})</Text>
                   </View>
@@ -540,10 +540,10 @@ export default function ListingDetailsScreen() {
             onPress={handleAddToCart}
             disabled={addToCartMutation.isPending}>
             {addToCartMutation.isPending ? (
-              <ActivityIndicator color={BLACK} />
+              <ActivityIndicator color="#D97706" />
             ) : (
               <>
-                <Ionicons name="cart-outline" size={16} color={BLACK} />
+                <Ionicons name="cart-outline" size={16} color="#D97706" />
                 <Text style={styles.cartBtnText}>Add to Cart</Text>
               </>
             )}
@@ -553,7 +553,7 @@ export default function ListingDetailsScreen() {
             style={[styles.actionBtn, styles.buyBtn]}
             onPress={handleBuyNow}
             disabled={addToCartMutation.isPending}>
-            <Ionicons name="flash-outline" size={16} color={BLACK} />
+            <Ionicons name="flash-outline" size={16} color={YELLOW} />
             <Text style={styles.buyBtnText}>{isService ? 'Book Service Now' : 'Buy Now'}</Text>
           </TouchableOpacity>
         </View>
@@ -571,7 +571,7 @@ export default function ListingDetailsScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Request Quote / Direct Inquiry</Text>
               <TouchableOpacity onPress={() => setInquiryModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
@@ -581,7 +581,7 @@ export default function ListingDetailsScreen() {
               multiline
               numberOfLines={4}
               placeholder="Ask about bulk pricing, custom specifications, or delivery timeline..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={inquiryMsg}
               onChangeText={setInquiryMsg}
             />
@@ -591,7 +591,7 @@ export default function ListingDetailsScreen() {
               onPress={handleSendInquiry}
               disabled={createInquiryMutation.isPending}>
               {createInquiryMutation.isPending ? (
-                <ActivityIndicator color={BLACK} />
+                <ActivityIndicator color={YELLOW} />
               ) : (
                 <Text style={styles.modalSubmitBtnText}>Send Message to Vendor</Text>
               )}
@@ -612,7 +612,7 @@ export default function ListingDetailsScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Rate & Review Product</Text>
               <TouchableOpacity onPress={() => setReviewModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
@@ -635,7 +635,7 @@ export default function ListingDetailsScreen() {
               multiline
               numberOfLines={4}
               placeholder="Share your experience with this item..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={reviewComment}
               onChangeText={setReviewComment}
             />
@@ -645,7 +645,7 @@ export default function ListingDetailsScreen() {
               onPress={handleSubmitReview}
               disabled={createReviewMutation.isPending}>
               {createReviewMutation.isPending ? (
-                <ActivityIndicator color={BLACK} />
+                <ActivityIndicator color={YELLOW} />
               ) : (
                 <Text style={styles.modalSubmitBtnText}>Submit Rating & Review</Text>
               )}
@@ -665,11 +665,11 @@ export default function ListingDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
   errorText: { color: '#EF4444', fontSize: FontSize.sm, fontWeight: '700' },
-  retryBtn: { marginTop: 12, backgroundColor: YELLOW, paddingHorizontal: 16, paddingVertical: 8 },
-  retryText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  retryBtn: { marginTop: 12, backgroundColor: YELLOW, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+  retryText: { color: '#0F172A', fontSize: FontSize.xs, fontWeight: '900' },
 
   header: {
     flexDirection: 'row',
@@ -677,84 +677,136 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    borderBottomColor: '#E2E8F0',
   },
-  iconBtn: { width: 36, height: 36, backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, color: '#fff', fontSize: FontSize.sm, fontWeight: '900', marginHorizontal: 10 },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: { flex: 1, color: '#0F172A', fontSize: FontSize.sm, fontWeight: '900', marginHorizontal: 10 },
 
-  scrollContent: { paddingBottom: 100 },
-  heroImage: { width: '100%', height: 300 },
-  heroPlaceholder: { width: '100%', height: 260, backgroundColor: DARK_CARD, alignItems: 'center', justifyContent: 'center' },
+  scrollContent: { paddingBottom: 120 },
+  heroImage: { width: '100%', height: 300, backgroundColor: '#E2E8F0' },
+  heroPlaceholder: { width: '100%', height: 260, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
 
   detailsContainer: { padding: Spacing.four, gap: Spacing.three },
-  title: { color: '#fff', fontSize: FontSize.base, fontWeight: '900', lineHeight: 24 },
+  title: { color: '#0F172A', fontSize: FontSize.base, fontWeight: '900', lineHeight: 24 },
 
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  price: { color: YELLOW, fontSize: FontSize.lg, fontWeight: '900' },
-  originalPrice: { color: 'rgba(255,255,255,0.4)', fontSize: FontSize.sm, textDecorationLine: 'line-through' },
-  discountBadge: { backgroundColor: '#22C55E', paddingHorizontal: 6, paddingVertical: 2 },
-  discountText: { color: BLACK, fontSize: 9, fontWeight: '900' },
-  categoryBadge: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 8, paddingVertical: 4 },
-  categoryText: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '700' },
+  price: { color: '#D97706', fontSize: FontSize.lg, fontWeight: '900' },
+  originalPrice: { color: '#94A3B8', fontSize: FontSize.sm, textDecorationLine: 'line-through' },
+  discountBadge: { backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  discountText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
+  categoryBadge: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  categoryText: { color: '#64748B', fontSize: 10, fontWeight: '700' },
 
-  distanceBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: YELLOW, paddingHorizontal: 10, paddingVertical: 6, alignSelf: 'flex-start' },
-  distanceBannerText: { color: BLACK, fontSize: 11, fontWeight: '900' },
+  distanceBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(217, 154, 61, 0.15)', borderWidth: 1, borderColor: YELLOW, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, alignSelf: 'flex-start' },
+  distanceBannerText: { color: '#D97706', fontSize: 11, fontWeight: '900' },
 
   actionPillsStrip: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  actionPillWhatsApp: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#25D366', height: 38 },
+  actionPillWhatsApp: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#25D366', height: 42, borderRadius: 12 },
   actionPillTextWhite: { color: '#fff', fontSize: 11, fontWeight: '900' },
-  actionPillCall: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: YELLOW, height: 38 },
-  actionPillTextBlack: { color: BLACK, fontSize: 11, fontWeight: '900' },
-  actionPillInquire: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: BLACK, borderWidth: 1, borderColor: YELLOW, height: 38 },
-  actionPillTextYellow: { color: YELLOW, fontSize: 11, fontWeight: '900' },
+  actionPillCall: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#241B15', height: 42, borderRadius: 12 },
+  actionPillTextBlack: { color: YELLOW, fontSize: 11, fontWeight: '900' },
+  actionPillInquire: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: YELLOW, height: 42, borderRadius: 12 },
+  actionPillTextYellow: { color: '#D97706', fontSize: 11, fontWeight: '900' },
 
-  vendorCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.three },
-  vendorAvatarImg: { width: 40, height: 40, backgroundColor: BLACK },
-  vendorName: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
-  vendorRole: { color: 'rgba(255,255,255,0.5)', fontSize: 10, marginTop: 2 },
-  viewStoreBtn: { backgroundColor: YELLOW, paddingHorizontal: 10, paddingVertical: 5 },
-  viewStoreText: { color: BLACK, fontSize: 10, fontWeight: '900' },
+  vendorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: Spacing.three,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  vendorAvatarImg: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0' },
+  vendorName: { color: '#0F172A', fontSize: FontSize.xs, fontWeight: '900' },
+  vendorRole: { color: '#64748B', fontSize: 10, marginTop: 2 },
+  viewStoreBtn: { backgroundColor: '#241B15', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  viewStoreText: { color: YELLOW, fontSize: 10, fontWeight: '900' },
 
-  section: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.three, gap: 8 },
-  sectionTitle: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 0.5 },
-  description: { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.xs, lineHeight: 20 },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: Spacing.three,
+    gap: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sectionTitle: { color: '#0F172A', fontSize: FontSize.xs, fontWeight: '900', letterSpacing: 0.5 },
+  description: { color: '#334155', fontSize: FontSize.xs, lineHeight: 20 },
 
-  specsGrid: { gap: 6 },
-  specCell: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: BORDER, paddingBottom: 6 },
-  specLabel: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
-  specValue: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  specsGrid: { gap: 8 },
+  specCell: { flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingBottom: 6 },
+  specLabel: { color: '#64748B', fontSize: 11 },
+  specValue: { color: '#0F172A', fontSize: 11, fontWeight: '800' },
 
-  paymentCard: { backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, padding: 10, gap: 6 },
+  paymentCard: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: 10, gap: 6 },
   paymentRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  paymentLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 11 },
-  paymentVal: { color: YELLOW, fontSize: 11, fontWeight: '900' },
+  paymentLabel: { color: '#64748B', fontSize: 11 },
+  paymentVal: { color: '#D97706', fontSize: 11, fontWeight: '900' },
 
   reviewHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  writeReviewText: { color: YELLOW, fontSize: 11, fontWeight: '900' },
-  emptyReviewText: { color: 'rgba(255,255,255,0.5)', fontSize: 11 },
-  reviewCard: { backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, padding: 10, gap: 4 },
+  writeReviewText: { color: '#2563EB', fontSize: 11, fontWeight: '900' },
+  emptyReviewText: { color: '#64748B', fontSize: 11 },
+  reviewCard: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', padding: 10, gap: 4 },
   reviewUserRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  reviewUserName: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  reviewUserName: { color: '#0F172A', fontSize: 11, fontWeight: '800' },
   starsRow: { flexDirection: 'row', gap: 2 },
-  reviewComment: { color: 'rgba(255,255,255,0.8)', fontSize: 11, marginTop: 2 },
+  reviewComment: { color: '#334155', fontSize: 11, marginTop: 2 },
 
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: DARK_CARD, borderTopWidth: 1, borderTopColor: BORDER, paddingHorizontal: Spacing.four, paddingTop: Spacing.two, flexDirection: 'row', gap: 10 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46 },
-  cartBtn: { backgroundColor: YELLOW },
-  cartBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
-  buyBtn: { backgroundColor: YELLOW },
-  buyBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+    flexDirection: 'row',
+    gap: 10,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 46, borderRadius: 14 },
+  cartBtn: { backgroundColor: 'rgba(217, 154, 61, 0.15)', borderWidth: 1.5, borderColor: YELLOW },
+  cartBtnText: { color: '#D97706', fontSize: FontSize.xs, fontWeight: '900' },
+  buyBtn: { backgroundColor: '#241B15' },
+  buyBtnText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.8)' },
-  modalContent: { backgroundColor: DARK_CARD, borderTopWidth: 2, borderTopColor: YELLOW, padding: Spacing.four, gap: 10 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: BORDER, paddingBottom: 8 },
-  modalTitle: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
-  inputLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' },
-  textAreaInput: { backgroundColor: BLACK, borderWidth: 1, borderColor: BORDER, color: '#fff', padding: 10, fontSize: FontSize.xs, height: 90, textAlignVertical: 'top' },
+  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(15, 23, 42, 0.5)' },
+  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: Spacing.four, gap: 10 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#E2E8F0', paddingBottom: 10 },
+  modalTitle: { color: '#0F172A', fontSize: FontSize.xs, fontWeight: '900' },
+  inputLabel: { color: '#475569', fontSize: 11, fontWeight: '700' },
+  textAreaInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, color: '#0F172A', padding: 10, fontSize: FontSize.xs, height: 90, textAlignVertical: 'top' },
   starSelectRow: { flexDirection: 'row', gap: 8, justifyContent: 'center', marginVertical: 4 },
-  modalSubmitBtn: { backgroundColor: YELLOW, height: 44, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
-  modalSubmitBtnText: { color: BLACK, fontSize: FontSize.xs, fontWeight: '900' },
+  modalSubmitBtn: { backgroundColor: '#241B15', height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 6 },
+  modalSubmitBtnText: { color: YELLOW, fontSize: FontSize.xs, fontWeight: '900' },
 });

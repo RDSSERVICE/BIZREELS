@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import {
   useCreditRates,
@@ -34,10 +34,13 @@ import {
   useWalletTransactions,
 } from '@/features/wallet/queries';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 const EMERALD = '#10B981';
 const ROSE = '#EF4444';
 const BLUE = '#3B82F6';
@@ -191,7 +194,7 @@ export default function VendorWalletScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
 
         <View style={styles.headerTitleContainer}>
@@ -200,7 +203,7 @@ export default function VendorWalletScreen() {
         </View>
 
         <TouchableOpacity style={styles.backBtn} onPress={handleRefreshAll}>
-          <Ionicons name="refresh" size={18} color={YELLOW} />
+          <Ionicons name="refresh" size={18} color={GOLD} />
         </TouchableOpacity>
       </View>
 
@@ -210,7 +213,7 @@ export default function VendorWalletScreen() {
           style={[styles.tabItem, activeTab === 'wallet' && styles.tabItemActive]}
           onPress={() => setActiveTab('wallet')}
         >
-          <Ionicons name="wallet-outline" size={16} color={activeTab === 'wallet' ? BLACK : YELLOW} />
+          <Ionicons name="wallet-outline" size={16} color={activeTab === 'wallet' ? '#fff' : GOLD} />
           <Text style={[styles.tabText, activeTab === 'wallet' && styles.tabTextActive]}>Wallet &amp; Ledger</Text>
         </TouchableOpacity>
 
@@ -218,7 +221,7 @@ export default function VendorWalletScreen() {
           style={[styles.tabItem, activeTab === 'rates' && styles.tabItemActive]}
           onPress={() => setActiveTab('rates')}
         >
-          <Ionicons name="flash-outline" size={16} color={activeTab === 'rates' ? BLACK : YELLOW} />
+          <Ionicons name="flash-outline" size={16} color={activeTab === 'rates' ? '#fff' : GOLD} />
           <Text style={[styles.tabText, activeTab === 'rates' && styles.tabTextActive]}>Credit Rates</Text>
         </TouchableOpacity>
       </View>
@@ -230,8 +233,8 @@ export default function VendorWalletScreen() {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={handleRefreshAll}
-            tintColor={YELLOW}
-            colors={[YELLOW]}
+            tintColor={GOLD}
+            colors={[GOLD]}
           />
         }
       >
@@ -257,7 +260,7 @@ export default function VendorWalletScreen() {
         <View style={styles.introCard}>
           <View style={styles.introHeaderRow}>
             <View style={styles.rupeeIconBox}>
-              <Ionicons name="wallet" size={20} color={YELLOW} />
+              <Ionicons name="wallet" size={20} color={GOLD} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.introTitle}>VENDOR WALLET &amp; CREDIT RATES</Text>
@@ -273,8 +276,8 @@ export default function VendorWalletScreen() {
           <View style={styles.balanceHeaderRow}>
             <Text style={styles.balanceLabel}>AVAILABLE VENDOR BALANCE</Text>
             <View style={[styles.badgePill, isVerified ? styles.badgePillVerified : styles.badgePillUnverified]}>
-              <Ionicons name={isVerified ? 'shield-checkmark' : 'alert-circle'} size={12} color={isVerified ? EMERALD : YELLOW} />
-              <Text style={[styles.badgeText, { color: isVerified ? EMERALD : YELLOW }]}>
+              <Ionicons name={isVerified ? 'shield-checkmark' : 'alert-circle'} size={12} color={isVerified ? EMERALD : GOLD} />
+              <Text style={[styles.badgeText, { color: isVerified ? EMERALD : GOLD }]}>
                 {isVerified ? 'Verified Account' : 'Unverified Merchant'}
               </Text>
             </View>
@@ -293,7 +296,7 @@ export default function VendorWalletScreen() {
               onPress={() => setTopupModalVisible(true)}
               activeOpacity={0.85}
             >
-              <Ionicons name="add" size={18} color={BLACK} />
+              <Ionicons name="add" size={18} color={ESPRESSO} />
               <Text style={styles.rechargeBtnText}>RECHARGE</Text>
             </TouchableOpacity>
 
@@ -362,12 +365,12 @@ export default function VendorWalletScreen() {
             {/* Dynamic Top-Up Packs Preview */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
-                <Ionicons name="flash" size={18} color={YELLOW} />
+                <Ionicons name="flash" size={18} color={GOLD} />
                 <Text style={styles.sectionTitleText}>AVAILABLE TOP-UP PACKS</Text>
               </View>
 
               {packsLoading ? (
-                <ActivityIndicator size="small" color={YELLOW} style={{ marginVertical: 12 }} />
+                <ActivityIndicator size="small" color={GOLD} style={{ marginVertical: 12 }} />
               ) : (
                 <View style={styles.packsGrid}>
                   {packsList.map((pack: any, idx: number) => {
@@ -396,7 +399,7 @@ export default function VendorWalletScreen() {
                             setTopupModalVisible(true);
                           }}
                         >
-                          <Ionicons name="add" size={14} color={YELLOW} />
+                          <Ionicons name="add" size={14} color={GOLD} />
                           <Text style={styles.packSelectBtnText}>Select Pack</Text>
                         </TouchableOpacity>
                       </View>
@@ -409,32 +412,32 @@ export default function VendorWalletScreen() {
             {/* Wallet Transaction Ledger */}
             <View style={styles.sectionContainer}>
               <View style={styles.sectionHeaderRow}>
-                <Ionicons name="receipt-outline" size={18} color={YELLOW} />
+                <Ionicons name="receipt-outline" size={18} color={GOLD} />
                 <Text style={styles.sectionTitleText}>WALLET TRANSACTION LEDGER</Text>
               </View>
 
               {/* Search Bar */}
               <View style={styles.searchBar}>
-                <Ionicons name="search" size={16} color="rgba(255,255,255,0.4)" />
+                <Ionicons name="search" size={16} color={TEXT_MUTED} />
                 <TextInput
                   style={styles.searchInput}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
                   placeholder="Search description or reference ID..."
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_MUTED}
                 />
                 {searchQuery ? (
                   <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+                    <Ionicons name="close-circle" size={16} color={TEXT_MUTED} />
                   </TouchableOpacity>
                 ) : null}
               </View>
 
               {txLoading ? (
-                <ActivityIndicator size="small" color={YELLOW} style={{ marginVertical: 20 }} />
+                <ActivityIndicator size="small" color={GOLD} style={{ marginVertical: 20 }} />
               ) : filteredTxList.length === 0 ? (
                 <View style={styles.emptyTxContainer}>
-                  <Ionicons name="document-text-outline" size={36} color="rgba(255,255,255,0.3)" />
+                  <Ionicons name="document-text-outline" size={36} color={TEXT_MUTED} />
                   <Text style={styles.emptyTxText}>
                     {searchQuery ? 'No matching transactions found.' : 'No wallet transactions recorded yet.'}
                   </Text>
@@ -494,7 +497,7 @@ export default function VendorWalletScreen() {
         {activeTab === 'rates' && (
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeaderRow}>
-              <Ionicons name="flash" size={18} color={YELLOW} />
+              <Ionicons name="flash" size={18} color={GOLD} />
               <Text style={styles.sectionTitleText}>OFFICIAL VENDOR CREDIT RATE SCHEDULE</Text>
             </View>
             <Text style={styles.ratesSubText}>
@@ -521,7 +524,7 @@ export default function VendorWalletScreen() {
 
             {/* Information Callout Banner */}
             <View style={styles.infoCalloutBox}>
-              <Ionicons name="information-circle-outline" size={20} color={YELLOW} />
+              <Ionicons name="information-circle-outline" size={20} color={GOLD} />
               <Text style={styles.infoCalloutText}>
                 Need bulk promotional credits for high-volume catalog listings? Upgrade to a Growth Tier or contact vendor support.
               </Text>
@@ -544,11 +547,11 @@ export default function VendorWalletScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Ionicons name="wallet-outline" size={20} color={YELLOW} />
+                <Ionicons name="wallet-outline" size={20} color={GOLD} />
                 <Text style={styles.modalTitle}>Recharge Vendor Wallet</Text>
               </View>
               <TouchableOpacity onPress={() => setTopupModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color={TEXT_MAIN} />
               </TouchableOpacity>
             </View>
 
@@ -583,7 +586,7 @@ export default function VendorWalletScreen() {
                 value={rechargeAmountStr}
                 onChangeText={setRechargeAmountStr}
                 placeholder="Enter amount"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
               />
             </View>
 
@@ -598,7 +601,7 @@ export default function VendorWalletScreen() {
               disabled={rechargeMutation.isPending}
             >
               {rechargeMutation.isPending ? (
-                <ActivityIndicator color={BLACK} size="small" />
+                <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <Text style={styles.confirmRechargeBtnText}>
                   PAY ₹{Number(rechargeAmountStr || 0).toLocaleString('en-IN')} VIA RAZORPAY
@@ -625,7 +628,7 @@ export default function VendorWalletScreen() {
                 <Text style={styles.modalTitle}>Withdraw to Bank Account</Text>
               </View>
               <TouchableOpacity onPress={() => setPayoutModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color={TEXT_MAIN} />
               </TouchableOpacity>
             </View>
 
@@ -652,7 +655,7 @@ export default function VendorWalletScreen() {
                 value={payoutAmountStr}
                 onChangeText={setPayoutAmountStr}
                 placeholder="Enter amount to withdraw"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_MUTED}
               />
             </View>
 
@@ -689,7 +692,7 @@ export default function VendorWalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
   },
 
   /* Header */
@@ -698,7 +701,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     gap: 12,
@@ -706,24 +709,24 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   headerTitleContainer: {
     flex: 1,
   },
   headerSubtitleText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   headerTitleText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -734,7 +737,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.two,
     gap: 8,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
@@ -744,23 +747,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 8,
     gap: 6,
   },
   tabItemActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   tabText: {
-    color: '#fff',
+    color: TEXT_MUTED,
     fontSize: 11,
     fontWeight: '900',
   },
   tabTextActive: {
-    color: BLACK,
+    color: '#fff',
   },
 
   /* Scroll Content */
@@ -774,11 +777,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E1E12',
+    backgroundColor: '#FFFBEB',
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: '#FCD34D',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 8,
   },
   verifyBannerLeft: {
@@ -794,29 +797,30 @@ const styles = StyleSheet.create({
     backgroundColor: EMERALD,
   },
   verifyText: {
-    color: '#fff',
+    color: '#78350F',
     fontSize: 10,
     fontWeight: '700',
   },
   verifyBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   verifyBtnText: {
-    color: BLACK,
+    color: '#fff',
     fontSize: 10,
     fontWeight: '900',
   },
 
   /* Page Intro Banner */
   introCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
+    ...Shadows.sm,
   },
   introHeaderRow: {
     flexDirection: 'row',
@@ -827,32 +831,33 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: BLACK,
+    backgroundColor: '#FFFBEB',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#FDE68A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   introTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
   introSub: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: TEXT_MUTED,
     fontSize: 10,
     marginTop: 2,
   },
 
   /* Hero Balance Banner */
   balanceCard: {
-    backgroundColor: '#241B15',
+    backgroundColor: ESPRESSO,
     borderWidth: 1,
     borderColor: '#3E3025',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     gap: 12,
+    ...Shadows.md,
   },
   balanceHeaderRow: {
     flexDirection: 'row',
@@ -860,7 +865,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   balanceLabel: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -879,9 +884,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(16, 185, 129, 0.3)',
   },
   badgePillUnverified: {
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: 'rgba(217, 154, 61, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: 'rgba(217, 154, 61, 0.4)',
   },
   badgeText: {
     fontSize: 9,
@@ -894,7 +899,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subBalanceText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 11,
     lineHeight: 16,
   },
@@ -908,13 +913,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
     paddingVertical: 10,
     borderRadius: 8,
     gap: 4,
   },
   rechargeBtnText: {
-    color: BLACK,
+    color: ESPRESSO,
     fontSize: 11,
     fontWeight: '900',
   },
@@ -961,12 +966,13 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 12,
     gap: 4,
+    ...Shadows.sm,
   },
   statIconBox: {
     width: 28,
@@ -976,7 +982,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '800',
   },
@@ -987,12 +993,13 @@ const styles = StyleSheet.create({
 
   /* Section Containers */
   sectionContainer: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 14,
     gap: 12,
+    ...Shadows.sm,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -1000,7 +1007,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sectionTitleText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1014,11 +1021,11 @@ const styles = StyleSheet.create({
   },
   packCard: {
     width: '48.5%',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 6,
   },
   packHeaderRow: {
@@ -1027,24 +1034,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   packLabel: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: TEXT_MAIN,
     fontSize: 10,
     fontWeight: '800',
     flex: 1,
   },
   bonusBadge: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    backgroundColor: 'rgba(217, 154, 61, 0.15)',
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
   },
   bonusBadgeText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 8,
     fontWeight: '900',
   },
   packPrice: {
-    color: YELLOW,
+    color: TEXT_MAIN,
     fontSize: 18,
     fontWeight: '900',
   },
@@ -1052,15 +1059,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#241B15',
+    backgroundColor: ESPRESSO,
     borderWidth: 1,
-    borderColor: '#3E3025',
+    borderColor: ESPRESSO,
     paddingVertical: 6,
     borderRadius: 6,
     gap: 4,
   },
   packSelectBtnText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
   },
@@ -1069,7 +1076,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 8,
@@ -1079,7 +1086,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
   },
 
@@ -1091,17 +1098,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyTxText: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: TEXT_MUTED,
     fontSize: 11,
   },
   txCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 10,
   },
   txIconBox: {
@@ -1116,7 +1123,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   txTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
     fontWeight: '800',
     lineHeight: 15,
@@ -1128,11 +1135,11 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   txDate: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: TEXT_MUTED,
     fontSize: 9,
   },
   txRefId: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: TEXT_MUTED,
     fontSize: 8,
     fontFamily: 'monospace',
   },
@@ -1158,7 +1165,7 @@ const styles = StyleSheet.create({
 
   /* Rates Schedule */
   ratesSubText: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: TEXT_MUTED,
     fontSize: 11,
     lineHeight: 16,
   },
@@ -1166,11 +1173,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   rateCard: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 10,
     gap: 6,
   },
   rateCardHeader: {
@@ -1179,13 +1186,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   rateCategoryBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#E2E8F0',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   rateCategoryBadgeText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#475569',
     fontSize: 8,
     fontWeight: '900',
   },
@@ -1203,12 +1210,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   rateTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 12,
     fontWeight: '900',
   },
   rateDesc: {
-    color: 'rgba(255, 255, 255, 0.55)',
+    color: TEXT_MUTED,
     fontSize: 11,
     lineHeight: 15,
   },
@@ -1216,16 +1223,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#1E1E12',
+    backgroundColor: '#FFFBEB',
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: '#FCD34D',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     marginTop: 4,
   },
   infoCalloutText: {
     flex: 1,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#78350F',
     fontSize: 10,
     lineHeight: 15,
   },
@@ -1237,14 +1244,14 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
   },
   modalContent: {
-    backgroundColor: DARK_CARD,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: CARD_BG,
+    borderTopWidth: 3,
+    borderTopColor: GOLD,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
     gap: 14,
   },
@@ -1257,12 +1264,12 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   modalTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   inputLabel: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1273,7 +1280,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   presetChip: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 12,
@@ -1281,22 +1288,22 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   presetChipSelected: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   presetChipText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
     fontWeight: '800',
   },
   presetChipTextSelected: {
-    color: BLACK,
+    color: GOLD,
     fontWeight: '900',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 8,
@@ -1304,21 +1311,21 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   currencyPrefix: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 18,
     fontWeight: '900',
     marginRight: 6,
   },
   modalAmountInput: {
     flex: 1,
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 18,
     fontWeight: '900',
   },
   gatewayPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     padding: 10,
@@ -1326,19 +1333,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   gatewayPillText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
   confirmRechargeBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingVertical: 14,
     alignItems: 'center',
     borderRadius: 8,
     marginTop: 4,
   },
   confirmRechargeBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1346,7 +1353,7 @@ const styles = StyleSheet.create({
 
   /* Payout Modal Specifics */
   payoutBalanceBox: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     padding: 12,
@@ -1354,7 +1361,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   payoutBalanceLabel: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1365,7 +1372,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   withdrawAllText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
     textDecorationLine: 'underline',
@@ -1386,7 +1393,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   bankInfoSub: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: TEXT_MUTED,
     fontSize: 10,
     lineHeight: 14,
     marginTop: 2,

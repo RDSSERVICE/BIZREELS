@@ -20,7 +20,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useRechargeWallet, useTopupPacks, useWalletInfo, useWalletTransactions } from '@/features/wallet/queries';
 
 export default function WalletScreen() {
@@ -208,14 +208,19 @@ export default function WalletScreen() {
 }
 
 const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const PRIMARY = '#2563EB';
+const LIGHT_BG = '#F8FAFC';
+const WHITE_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: LIGHT_BG,
   },
   header: {
     flexDirection: 'row',
@@ -225,20 +230,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: BLACK,
+    backgroundColor: WHITE_CARD,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    width: 38,
+    height: 38,
+    borderRadius: Radius.full,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.md,
     fontWeight: '900',
   },
@@ -249,12 +254,17 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     margin: Spacing.four,
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.xl,
     padding: Spacing.four,
-    borderWidth: 2,
-    borderColor: YELLOW,
+    borderWidth: 1,
+    borderColor: BORDER,
     gap: Spacing.two,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   balanceHeaderRow: {
     flexDirection: 'row',
@@ -262,12 +272,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   balanceLabel: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   balanceAmount: {
-    color: YELLOW,
+    color: '#D97706',
     fontSize: 32,
     fontWeight: '900',
   },
@@ -278,20 +288,20 @@ const styles = StyleSheet.create({
     marginTop: Spacing.two,
   },
   spentText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
   },
   addFundsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: YELLOW,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
-    borderRadius: 0,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
     gap: 4,
   },
   addFundsBtnText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -300,7 +310,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
   },
   txHeaderTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
@@ -311,7 +321,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   emptyTxText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: FontSize.sm,
   },
   txList: {
@@ -321,20 +331,25 @@ const styles = StyleSheet.create({
   txCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.lg,
     padding: Spacing.three,
     borderWidth: 1,
     borderColor: BORDER,
     gap: Spacing.three,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   txIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 0,
+    width: 38,
+    height: 38,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
   },
@@ -342,12 +357,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   txTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.sm,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   txDate: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 10,
     marginTop: 2,
   },
@@ -361,14 +376,16 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
   },
   modalContent: {
-    backgroundColor: DARK_CARD,
-    borderTopWidth: 2,
-    borderTopColor: YELLOW,
+    backgroundColor: WHITE_CARD,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
     padding: Spacing.four,
     gap: Spacing.three,
+    borderWidth: 1,
+    borderColor: BORDER,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -379,12 +396,12 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.two,
   },
   modalTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
   inputLabel: {
-    color: YELLOW,
+    color: PRIMARY,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -394,39 +411,40 @@ const styles = StyleSheet.create({
   },
   presetChip: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     paddingVertical: Spacing.two,
-    borderRadius: 0,
+    borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
   },
   presetChipText: {
-    color: YELLOW,
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   customAmountInput: {
-    backgroundColor: BLACK,
-    borderRadius: 0,
+    backgroundColor: '#F1F5F9',
+    borderRadius: Radius.md,
     borderWidth: 1,
     borderColor: BORDER,
     padding: Spacing.three,
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   confirmTopupBtn: {
     backgroundColor: YELLOW,
     height: 48,
-    borderRadius: 0,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: Spacing.two,
   },
   confirmTopupBtnText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
 });
+

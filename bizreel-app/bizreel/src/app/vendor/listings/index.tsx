@@ -1,6 +1,6 @@
 /**
  * Vendor Product & Service Catalog Dashboard — Mobile Application
- * Implements full catalog management with sharp brutalist styling.
+ * Implements full catalog management with Light Theme & Warm Gold Editorial Bento Grid system.
  */
 
 import { Ionicons } from '@expo/vector-icons';
@@ -22,16 +22,19 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Radius, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useDeleteVendorListing, useVendorListings } from '@/features/vendor-listings/queries';
 import { api } from '@/lib/api';
 import { getListingImage } from '@/utils/image';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER_COLOR = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return 'Today';
@@ -202,13 +205,13 @@ export default function VendorCatalogScreen() {
       {/* Top Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Store Catalog Management</Text>
         <TouchableOpacity
           style={styles.addHeaderBtn}
           onPress={handleAddItem}>
-          <Ionicons name="add" size={18} color={BLACK} />
+          <Ionicons name="add" size={18} color="#0F172A" />
           <Text style={styles.addHeaderBtnText}>ADD ITEM</Text>
         </TouchableOpacity>
       </View>
@@ -217,7 +220,7 @@ export default function VendorCatalogScreen() {
       {!isVerified && (
         <View style={styles.verifyBanner}>
           <View style={styles.verifyBannerLeft}>
-            <Text style={styles.verifyDot}>●</Text>
+            <Ionicons name="shield-outline" size={16} color={GOLD} />
             <Text style={styles.verifyText} numberOfLines={2}>
               Verify your business to get 5x more leads & maximum buyer trust!
             </Text>
@@ -235,7 +238,7 @@ export default function VendorCatalogScreen() {
         <TouchableOpacity
           style={[styles.tabPill, activeTab === 'products' && styles.tabPillActive]}
           onPress={() => setActiveTab('products')}>
-          <Ionicons name="cube-outline" size={16} color={activeTab === 'products' ? BLACK : 'rgba(255,255,255,0.6)'} />
+          <Ionicons name="cube-outline" size={16} color={activeTab === 'products' ? GOLD : TEXT_MUTED} />
           <Text style={[styles.tabPillText, activeTab === 'products' && styles.tabPillTextActive]}>
             Products ({productsList.length})
           </Text>
@@ -244,7 +247,7 @@ export default function VendorCatalogScreen() {
         <TouchableOpacity
           style={[styles.tabPill, activeTab === 'services' && styles.tabPillActive]}
           onPress={() => setActiveTab('services')}>
-          <Ionicons name="key-outline" size={16} color={activeTab === 'services' ? BLACK : 'rgba(255,255,255,0.6)'} />
+          <Ionicons name="key-outline" size={16} color={activeTab === 'services' ? GOLD : TEXT_MUTED} />
           <Text style={[styles.tabPillText, activeTab === 'services' && styles.tabPillTextActive]}>
             Services ({servicesList.length})
           </Text>
@@ -254,17 +257,17 @@ export default function VendorCatalogScreen() {
       {/* ── Search & Filter Controls ── */}
       <View style={styles.filterControlRow}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color="rgba(255,255,255,0.4)" />
+          <Ionicons name="search" size={16} color={TEXT_MUTED} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search items by name, category..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={TEXT_MUTED}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+              <Ionicons name="close-circle" size={16} color={TEXT_MUTED} />
             </TouchableOpacity>
           )}
         </View>
@@ -276,7 +279,7 @@ export default function VendorCatalogScreen() {
               prev === 'latest' ? 'price_low' : prev === 'price_low' ? 'price_high' : 'latest'
             );
           }}>
-          <Ionicons name="filter-outline" size={14} color="#fff" />
+          <Ionicons name="filter-outline" size={14} color={TEXT_MAIN} />
           <Text style={styles.sortBtnText}>
             {sortOption === 'latest' ? 'Latest' : sortOption === 'price_low' ? 'Price ↑' : 'Price ↓'}
           </Text>
@@ -285,7 +288,7 @@ export default function VendorCatalogScreen() {
 
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={YELLOW} />
+          <ActivityIndicator size="large" color={GOLD} />
         </View>
       ) : (
         <FlatList
@@ -296,8 +299,8 @@ export default function VendorCatalogScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor={YELLOW}
-              colors={[YELLOW]}
+              tintColor={GOLD}
+              colors={[GOLD]}
             />
           }
           ListHeaderComponent={
@@ -323,14 +326,14 @@ export default function VendorCatalogScreen() {
               <TouchableOpacity
                 style={styles.showSubBtn}
                 onPress={() => router.push('/vendor/subscription' as any)}>
-                <Ionicons name="sparkles" size={14} color={YELLOW} />
+                <Ionicons name="sparkles" size={14} color={GOLD} />
                 <Text style={styles.showSubBtnText}>SHOW SUBSCRIPTION PLAN</Text>
               </TouchableOpacity>
             </View>
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="cube-outline" size={48} color={YELLOW} />
+              <Ionicons name="cube-outline" size={48} color={GOLD} />
               <Text style={styles.emptyTitle}>No Catalog Items Found</Text>
               <Text style={styles.emptyDesc}>
                 {searchQuery ? 'No items match your search term.' : 'Start adding items to your vendor store catalog.'}
@@ -338,7 +341,7 @@ export default function VendorCatalogScreen() {
               <TouchableOpacity
                 style={styles.createListingBtn}
                 onPress={() => router.push('/vendor/listings/create' as any)}>
-                <Ionicons name="add-circle" size={18} color={BLACK} />
+                <Ionicons name="add-circle" size={18} color="#0F172A" />
                 <Text style={styles.createListingBtnText}>+ CREATE NEW ITEM</Text>
               </TouchableOpacity>
             </View>
@@ -359,7 +362,7 @@ export default function VendorCatalogScreen() {
                     <Image source={{ uri: image }} style={styles.cardImage} contentFit="cover" />
                   ) : (
                     <View style={styles.cardImageFallback}>
-                      <Ionicons name="cube-outline" size={26} color="rgba(255,255,255,0.4)" />
+                      <Ionicons name="cube-outline" size={26} color={TEXT_MUTED} />
                     </View>
                   )}
 
@@ -396,11 +399,11 @@ export default function VendorCatalogScreen() {
                 <View style={styles.cardFooter}>
                   <View style={styles.metricsRow}>
                     <View style={styles.metricItem}>
-                      <Ionicons name="eye-outline" size={13} color="rgba(255,255,255,0.6)" />
+                      <Ionicons name="eye-outline" size={13} color={TEXT_MUTED} />
                       <Text style={styles.metricValue}>{itemAny.views || itemAny.viewsCount || 0}</Text>
                     </View>
                     <View style={styles.metricItem}>
-                      <Ionicons name="heart-outline" size={13} color="#EC4899" />
+                      <Ionicons name="heart-outline" size={13} color="#DB2777" />
                       <Text style={styles.metricValue}>{itemAny.likes || itemAny.likesCount || 0}</Text>
                     </View>
                     <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
@@ -411,7 +414,7 @@ export default function VendorCatalogScreen() {
                     <TouchableOpacity
                       style={styles.actionIconBtn}
                       onPress={() => setSelectedAnalyticsItem(item)}>
-                      <Ionicons name="stats-chart" size={15} color={YELLOW} />
+                      <Ionicons name="stats-chart" size={15} color={GOLD} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -422,13 +425,13 @@ export default function VendorCatalogScreen() {
                           params: { editId: item._id || (item as any).id },
                         } as any)
                       }>
-                      <Ionicons name="create-outline" size={15} color={YELLOW} />
+                      <Ionicons name="create-outline" size={15} color={GOLD} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.actionIconBtn}
                       onPress={() => handleDuplicate(item)}>
-                      <Ionicons name="copy-outline" size={15} color="#3B82F6" />
+                      <Ionicons name="copy-outline" size={15} color="#2563EB" />
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -437,14 +440,14 @@ export default function VendorCatalogScreen() {
                       <Ionicons
                         name={isHidden ? 'eye' : 'eye-off-outline'}
                         size={15}
-                        color={isHidden ? '#22C55E' : 'rgba(255,255,255,0.7)'}
+                        color={isHidden ? '#059669' : TEXT_MUTED}
                       />
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.actionIconBtn}
                       onPress={() => handleShare(item)}>
-                      <Ionicons name="share-social-outline" size={15} color="rgba(255,255,255,0.7)" />
+                      <Ionicons name="share-social-outline" size={15} color={TEXT_MUTED} />
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -491,53 +494,126 @@ export default function VendorCatalogScreen() {
                 {/* Modal Header */}
                 <View style={styles.modalHeader}>
                   <View style={styles.modalTitleRow}>
-                    <Ionicons name="analytics" size={18} color={YELLOW} />
+                    <Ionicons name="analytics" size={18} color={GOLD} />
                     <Text style={styles.modalTitle}>LISTING DETAILS & ANALYTICS</Text>
                   </View>
                   <TouchableOpacity onPress={() => setSelectedAnalyticsItem(null)} style={styles.closeBtn}>
-                    <Ionicons name="close" size={20} color="#fff" />
+                    <Ionicons name="close" size={20} color={TEXT_MAIN} />
                   </TouchableOpacity>
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
-                  {/* Selected Item Summary Card */}
+                <ScrollView style={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+                  {/* Summary Card */}
                   <View style={styles.itemSummaryCard}>
-                    {getListingImage(item) ? (
-                      <Image source={{ uri: getListingImage(item)! }} style={styles.itemSummaryImage} contentFit="cover" />
-                    ) : (
-                      <View style={styles.itemSummaryFallback}>
-                        <Ionicons name="cube-outline" size={24} color="rgba(255,255,255,0.4)" />
-                      </View>
-                    )}
+                    {(() => {
+                      const modalItemImg = getListingImage(item);
+                      return modalItemImg ? (
+                        <Image source={{ uri: modalItemImg }} style={styles.itemSummaryImage} contentFit="cover" />
+                      ) : (
+                        <View style={styles.itemSummaryFallback}>
+                          <Ionicons name="cube-outline" size={24} color={TEXT_MUTED} />
+                        </View>
+                      );
+                    })()}
                     <View style={styles.itemSummaryInfo}>
-                      <Text style={styles.itemSummaryTitle} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.itemSummarySub}>
-                        {item.category || 'General'} {item.subcategory ? `• ${item.subcategory}` : ''}
-                      </Text>
+                      <Text style={styles.itemSummaryTitle} numberOfLines={1}>{item.title}</Text>
+                      <Text style={styles.itemSummarySub}>{item.category || 'General'} {item.subcategory ? `• ${item.subcategory}` : ''}</Text>
                       <View style={styles.itemSummaryPriceRow}>
-                        <Text style={styles.itemSummaryPrice}>
-                          ₹{price.toLocaleString('en-IN')}
-                        </Text>
-                        <View style={[styles.statusBadge, hiddenIds.includes(lid) && styles.statusBadgeDraft]}>
-                          <Text style={[styles.statusBadgeText, hiddenIds.includes(lid) && styles.statusBadgeTextDraft]}>
-                            {hiddenIds.includes(lid) ? 'HIDDEN' : 'ACTIVE'}
-                          </Text>
-                        </View>
-                        <View style={[styles.stockPill, { backgroundColor: isService ? '#23232A' : '#10B981' }]}>
-                          <Text style={styles.stockPillText}>
-                            {isService ? 'SERVICE' : 'PRODUCT'}
-                          </Text>
-                        </View>
+                        <Text style={styles.itemSummaryPrice}>₹{price.toLocaleString('en-IN')}</Text>
+                        <Text style={{ color: TEXT_MUTED, fontSize: 10 }}>Added {formatDate(item.createdAt)}</Text>
                       </View>
                     </View>
                   </View>
 
-                  {/* Quick Actions Row */}
-                  <View style={styles.drawerQuickActionsRow}>
+                  {/* Analytics Overview Grid */}
+                  <Text style={styles.sectionHeaderTitle}>PERFORMANCE & IMPACT</Text>
+                  <View style={styles.metricsGrid}>
+                    <View style={styles.metricCard}>
+                      <View style={styles.metricCardHeader}>
+                        <Ionicons name="eye-outline" size={14} color="#2563EB" />
+                        <Text style={styles.metricCardLabel}>TOTAL VIEWS</Text>
+                      </View>
+                      <Text style={styles.metricCardVal}>{views.toLocaleString('en-IN')}</Text>
+                      <Text style={styles.metricCardSub}>{uniqueVisitors} Unique Buyers</Text>
+                    </View>
+
+                    <View style={styles.metricCard}>
+                      <View style={styles.metricCardHeader}>
+                        <Ionicons name="heart-outline" size={14} color="#DB2777" />
+                        <Text style={styles.metricCardLabel}>LIKES & SAVES</Text>
+                      </View>
+                      <Text style={styles.metricCardVal}>{likes + saves}</Text>
+                      <Text style={styles.metricCardSub}>{saves} Saved to Wishlist</Text>
+                    </View>
+
+                    <View style={styles.metricCard}>
+                      <View style={styles.metricCardHeader}>
+                        <Ionicons name="cart-outline" size={14} color="#059669" />
+                        <Text style={styles.metricCardLabel}>ORDERS & DEALS</Text>
+                      </View>
+                      <Text style={styles.metricCardVal}>{orders}</Text>
+                      <Text style={styles.metricCardSub}>Conversion: {conversionRate}%</Text>
+                    </View>
+
+                    <View style={styles.metricCard}>
+                      <View style={styles.metricCardHeader}>
+                        <Ionicons name="cash-outline" size={14} color={GOLD} />
+                        <Text style={styles.metricCardLabel}>REVENUE GENERATED</Text>
+                      </View>
+                      <Text style={styles.metricCardVal}>₹{revenue.toLocaleString('en-IN')}</Text>
+                      <Text style={styles.metricCardSub}>Gross Sales Value</Text>
+                    </View>
+                  </View>
+
+                  {/* Inventory Management Section */}
+                  {!isService && (
+                    <>
+                      <Text style={styles.sectionHeaderTitle}>STOCK & INVENTORY CONTROL</Text>
+                      <View style={styles.inventorySectionBox}>
+                        <View style={styles.inventoryStatusRow}>
+                          <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                            <Text style={styles.inventoryStockNum}>{stock}</Text>
+                            <Text style={styles.inventoryStockLabel}>Units Remaining</Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.inventoryBadge,
+                              stock > threshold ? styles.invBadgeGreen : stock > 0 ? styles.invBadgeAmber : styles.invBadgeRed,
+                            ]}>
+                            <Text
+                              style={[
+                                styles.inventoryBadgeText,
+                                stock > threshold ? styles.invTextGreen : stock > 0 ? styles.invTextAmber : styles.invTextRed,
+                              ]}>
+                              {stock > threshold ? 'IN STOCK' : stock > 0 ? 'LOW STOCK' : 'OUT OF STOCK'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.stockUpdateRow}>
+                          <TextInput
+                            style={styles.stockInput}
+                            placeholder="Update count..."
+                            placeholderTextColor={TEXT_MUTED}
+                            keyboardType="number-pad"
+                            value={stockInput}
+                            onChangeText={setStockInput}
+                          />
+                          <TouchableOpacity
+                            style={styles.stockUpdateBtn}
+                            onPress={() => handleStockUpdate(lid)}
+                            disabled={updatingStock}>
+                            <Text style={styles.stockUpdateBtnText}>{updatingStock ? 'Saving...' : 'Update Stock'}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </>
+                  )}
+
+                  {/* Action Links */}
+                  <View style={styles.modalActionRow}>
                     <TouchableOpacity
-                      style={styles.drawerActionBtn}
+                      style={styles.modalEditBtn}
                       onPress={() => {
                         setSelectedAnalyticsItem(null);
                         router.push({
@@ -545,204 +621,10 @@ export default function VendorCatalogScreen() {
                           params: { editId: lid },
                         } as any);
                       }}>
-                      <Ionicons name="create-outline" size={14} color={YELLOW} />
-                      <Text style={styles.drawerActionBtnText}>Edit</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.drawerActionBtn}
-                      onPress={() => {
-                        setSelectedAnalyticsItem(null);
-                        handleDuplicate(item);
-                      }}>
-                      <Ionicons name="copy-outline" size={14} color="#3B82F6" />
-                      <Text style={styles.drawerActionBtnText}>Duplicate</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.drawerActionBtn}
-                      onPress={() => {
-                        toggleVisibility(lid, item.title);
-                      }}>
-                      <Ionicons name={hiddenIds.includes(lid) ? 'eye' : 'eye-off-outline'} size={14} color={YELLOW} />
-                      <Text style={styles.drawerActionBtnText}>{hiddenIds.includes(lid) ? 'Publish' : 'Hide'}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.drawerActionBtn, { borderColor: '#EF4444' }]}
-                      onPress={() => {
-                        setSelectedAnalyticsItem(null);
-                        handleDelete(lid, item.title);
-                      }}>
-                      <Ionicons name="trash-outline" size={14} color="#EF4444" />
-                      <Text style={[styles.drawerActionBtnText, { color: '#EF4444' }]}>Delete</Text>
+                      <Ionicons name="create-outline" size={15} color={GOLD} />
+                      <Text style={styles.modalEditBtnText}>EDIT LISTING DETAILS</Text>
                     </TouchableOpacity>
                   </View>
-
-                  {/* Inventory Section (Products Only) */}
-                  {!isService && (
-                    <View style={styles.inventorySectionBox}>
-                      <Text style={styles.sectionHeaderTitle}>INVENTORY</Text>
-                      <View style={styles.inventoryStatusRow}>
-                        <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                          <Text style={styles.inventoryStockNum}>{stock}</Text>
-                          <Text style={styles.inventoryStockLabel}>in stock</Text>
-                        </View>
-
-                        <View style={[styles.inventoryBadge, stock <= 0 ? styles.invBadgeRed : stock <= threshold ? styles.invBadgeAmber : styles.invBadgeGreen]}>
-                          <Text style={[styles.inventoryBadgeText, stock <= 0 ? styles.invTextRed : stock <= threshold ? styles.invTextAmber : styles.invTextGreen]}>
-                            {stock <= 0 ? 'OUT OF STOCK' : stock <= threshold ? 'LOW STOCK' : 'IN STOCK'}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Stock Update Input Row */}
-                      <View style={styles.stockUpdateRow}>
-                        <TextInput
-                          style={styles.stockInput}
-                          placeholder="Update stock quantity"
-                          placeholderTextColor="rgba(255,255,255,0.4)"
-                          keyboardType="number-pad"
-                          value={stockInput}
-                          onChangeText={setStockInput}
-                        />
-                        <TouchableOpacity
-                          style={[styles.stockUpdateBtn, (!stockInput && stockInput !== '0') && { opacity: 0.5 }]}
-                          disabled={updatingStock || (!stockInput && stockInput !== '0')}
-                          onPress={() => handleStockUpdate(lid)}>
-                          <Text style={styles.stockUpdateBtnText}>
-                            {updatingStock ? 'Updating...' : 'Update'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Live Analytics Metrics Grid */}
-                  <Text style={styles.sectionHeaderTitle}>LIVE ANALYTICS</Text>
-                  <View style={styles.metricsGrid}>
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="eye-outline" size={15} color="#3B82F6" />
-                        <Text style={styles.metricCardLabel}>TOTAL VIEWS</Text>
-                      </View>
-                      <Text style={styles.metricCardVal}>{views.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="people-outline" size={15} color="#06B6D4" />
-                        <Text style={styles.metricCardLabel}>UNIQUE VISITORS</Text>
-                      </View>
-                      <Text style={styles.metricCardVal}>{uniqueVisitors.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="heart-outline" size={15} color="#EC4899" />
-                        <Text style={styles.metricCardLabel}>LIKES</Text>
-                      </View>
-                      <Text style={styles.metricCardVal}>{likes.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="bookmark-outline" size={15} color="#F59E0B" />
-                        <Text style={styles.metricCardLabel}>SAVES</Text>
-                      </View>
-                      <Text style={styles.metricCardVal}>{saves.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="share-social-outline" size={15} color="#10B981" />
-                        <Text style={styles.metricCardLabel}>SHARES</Text>
-                      </View>
-                      <Text style={styles.metricCardVal}>{shares.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name={isService ? 'calendar-outline' : 'cart-outline'} size={15} color="#8B5CF6" />
-                        <Text style={styles.metricCardLabel}>{isService ? 'BOOKINGS' : 'ORDERS'}</Text>
-                      </View>
-                      <Text style={styles.metricCardVal}>{orders.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="cash-outline" size={15} color="#10B981" />
-                        <Text style={styles.metricCardLabel}>REVENUE</Text>
-                      </View>
-                      <Text style={[styles.metricCardVal, { color: '#10B981' }]}>₹{revenue.toLocaleString('en-IN')}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="star-outline" size={15} color="#F59E0B" />
-                        <Text style={styles.metricCardLabel}>RATING</Text>
-                      </View>
-                      <Text style={styles.metricCardVal}>{rating > 0 ? `${rating.toFixed(1)} ⭐` : 'No rating'}</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="trending-up-outline" size={15} color="#8B5CF6" />
-                        <Text style={styles.metricCardLabel}>CONVERSION</Text>
-                      </View>
-                      <Text style={[styles.metricCardVal, { color: '#8B5CF6' }]}>{conversionRate}%</Text>
-                    </View>
-
-                    <View style={styles.metricCard}>
-                      <View style={styles.metricCardHeader}>
-                        <Ionicons name="bar-chart-outline" size={15} color="#F97316" />
-                        <Text style={styles.metricCardLabel}>CTR</Text>
-                      </View>
-                      <Text style={[styles.metricCardVal, { color: '#F97316' }]}>{ctr}%</Text>
-                    </View>
-                  </View>
-
-                  {/* Description Section */}
-                  {Boolean(item.description || item.caption) && (
-                    <View style={styles.descriptionBox}>
-                      <Text style={styles.sectionHeaderTitle}>DESCRIPTION</Text>
-                      <Text style={styles.descriptionText}>
-                        {item.description || item.caption}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Shipping & Specs Section (if available) */}
-                  {Boolean(item.weight || item.dimensions) && (
-                    <View style={styles.descriptionBox}>
-                      <Text style={styles.sectionHeaderTitle}>📦 SHIPPING & PACKAGE SPECIFICATIONS</Text>
-                      <View style={styles.shippingGrid}>
-                        <View style={styles.shippingItem}>
-                          <Text style={styles.shippingLabel}>WEIGHT</Text>
-                          <Text style={styles.shippingVal}>{item.weight || '0.5 kg'}</Text>
-                        </View>
-                        <View style={styles.shippingItem}>
-                          <Text style={styles.shippingLabel}>DIMENSIONS (L×W×H)</Text>
-                          <Text style={styles.shippingVal}>{item.dimensions || '10×10×10 cm'}</Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Full Store Analytics Redirect Button */}
-                  <TouchableOpacity
-                    style={styles.modalFullAnalyticsBtn}
-                    onPress={() => {
-                      const targetId = lid;
-                      setSelectedAnalyticsItem(null);
-                      router.push({
-                        pathname: '/vendor/analytics' as any,
-                        params: { listingId: targetId },
-                      } as any);
-                    }}>
-                    <Ionicons name="analytics-outline" size={15} color="#fff" />
-                    <Text style={styles.modalFullAnalyticsBtnText}>OPEN FULL STORE ANALYTICS DASHBOARD ›</Text>
-                  </TouchableOpacity>
                 </ScrollView>
               </View>
             );
@@ -756,7 +638,7 @@ export default function VendorCatalogScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: BG_COLOR,
   },
   header: {
     flexDirection: 'row',
@@ -764,9 +646,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
+    backgroundColor: ESPRESSO,
     borderBottomWidth: 2,
-    borderBottomColor: YELLOW,
-    backgroundColor: DARK_CARD,
+    borderBottomColor: GOLD,
   },
   backBtn: {
     width: 36,
@@ -775,7 +657,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: '#FFFFFF',
     fontSize: FontSize.md,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -784,13 +666,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 4,
+    backgroundColor: GOLD,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
   },
   addHeaderBtnText: {
-    color: BLACK,
+    color: '#0F172A',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -799,34 +681,35 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.three,
     gap: Spacing.two,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    borderBottomColor: BORDER_COLOR,
+    ...Shadows.sm,
   },
   tabPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 9999,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
   },
   tabPillActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: GOLD,
   },
   tabPillText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
     fontWeight: '700',
   },
   tabPillTextActive: {
-    color: BLACK,
+    color: GOLD,
     fontWeight: '900',
   },
 
@@ -835,41 +718,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.two,
+    paddingVertical: Spacing.three,
     gap: Spacing.two,
   },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
-    paddingHorizontal: 12,
-    height: 40,
-    borderRadius: 4,
+    backgroundColor: CARD_BG,
+    paddingHorizontal: 14,
+    height: 44,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     gap: 8,
+    ...Shadows.sm,
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
   },
   sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: DARK_CARD,
-    paddingHorizontal: 10,
-    height: 40,
-    borderRadius: 4,
+    gap: 6,
+    backgroundColor: CARD_BG,
+    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
+    ...Shadows.sm,
   },
   sortBtnText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 
   /* List & Cards */
@@ -886,30 +771,31 @@ const styles = StyleSheet.create({
 
   /* Card */
   card: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 6,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     overflow: 'hidden',
+    ...Shadows.sm,
   },
   cardHidden: {
     opacity: 0.6,
   },
   cardMainRow: {
     flexDirection: 'row',
-    padding: 10,
-    gap: 10,
+    padding: 12,
+    gap: 12,
   },
   cardImage: {
-    width: 76,
-    height: 76,
-    borderRadius: 4,
+    width: 80,
+    height: 80,
+    borderRadius: 10,
   },
   cardImageFallback: {
-    width: 76,
-    height: 76,
-    borderRadius: 4,
-    backgroundColor: BLACK,
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -918,12 +804,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '800',
   },
   categorySubText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     marginTop: 2,
   },
@@ -935,43 +821,43 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   priceText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   statusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-    backgroundColor: 'rgba(34,197,94,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: '#22C55E',
+    borderColor: '#059669',
   },
   statusBadgeText: {
-    color: '#22C55E',
+    color: '#059669',
     fontSize: 9,
     fontWeight: '900',
   },
   statusBadgeDraft: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: '#F1F5F9',
+    borderColor: BORDER_COLOR,
   },
   statusBadgeTextDraft: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
   },
   stockPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 3,
-    backgroundColor: 'rgba(59,130,246,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 9999,
+    backgroundColor: '#EFF6FF',
   },
   stockPillText: {
-    color: '#3B82F6',
+    color: '#2563EB',
     fontSize: 9,
     fontWeight: '800',
   },
   stockPillLow: {
-    backgroundColor: 'rgba(239,68,68,0.15)',
+    backgroundColor: '#FEF2F2',
   },
   stockPillTextLow: {
     color: '#EF4444',
@@ -982,11 +868,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#121216',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: BORDER,
+    borderTopColor: BORDER_COLOR,
   },
   metricsRow: {
     flexDirection: 'row',
@@ -999,12 +885,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metricValue: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 11,
     fontWeight: '800',
   },
   dateText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 10,
   },
   actionsRow: {
@@ -1013,14 +899,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   actionIconBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 4,
-    backgroundColor: DARK_CARD,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadows.sm,
   },
 
   /* Empty State */
@@ -1031,12 +918,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   emptyTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   emptyDesc: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
     textAlign: 'center',
     paddingHorizontal: 30,
@@ -1045,14 +932,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 4,
+    borderRadius: 9999,
     marginTop: 10,
   },
   createListingBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -1060,46 +947,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E1E12',
-    borderWidth: 1,
-    borderColor: YELLOW,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: GOLD,
     paddingHorizontal: Spacing.four,
-    paddingVertical: 10,
-    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+    gap: 10,
+    marginHorizontal: Spacing.four,
+    marginTop: 10,
+    ...Shadows.sm,
   },
   verifyBannerLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  verifyDot: {
-    color: '#10B981',
-    fontSize: 12,
+    gap: 8,
   },
   verifyText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
+    color: TEXT_MAIN,
+    fontSize: 11,
+    fontWeight: '800',
   },
   verifyBtn: {
-    backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: ESPRESSO,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 9999,
   },
   verifyBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '900',
   },
   subBannerCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: BORDER,
-    padding: 14,
-    borderRadius: 6,
+    borderColor: BORDER_COLOR,
+    padding: 16,
+    borderRadius: 16,
     gap: 10,
     marginBottom: 12,
+    ...Shadows.sm,
   },
   subBannerTopRow: {
     flexDirection: 'row',
@@ -1107,24 +996,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   freeBadge: {
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: YELLOW,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    backgroundColor: ESPRESSO,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 9999,
   },
   freeBadgeText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 9,
     fontWeight: '900',
   },
   realtimeSyncText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
   subBannerDesc: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 11,
     lineHeight: 16,
   },
@@ -1134,7 +1022,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkGridItem: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 10,
     fontWeight: '800',
   },
@@ -1143,14 +1031,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingVertical: 10,
+    borderRadius: 9999,
     marginTop: 4,
   },
   showSubBtnText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1159,19 +1046,20 @@ const styles = StyleSheet.create({
   /* Item Analytics Modal Styles */
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
-    backgroundColor: DARK_CARD,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    backgroundColor: CARD_BG,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     maxHeight: '85%',
+    ...Shadows.lg,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1180,7 +1068,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    borderBottomColor: BORDER_COLOR,
   },
   modalTitleRow: {
     flexDirection: 'row',
@@ -1188,7 +1076,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   modalTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -1198,10 +1086,10 @@ const styles = StyleSheet.create({
   },
   itemSummaryCard: {
     flexDirection: 'row',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: BORDER,
-    borderRadius: 8,
+    borderColor: BORDER_COLOR,
+    borderRadius: 14,
     padding: 12,
     gap: 12,
     marginBottom: 16,
@@ -1209,15 +1097,13 @@ const styles = StyleSheet.create({
   itemSummaryImage: {
     width: 60,
     height: 60,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: BORDER,
+    borderRadius: 10,
   },
   itemSummaryFallback: {
     width: 60,
     height: 60,
-    borderRadius: 6,
-    backgroundColor: '#23232A',
+    borderRadius: 10,
+    backgroundColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1226,13 +1112,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   itemSummaryTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 13,
     fontWeight: '800',
     marginBottom: 2,
   },
   itemSummarySub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '600',
     marginBottom: 6,
@@ -1243,12 +1129,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   itemSummaryPrice: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 14,
     fontWeight: '900',
   },
   sectionHeaderTitle: {
-    color: 'rgba(255,255,255,0.5)',
+    color: ESPRESSO,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -1261,12 +1147,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   metricCard: {
-    width: '48%',
-    backgroundColor: BLACK,
+    width: '48.5%',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_COLOR,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   metricCardHeader: {
     flexDirection: 'row',
@@ -1275,94 +1161,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   metricCardLabel: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   metricCardVal: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 18,
     fontWeight: '900',
     marginBottom: 2,
   },
   metricCardSub: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 9,
     fontWeight: '600',
   },
-  conversionBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 14,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  conversionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  conversionTitle: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  conversionSub: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-  },
-  conversionVal: {
-    color: '#10B981',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  boostRoiBox: {
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: YELLOW,
-    padding: 14,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  boostRoiHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
-  },
-  boostRoiTitle: {
-    color: YELLOW,
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  boostRoiDesc: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
-    lineHeight: 16,
-    marginBottom: 12,
-  },
-  boostBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: YELLOW,
-    paddingVertical: 10,
-    borderRadius: 6,
-  },
-  boostBtnText: {
-    color: BLACK,
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
+
   modalActionRow: {
     flexDirection: 'row',
     gap: 10,
@@ -1374,63 +1189,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingVertical: 12,
-    borderRadius: 6,
+    borderRadius: 9999,
   },
   modalEditBtnText: {
-    color: YELLOW,
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  modalFullAnalyticsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: YELLOW,
-    paddingVertical: 12,
-    borderRadius: 6,
-    marginTop: 10,
-    marginBottom: 24,
-  },
-  modalFullAnalyticsBtnText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: 11,
     fontWeight: '900',
   },
-  drawerQuickActionsRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  drawerActionBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  drawerActionBtnText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '800',
-  },
+
   inventorySectionBox: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: BORDER,
-    padding: 12,
-    borderRadius: 8,
+    borderColor: BORDER_COLOR,
+    padding: 14,
+    borderRadius: 14,
     marginBottom: 16,
   },
   inventoryStatusRow: {
@@ -1440,12 +1214,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   inventoryStockNum: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: 22,
     fontWeight: '900',
   },
   inventoryStockLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     fontWeight: '700',
     marginLeft: 6,
@@ -1453,27 +1227,27 @@ const styles = StyleSheet.create({
   inventoryBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 4,
+    borderRadius: 9999,
     borderWidth: 1,
   },
   invBadgeGreen: {
-    backgroundColor: '#064E3B',
-    borderColor: '#10B981',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#059669',
   },
   invBadgeAmber: {
-    backgroundColor: '#451A03',
-    borderColor: '#F59E0B',
+    backgroundColor: '#FFFBEB',
+    borderColor: GOLD,
   },
   invBadgeRed: {
-    backgroundColor: '#4C0519',
+    backgroundColor: '#FEF2F2',
     borderColor: '#EF4444',
   },
   inventoryBadgeText: {
     fontSize: 9,
     fontWeight: '900',
   },
-  invTextGreen: { color: '#10B981' },
-  invTextAmber: { color: '#F59E0B' },
+  invTextGreen: { color: '#059669' },
+  invTextAmber: { color: GOLD },
   invTextRed: { color: '#EF4444' },
   stockUpdateRow: {
     flexDirection: 'row',
@@ -1481,63 +1255,26 @@ const styles = StyleSheet.create({
   },
   stockInput: {
     flex: 1,
-    backgroundColor: '#1E1E24',
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: BORDER,
-    color: '#fff',
+    borderColor: BORDER_COLOR,
+    color: TEXT_MAIN,
     fontSize: 11,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 10,
   },
   stockUpdateBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 9999,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stockUpdateBtnText: {
-    color: BLACK,
+    color: GOLD,
     fontSize: 11,
     fontWeight: '900',
-  },
-  descriptionBox: {
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  descriptionText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  shippingGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
-  },
-  shippingItem: {
-    flex: 1,
-    backgroundColor: '#1E1E24',
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 10,
-    borderRadius: 6,
-  },
-  shippingLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 9,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  shippingVal: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '800',
   },
 });

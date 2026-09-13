@@ -187,7 +187,7 @@ export default function DirectChatThreadScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={18} color="#1E1B18" />
         </TouchableOpacity>
 
         {/* Participant Header Info */}
@@ -199,24 +199,24 @@ export default function DirectChatThreadScreen() {
               <Text style={styles.headerAvatarText}>{participantName.charAt(0).toUpperCase()}</Text>
             </View>
           )}
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.headerName} numberOfLines={1}>{participantName}</Text>
             <View style={styles.statusRow}>
               <View style={styles.onlineDot} />
-              <Text style={styles.statusText}>Active Now • 98% Response Rate</Text>
+              <Text style={styles.statusText}>Active Now • Fast Response</Text>
             </View>
           </View>
         </View>
 
         <TouchableOpacity style={styles.backBtn} onPress={() => refetch()}>
-          <Ionicons name="refresh" size={18} color="#fff" />
+          <Ionicons name="refresh" size={18} color="#D99A3D" />
         </TouchableOpacity>
       </View>
 
       {/* Messages Feed */}
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={BrandColors.primary} />
+          <ActivityIndicator size="large" color="#D99A3D" />
         </View>
       ) : (
         <FlatList
@@ -269,22 +269,22 @@ export default function DirectChatThreadScreen() {
       )}
 
       {/* Message Input Footer Bar */}
-      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <TouchableOpacity
           style={styles.attachmentBtn}
           onPress={pickPhotoMedia}
           disabled={uploading}>
           {uploading ? (
-            <ActivityIndicator size="small" color={BrandColors.primary} />
+            <ActivityIndicator size="small" color="#D99A3D" />
           ) : (
-            <Ionicons name="image-outline" size={22} color={BrandColors.primary} />
+            <Ionicons name="image-outline" size={20} color="#D99A3D" />
           )}
         </TouchableOpacity>
 
         <TextInput
           style={styles.chatInput}
-          placeholder="Type your message here..."
-          placeholderTextColor="rgba(255,255,255,0.4)"
+          placeholder="Type your message..."
+          placeholderTextColor="#6E675F"
           value={textInput}
           onChangeText={setTextInput}
           multiline
@@ -295,9 +295,9 @@ export default function DirectChatThreadScreen() {
           onPress={handleSend}
           disabled={!textInput.trim() && !attachedMedia}>
           {sendMessageMutation.isPending ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <ActivityIndicator size="small" color="#D99A3D" />
           ) : (
-            <Ionicons name="send" size={16} color="#fff" />
+            <Ionicons name="send" size={15} color="#D99A3D" />
           )}
         </TouchableOpacity>
       </View>
@@ -305,30 +305,34 @@ export default function DirectChatThreadScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_MATTE = '#F6F4EE';
+const CARD_MATTE = '#FBF9F5';
+const INSET_MATTE = '#F0EDE4';
+const BORDER_MATTE = '#E5E0D4';
+const TEXT_MAIN = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_MATTE },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    backgroundColor: BLACK,
+    backgroundColor: CARD_MATTE,
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
+    borderBottomColor: BORDER_MATTE,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 18,
+    backgroundColor: BG_MATTE,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_MATTE,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -342,23 +346,23 @@ const styles = StyleSheet.create({
   headerAvatar: {
     width: 36,
     height: 36,
-    borderRadius: 0,
+    borderRadius: 18,
   },
   headerAvatarFallback: {
     width: 36,
     height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 18,
+    backgroundColor: ESPRESSO,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: GOLD,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerAvatarText: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900' },
-  headerName: { color: '#fff', fontSize: FontSize.xs, fontWeight: '900' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  onlineDot: { width: 6, height: 6, borderRadius: 0, backgroundColor: YELLOW },
-  statusText: { color: 'rgba(255,255,255,0.5)', fontSize: 9 },
+  headerAvatarText: { color: GOLD, fontSize: FontSize.sm, fontWeight: '900' },
+  headerName: { color: TEXT_MAIN, fontSize: FontSize.sm, fontWeight: '900' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 },
+  onlineDot: { width: 7, height: 7, borderRadius: 9999, backgroundColor: '#10B981' },
+  statusText: { color: TEXT_MUTED, fontSize: 10, fontWeight: '600' },
 
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   messagesContainer: { padding: Spacing.three, gap: 10 },
@@ -374,96 +378,106 @@ const styles = StyleSheet.create({
     maxWidth: '82%',
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 0,
+    borderRadius: 18,
     gap: 4,
+    shadowColor: '#1E1B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   bubbleMe: {
-    backgroundColor: YELLOW,
-    borderWidth: 1,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderWidth: 1.5,
+    borderColor: GOLD,
+    borderBottomRightRadius: 4,
   },
   bubbleOther: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_MATTE,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_MATTE,
+    borderBottomLeftRadius: 4,
   },
 
   mediaImage: {
     width: 180,
     height: 140,
-    borderRadius: 0,
+    borderRadius: 12,
     marginBottom: 4,
   },
   messageText: {
-    fontSize: FontSize.xs,
-    lineHeight: 18,
+    fontSize: FontSize.sm,
+    lineHeight: 19,
   },
-  messageTextMe: { color: BLACK, fontWeight: '900' },
-  messageTextOther: { color: '#fff', fontWeight: FontWeight.semibold },
+  messageTextMe: { color: '#F8FAFC', fontWeight: '600' },
+  messageTextOther: { color: TEXT_MAIN, fontWeight: '600' },
 
   messageTime: {
-    fontSize: 9,
+    fontSize: 9.5,
     alignSelf: 'flex-end',
     marginTop: 2,
   },
-  messageTimeMe: { color: 'rgba(15,15,18,0.7)', fontWeight: '700' },
-  messageTimeOther: { color: 'rgba(255,255,255,0.4)' },
+  messageTimeMe: { color: GOLD, fontWeight: '700' },
+  messageTimeOther: { color: TEXT_MUTED, fontWeight: '600' },
 
   attachedPreviewRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_MATTE,
     paddingHorizontal: Spacing.three,
-    paddingVertical: 6,
+    paddingVertical: 8,
     gap: Spacing.two,
     borderTopWidth: 1,
-    borderTopColor: BORDER,
+    borderTopColor: BORDER_MATTE,
   },
-  attachedImageThumb: { width: 28, height: 28, borderRadius: 0 },
-  attachedText: { flex: 1, color: '#fff', fontSize: 10, fontWeight: '900' },
+  attachedImageThumb: { width: 32, height: 32, borderRadius: 8 },
+  attachedText: { flex: 1, color: TEXT_MAIN, fontSize: 11, fontWeight: '700' },
 
   inputBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: CARD_MATTE,
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
     gap: Spacing.two,
     borderTopWidth: 1,
-    borderTopColor: BORDER,
+    borderTopColor: BORDER_MATTE,
   },
   attachmentBtn: {
     width: 38,
     height: 38,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 19,
+    backgroundColor: INSET_MATTE,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_MATTE,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chatInput: {
     flex: 1,
-    backgroundColor: DARK_CARD,
-    color: '#fff',
-    borderRadius: 0,
+    backgroundColor: INSET_MATTE,
+    color: TEXT_MAIN,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: BORDER_MATTE,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     maxHeight: 100,
   },
   sendBtn: {
     width: 38,
     height: 38,
-    borderRadius: 0,
-    backgroundColor: YELLOW,
+    borderRadius: 19,
+    backgroundColor: ESPRESSO,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: GOLD,
   },
   sendBtnDisabled: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: INSET_MATTE,
+    borderColor: BORDER_MATTE,
     opacity: 0.5,
   },
 });

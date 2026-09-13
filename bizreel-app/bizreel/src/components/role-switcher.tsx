@@ -19,10 +19,10 @@ import { useAuth } from '@/features/auth/context';
 
 export type UserRole = 'customer' | 'vendor' | 'creator';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#2563EB';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
 
 const ROLES_CONFIG: Record<
   UserRole,
@@ -121,7 +121,7 @@ export function RoleSwitcher() {
                 </Text>
               </View>
               <Pressable style={styles.closeBtn} onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={16} color="#fff" />
+                <Ionicons name="close" size={16} color="#0F172A" />
               </Pressable>
             </View>
 
@@ -139,7 +139,7 @@ export function RoleSwitcher() {
                     <Ionicons
                       name={meta.icon}
                       size={18}
-                      color={isSelected ? BLACK : 'rgba(255,255,255,0.6)'}
+                      color={isSelected ? '#FFFFFF' : '#64748B'}
                     />
                   </View>
 
@@ -163,7 +163,7 @@ export function RoleSwitcher() {
                     <Ionicons
                       name={isSelected ? 'checkmark' : 'chevron-forward'}
                       size={16}
-                      color={isSelected ? BLACK : 'rgba(255,255,255,0.25)'}
+                      color={isSelected ? YELLOW : '#94A3B8'}
                     />
                   )}
                 </TouchableOpacity>
@@ -181,15 +181,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 0,
+    borderRadius: 20,
   },
   roleChipText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#0F172A',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.3,
@@ -200,10 +200,12 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(15,23,42,0.4)',
   },
   drawer: {
     backgroundColor: DARK_CARD,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderTopWidth: 1,
     borderTopColor: BORDER,
     padding: Spacing.four,
@@ -218,20 +220,20 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.three,
   },
   drawerTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   drawerSub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748B',
     fontSize: 11,
     marginTop: 2,
   },
   closeBtn: {
     width: 28,
     height: 28,
-    borderRadius: 0,
-    backgroundColor: BLACK,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
@@ -240,27 +242,27 @@ const styles = StyleSheet.create({
   roleOption: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     padding: Spacing.three,
-    borderRadius: 0,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER,
     gap: Spacing.three,
   },
   roleOptionSelected: {
-    backgroundColor: YELLOW,
+    backgroundColor: '#EFF6FF',
     borderColor: YELLOW,
   },
   roleIconBox: {
     width: 36,
     height: 36,
-    borderRadius: 0,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   roleIconBoxSelected: {
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: YELLOW,
   },
   roleTitleRow: {
     flexDirection: 'row',
@@ -268,26 +270,26 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   roleOptionTitle: {
-    color: 'rgba(255,255,255,0.9)',
+    color: '#0F172A',
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   roleOptionTitleSelected: {
-    color: BLACK,
+    color: YELLOW,
   },
   roleOptionDesc: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#64748B',
     fontSize: 10,
     marginTop: 2,
   },
   activeTag: {
-    backgroundColor: BLACK,
+    backgroundColor: YELLOW,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 0,
+    borderRadius: 6,
   },
   activeTagText: {
-    color: YELLOW,
+    color: '#FFFFFF',
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 0.5,

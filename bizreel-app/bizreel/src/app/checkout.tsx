@@ -231,7 +231,7 @@ export default function CheckoutScreen() {
       {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color="#1E1B18" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Checkout</Text>
         <View style={{ width: 36 }} />
@@ -346,7 +346,7 @@ export default function CheckoutScreen() {
           onPress={handlePlaceOrder}
           disabled={submitting}>
           {submitting ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color="#D99A3D" />
           ) : (
             <Text style={styles.placeOrderBtnText}>Confirm & Place Order (₹{displayTotal})</Text>
           )}
@@ -356,15 +356,18 @@ export default function CheckoutScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#D99A3D';
+const BLACK = '#F6F4EE';
+const DARK_CARD = '#FBF9F5';
+const INSET_BG = '#F0EDE4';
+const BORDER = '#E5E0D4';
+const TEXT_MAIN = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: BLACK,
   },
   center: {
     alignItems: 'center',
@@ -373,29 +376,31 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   loadingText: {
-    color: '#fff',
+    color: TEXT_MUTED,
     fontSize: FontSize.base,
   },
   emptyTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
   },
   emptySub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: FontSize.sm,
     textAlign: 'center',
     maxWidth: 280,
   },
   browseBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: '#241B15',
     paddingHorizontal: Spacing.four,
     paddingVertical: 12,
-    borderRadius: 0,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: YELLOW,
     marginTop: Spacing.two,
   },
   browseBtnText: {
-    color: BLACK,
+    color: YELLOW,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
@@ -407,20 +412,20 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: BLACK,
+    backgroundColor: DARK_CARD,
   },
   iconBtn: {
     width: 36,
     height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 18,
+    backgroundColor: BLACK,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
@@ -431,11 +436,16 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    borderRadius: 16,
     padding: Spacing.three,
     borderWidth: 1,
     borderColor: BORDER,
     gap: Spacing.two,
+    shadowColor: '#1E1B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -444,14 +454,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.one,
   },
   cardTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
   addressInput: {
-    backgroundColor: BLACK,
-    color: '#fff',
-    borderRadius: 0,
+    backgroundColor: INSET_BG,
+    color: TEXT_MAIN,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
     padding: Spacing.three,
@@ -480,12 +490,12 @@ const styles = StyleSheet.create({
   itemThumb: {
     width: 48,
     height: 48,
-    borderRadius: 0,
+    borderRadius: 10,
   },
   itemThumbFallback: {
     width: 48,
     height: 48,
-    borderRadius: 0,
+    borderRadius: 10,
     backgroundColor: BLACK,
     borderWidth: 1,
     borderColor: BORDER,
@@ -497,12 +507,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   summaryItemTitle: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   itemQtyPrice: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
   },
   summaryItemPrice: {
@@ -514,18 +524,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: BLACK,
+    backgroundColor: INSET_BG,
     padding: Spacing.three,
-    borderRadius: 0,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
   },
   paymentOptionSelected: {
     borderColor: YELLOW,
-    backgroundColor: YELLOW,
+    backgroundColor: 'rgba(217, 154, 61, 0.12)',
   },
   paymentText: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
@@ -535,11 +545,11 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   billLabel: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: FontSize.sm,
   },
   billValue: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.sm,
     fontWeight: '600',
   },
@@ -550,7 +560,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.one,
   },
   totalBillLabel: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
@@ -571,14 +581,16 @@ const styles = StyleSheet.create({
     borderTopColor: BORDER,
   },
   placeOrderBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: '#241B15',
     height: 48,
-    borderRadius: 0,
+    borderRadius: 9999,
+    borderWidth: 1.5,
+    borderColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeOrderBtnText: {
-    color: BLACK,
+    color: YELLOW,
     fontSize: FontSize.base,
     fontWeight: '900',
   },

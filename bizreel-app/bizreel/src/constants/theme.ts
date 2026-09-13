@@ -7,7 +7,7 @@ import '@/global.css';
 import { Platform } from 'react-native';
 
 // ---------------------------------------------------------------------------
-// Brand colors — Dark Contrast Theme
+// Brand colors — Matte Finish Warm Bento Theme
 // ---------------------------------------------------------------------------
 export const BrandColors = {
   /** Primary gold — buttons, highlights, links */
@@ -17,19 +17,19 @@ export const BrandColors = {
   /** Darker gold — active / focus state */
   primaryDark: '#D97706',
   /** Primary text on gold background */
-  onPrimary: '#0F0F12',
-  /** App background warm tint */
-  warmBackground: '#0F0F12',
-  /** Card background */
-  cardBackground: '#18181C',
-  /** Divider / border color */
-  border: '#2D2D36',
-  /** Input field background */
-  inputBackground: '#18181C',
+  onPrimary: '#1E1B18',
+  /** App background warm matte texture tint */
+  warmBackground: '#F6F4EE',
+  /** Card background warm matte finish */
+  cardBackground: '#FBF9F5',
+  /** Tactile divider / border color */
+  border: '#E5E0D4',
+  /** Input field matte background */
+  inputBackground: '#F0EDE4',
   /** Placeholder text */
-  placeholder: 'rgba(255,255,255,0.4)',
+  placeholder: 'rgba(30,27,24,0.45)',
   /** Success green */
-  success: '#22C55E',
+  success: '#10B981',
   /** Error red */
   error: '#EF4444',
   /** Warning amber */
@@ -41,24 +41,24 @@ export const BrandColors = {
 // ---------------------------------------------------------------------------
 export const Colors = {
   light: {
-    text: '#F5F5F5',
-    textSecondary: '#A0A0A0',
-    background: '#121212',
-    backgroundElement: '#1E1E1E',
-    backgroundSelected: '#2A2A2A',
-    border: '#2E2E2E',
-    inputBackground: '#1E1E1E',
-    placeholder: '#555555',
+    text: '#1E1B18',
+    textSecondary: '#6E675F',
+    background: '#F6F4EE',
+    backgroundElement: '#FBF9F5',
+    backgroundSelected: '#F0EDE4',
+    border: '#E5E0D4',
+    inputBackground: '#F0EDE4',
+    placeholder: '#8C857B',
   },
   dark: {
-    text: '#F5F5F5',
-    textSecondary: '#A0A0A0',
-    background: '#121212',
-    backgroundElement: '#1E1E1E',
-    backgroundSelected: '#2A2A2A',
-    border: '#2E2E2E',
-    inputBackground: '#1E1E1E',
-    placeholder: '#555555',
+    text: '#1E1B18',
+    textSecondary: '#6E675F',
+    background: '#F6F4EE',
+    backgroundElement: '#FBF9F5',
+    backgroundSelected: '#F0EDE4',
+    border: '#E5E0D4',
+    inputBackground: '#F0EDE4',
+    placeholder: '#8C857B',
   },
 } as const;
 
@@ -124,16 +124,44 @@ export const Spacing = {
 } as const;
 
 export const MaxContentWidth = 1200;
-export const BottomTabInset = 80;
+export const BottomTabInset = 64;
 
 // ---------------------------------------------------------------------------
-// Border radius
+// Border radius — Bento Grid Soft Rounded Tokens
 // ---------------------------------------------------------------------------
 export const Radius = {
   none: 0,
-  sm: 4,
-  md: 8,
-  lg: 12,
-  xl: 16,
+  sm: 6,
+  md: 10,
+  lg: 16,
+  xl: 20,
   full: 9999,
 } as const;
+
+// ---------------------------------------------------------------------------
+// Bento Grid Shadows & Elevation
+// ---------------------------------------------------------------------------
+export const Shadows = {
+  sm: {
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  lg: {
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+} as const;
+

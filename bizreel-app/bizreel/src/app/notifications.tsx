@@ -25,10 +25,10 @@ import {
 } from '@/features/notifications/queries';
 import { resolveImageUrl } from '@/utils/image';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#2563EB';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
 
 const TABS = [
   { id: 'all', label: 'All', icon: 'notifications-outline' },
@@ -143,7 +143,7 @@ export default function NotificationsScreen() {
       {/* Header Bar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color="#0F172A" />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Notifications</Text>
@@ -156,7 +156,7 @@ export default function NotificationsScreen() {
           <TouchableOpacity
             style={styles.markAllBtn}
             onPress={() => markAllReadMutation.mutate(activeRole)}>
-            <Ionicons name="checkmark-done" size={14} color={BLACK} />
+            <Ionicons name="checkmark-done" size={14} color="#FFFFFF" />
             <Text style={styles.markAllBtnText}>Read All</Text>
           </TouchableOpacity>
         )}
@@ -180,7 +180,7 @@ export default function NotificationsScreen() {
                 <Ionicons
                   name={item.icon as any}
                   size={14}
-                  color={isSelected ? BLACK : 'rgba(255,255,255,0.7)'}
+                  color={isSelected ? '#FFFFFF' : '#64748B'}
                 />
                 <Text style={[styles.tabChipText, isSelected && styles.tabChipTextActive]}>
                   {item.label}
@@ -206,7 +206,7 @@ export default function NotificationsScreen() {
         </View>
       ) : filteredList.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="notifications-off-outline" size={48} color="rgba(255,255,255,0.3)" />
+          <Ionicons name="notifications-off-outline" size={48} color="#94A3B8" />
           <Text style={styles.emptyTitle}>No Notifications Found</Text>
           <Text style={styles.emptySub}>
             You have no updates under this filter. Likes, bids, comments, and orders will appear here.
@@ -250,18 +250,15 @@ export default function NotificationsScreen() {
                     </Text>
                     <Text style={styles.notifTime}>{formatTimestamp(item.createdAt)}</Text>
                   </View>
-
                   <Text style={styles.notifBody} numberOfLines={2}>
-                    {item.message || item.body || 'New notification update.'}
+                    {item.message || item.body || (item as any).content || 'New update'}
                   </Text>
                 </View>
 
-                {/* Delete button */}
                 <TouchableOpacity
                   style={styles.deleteBtn}
-                  onPress={() => handleDelete(item._id || item.id || '')}
-                  hitSlop={8}>
-                  <Ionicons name="trash-outline" size={14} color="rgba(255,255,255,0.4)" />
+                  onPress={() => deleteMutation.mutate(item._id || item.id)}>
+                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
                 </TouchableOpacity>
               </TouchableOpacity>
             );
@@ -273,7 +270,7 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -282,57 +279,61 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
+    backgroundColor: '#FFFFFF',
   },
   backBtn: {
     width: 36,
     height: 36,
-    backgroundColor: DARK_CARD,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
+  headerTitle: { color: '#0F172A', fontSize: FontSize.md, fontWeight: '900' },
   headerSubtitle: { color: YELLOW, fontSize: 10, fontWeight: '700' },
   markAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     backgroundColor: YELLOW,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  markAllBtnText: { color: BLACK, fontSize: 11, fontWeight: '900' },
+  markAllBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
   tabsRow: {
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: DARK_CARD,
+    backgroundColor: '#FFFFFF',
   },
   tabChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   tabChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  tabChipText: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '700' },
-  tabChipTextActive: { color: BLACK, fontWeight: '900' },
+  tabChipText: { color: '#64748B', fontSize: 11, fontWeight: '700' },
+  tabChipTextActive: { color: '#FFFFFF', fontWeight: '900' },
   tabBadge: {
     backgroundColor: '#EF4444',
     paddingHorizontal: 6,
     paddingVertical: 1,
     borderRadius: 8,
   },
-  tabBadgeActive: { backgroundColor: BLACK },
+  tabBadgeActive: { backgroundColor: '#FFFFFF' },
   tabBadgeText: { color: '#fff', fontSize: 9, fontWeight: '900' },
   tabBadgeTextActive: { color: YELLOW },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '700' },
+  loadingText: { color: '#64748B', fontSize: 12, fontWeight: '700' },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -340,8 +341,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     gap: 12,
   },
-  emptyTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
-  emptySub: { color: 'rgba(255,255,255,0.5)', fontSize: 12, textAlign: 'center', lineHeight: 18 },
+  emptyTitle: { color: '#0F172A', fontSize: FontSize.md, fontWeight: '900' },
+  emptySub: { color: '#64748B', fontSize: 12, textAlign: 'center', lineHeight: 18 },
   listContent: { padding: Spacing.four, gap: 10 },
   notifCard: {
     flexDirection: 'row',
@@ -349,19 +350,25 @@ const styles = StyleSheet.create({
     backgroundColor: DARK_CARD,
     borderWidth: 1,
     borderColor: BORDER,
+    borderRadius: 16,
     padding: 12,
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   notifCardUnread: {
-    borderColor: YELLOW,
-    backgroundColor: '#1E1B13',
+    borderColor: '#BFDBFE',
+    backgroundColor: '#EFF6FF',
   },
   iconWrapper: { position: 'relative' },
   iconCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
@@ -377,11 +384,11 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: YELLOW,
     borderWidth: 1,
-    borderColor: BLACK,
+    borderColor: '#FFFFFF',
   },
-  notifTitle: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '700', flex: 1 },
-  notifTitleUnread: { color: '#fff', fontWeight: '900' },
-  notifTime: { color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600', marginLeft: 6 },
-  notifBody: { color: 'rgba(255,255,255,0.65)', fontSize: 11, lineHeight: 16 },
+  notifTitle: { color: '#334155', fontSize: 12, fontWeight: '700', flex: 1 },
+  notifTitleUnread: { color: '#0F172A', fontWeight: '900' },
+  notifTime: { color: '#94A3B8', fontSize: 10, fontWeight: '600', marginLeft: 6 },
+  notifBody: { color: '#64748B', fontSize: 11, lineHeight: 16 },
   deleteBtn: { padding: 4 },
 });

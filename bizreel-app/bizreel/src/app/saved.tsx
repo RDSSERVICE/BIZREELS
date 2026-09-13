@@ -137,7 +137,7 @@ export default function SavedScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={18} color="#1E1B18" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>SAVED ITEMS & BOOKMARKS</Text>
         <View style={{ width: 36 }} />
@@ -151,7 +151,7 @@ export default function SavedScreen() {
           <Ionicons
             name="film"
             size={14}
-            color={activeTab === 'reels' ? BLACK : 'rgba(255,255,255,0.7)'}
+            color={activeTab === 'reels' ? YELLOW : TEXT_MUTED}
           />
           <Text style={[styles.tabText, activeTab === 'reels' && styles.tabTextActive]}>
             Saved Reels ({savedReels.length})
@@ -164,7 +164,7 @@ export default function SavedScreen() {
           <Ionicons
             name="bookmark"
             size={14}
-            color={activeTab === 'listings' ? BLACK : 'rgba(255,255,255,0.7)'}
+            color={activeTab === 'listings' ? YELLOW : TEXT_MUTED}
           />
           <Text style={[styles.tabText, activeTab === 'listings' && styles.tabTextActive]}>
             Saved Products ({savedListings.length})
@@ -321,10 +321,12 @@ export default function SavedScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#D99A3D';
+const BLACK = '#F6F4EE';
+const DARK_CARD = '#FBF9F5';
+const BORDER = '#E5E0D4';
+const TEXT_MAIN = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLACK },
@@ -334,21 +336,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: DARK_CARD,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
   backBtn: {
-    width: 32,
-    height: 32,
-    backgroundColor: DARK_CARD,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: BLACK,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: BORDER,
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: 14,
+    color: TEXT_MAIN,
+    fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
@@ -358,7 +362,7 @@ const styles = StyleSheet.create({
     gap: 8,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: '#141418',
+    backgroundColor: DARK_CARD,
   },
   tabBtn: {
     flex: 1,
@@ -367,30 +371,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 8,
-    backgroundColor: DARK_CARD,
+    borderRadius: 20,
+    backgroundColor: BLACK,
     borderWidth: 1,
     borderColor: BORDER,
   },
   tabBtnActive: {
-    backgroundColor: YELLOW,
+    backgroundColor: '#241B15',
     borderColor: YELLOW,
   },
   tabText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   tabTextActive: {
-    color: BLACK,
+    color: YELLOW,
     fontWeight: '900',
   },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  loadingText: { color: 'rgba(255,255,255,0.7)', fontSize: 12 },
+  loadingText: { color: TEXT_MUTED, fontSize: 12 },
   gridContainer: { padding: 4 },
   gridItem: {
     width: '32.5%',
     height: 160,
     margin: '0.4%',
+    borderRadius: 12,
+    overflow: 'hidden',
     backgroundColor: DARK_CARD,
     position: 'relative',
     borderWidth: 1,
@@ -417,8 +424,9 @@ const styles = StyleSheet.create({
     bottom: 4,
     left: 4,
     backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 9999,
   },
   iconRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   overlayText: { color: '#fff', fontSize: 10, fontWeight: '800' },
@@ -427,24 +435,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: DARK_CARD,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 10,
     gap: 12,
+    shadowColor: '#1E1B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardImg: { width: 64, height: 64, borderRadius: 4 },
+  cardImg: { width: 64, height: 64, borderRadius: 10 },
   cardFallbackImg: {
     width: 64,
     height: 64,
-    borderRadius: 4,
+    borderRadius: 10,
     backgroundColor: BLACK,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardDetails: { flex: 1, gap: 2 },
-  cardTitle: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  cardTitle: { color: TEXT_MAIN, fontSize: 13, fontWeight: '800' },
   cardPrice: { color: YELLOW, fontSize: 14, fontWeight: '900' },
-  cardVendor: { color: 'rgba(255,255,255,0.6)', fontSize: 11 },
+  cardVendor: { color: TEXT_MUTED, fontSize: 11 },
   cardUnsaveBtn: { padding: 8 },
   emptyContainer: {
     alignItems: 'center',
@@ -453,9 +467,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     gap: 12,
   },
-  emptyTitle: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  emptyTitle: { color: TEXT_MAIN, fontSize: 16, fontWeight: '900' },
   emptySub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,

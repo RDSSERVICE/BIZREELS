@@ -15,14 +15,21 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/image';
 
 const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const PRIMARY = '#2563EB';
+const LIGHT_BG = '#F8FAFC';
+const WHITE_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
+
+
 
 type TabKey =
   | 'click-to-called'
@@ -297,7 +304,7 @@ export default function MyActivitiesScreen() {
       {/* Top Header */}
       <View style={styles.topHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
+          <Ionicons name="arrow-back" size={22} color={TEXT_DARK} />
         </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
@@ -320,7 +327,7 @@ export default function MyActivitiesScreen() {
               <TouchableOpacity
                 style={[styles.tabChip, isActive && styles.tabChipActive]}
                 onPress={() => setActiveTab(tab.key)}>
-                <Ionicons name={tab.icon} size={15} color={isActive ? BLACK : 'rgba(255,255,255,0.7)'} />
+                <Ionicons name={tab.icon} size={15} color={isActive ? TEXT_DARK : TEXT_MUTED} />
                 <Text style={[styles.tabChipText, isActive && styles.tabChipTextActive]}>
                   {tab.label}
                 </Text>
@@ -351,7 +358,7 @@ export default function MyActivitiesScreen() {
           }
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name="file-tray-outline" size={48} color="rgba(255,255,255,0.3)" />
+              <Ionicons name="file-tray-outline" size={48} color={TEXT_MUTED} />
               <Text style={styles.emptyTitle}>No Activities Found</Text>
               <Text style={styles.emptySub}>
                 Your interactions and activity history for {TABS.find((t) => t.key === activeTab)?.label} will appear here.
@@ -367,7 +374,7 @@ export default function MyActivitiesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: LIGHT_BG,
   },
   topHeader: {
     flexDirection: 'row',
@@ -377,22 +384,25 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
+    backgroundColor: WHITE_CARD,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: DARK_CARD,
+    width: 38,
+    height: 38,
+    borderRadius: Radius.full,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   headerSubtitle: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -400,7 +410,7 @@ const styles = StyleSheet.create({
   tabsWrapper: {
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: DARK_CARD,
+    backgroundColor: WHITE_CARD,
   },
   tabsContainer: {
     paddingHorizontal: Spacing.three,
@@ -413,8 +423,8 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
-    borderRadius: 20,
-    backgroundColor: BLACK,
+    borderRadius: Radius.full,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
   },
@@ -423,12 +433,12 @@ const styles = StyleSheet.create({
     borderColor: YELLOW,
   },
   tabChipText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
     fontWeight: '700',
   },
   tabChipTextActive: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontWeight: '900',
   },
 
@@ -438,12 +448,17 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 12,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.xl,
     borderWidth: 1,
     borderColor: BORDER,
     padding: Spacing.three,
     gap: Spacing.three,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -453,28 +468,28 @@ const styles = StyleSheet.create({
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: Radius.full,
     borderWidth: 1,
     borderColor: BORDER,
   },
   thumbImage: {
     width: 48,
     height: 48,
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
   thumbFallback: {
     width: 48,
     height: 48,
-    borderRadius: 8,
-    backgroundColor: BLACK,
+    borderRadius: Radius.md,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   orderIconBox: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: BLACK,
+    borderRadius: Radius.full,
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -494,9 +509,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
   },
   callBadge: {
     backgroundColor: '#0284C7',
@@ -519,26 +534,26 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   timeText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 10,
   },
   vendorName: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.sm,
     fontWeight: '800',
   },
   subText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
   },
   messageText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
     lineHeight: 16,
     marginTop: 2,
   },
   activePrice: {
-    color: YELLOW,
+    color: '#D97706',
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -557,11 +572,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: YELLOW,
-    height: 36,
-    borderRadius: 6,
+    height: 38,
+    borderRadius: Radius.md,
   },
   primaryActionText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -571,14 +586,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
-    height: 36,
-    borderRadius: 6,
+    height: 38,
+    borderRadius: Radius.md,
   },
   secondaryActionText: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
     fontWeight: '700',
   },
@@ -590,7 +605,7 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   loadingText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
   },
   emptyBox: {
@@ -601,14 +616,15 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   emptyTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.md,
     fontWeight: '900',
   },
   emptySub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
     textAlign: 'center',
     lineHeight: 18,
   },
 });
+

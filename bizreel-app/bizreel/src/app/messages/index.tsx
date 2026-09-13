@@ -19,9 +19,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Shadows, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useConversations } from '@/features/chat/queries';
+
+const GOLD = '#D99A3D';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 export default function ChatInboxScreen() {
   const router = useRouter();
@@ -70,22 +78,24 @@ export default function ChatInboxScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
+            <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chats & Messages Inbox</Text>
+          <Text style={styles.headerTitle}>Chats &amp; Messages Inbox</Text>
           <View style={{ width: 38 }} />
         </View>
 
         <View style={styles.centered}>
-          <Ionicons name="chatbubbles-outline" size={64} color={BrandColors.primary} />
-          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff', marginTop: 16 }}>Sign In to View Messages</Text>
-          <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 20 }}>
+          <View style={styles.unauthIconBox}>
+            <Ionicons name="chatbubbles-outline" size={36} color={GOLD} />
+          </View>
+          <Text style={{ fontSize: 18, fontWeight: '900', color: TEXT_MAIN, marginTop: 16 }}>Sign In to View Messages</Text>
+          <Text style={{ fontSize: 13, color: TEXT_MUTED, textAlign: 'center', marginHorizontal: 32, marginTop: 8, marginBottom: 20 }}>
             Please sign in to your BizReels account to send and receive messages with sellers and creators.
           </Text>
           <TouchableOpacity
-            style={{ backgroundColor: BrandColors.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
+            style={{ backgroundColor: ESPRESSO, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 }}
             onPress={() => router.push('/(auth)/login')}>
-            <Text style={{ color: '#000', fontWeight: '700', fontSize: 15 }}>Log In / Register</Text>
+            <Text style={{ color: GOLD, fontWeight: '900', fontSize: 15 }}>Log In / Register</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -97,9 +107,9 @@ export default function ChatInboxScreen() {
       {/* Top App Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_MAIN} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chats & Messages Inbox</Text>
+        <Text style={styles.headerTitle}>Chats &amp; Messages Inbox</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -111,7 +121,7 @@ export default function ChatInboxScreen() {
           <Ionicons
             name="person"
             size={16}
-            color={activeTab === 'customers' ? '#fff' : 'rgba(255,255,255,0.6)'}
+            color={activeTab === 'customers' ? GOLD : TEXT_MUTED}
           />
           <Text style={[styles.tabText, activeTab === 'customers' && styles.tabTextActive]}>
             Customer Messages
@@ -124,7 +134,7 @@ export default function ChatInboxScreen() {
           <Ionicons
             name="videocam"
             size={16}
-            color={activeTab === 'creators' ? '#fff' : 'rgba(255,255,255,0.6)'}
+            color={activeTab === 'creators' ? GOLD : TEXT_MUTED}
           />
           <Text style={[styles.tabText, activeTab === 'creators' && styles.tabTextActive]}>
             Creator Chats
@@ -134,24 +144,24 @@ export default function ChatInboxScreen() {
 
       {/* Search Input Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={16} color="rgba(255,255,255,0.4)" />
+        <Ionicons name="search" size={16} color={TEXT_MUTED} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by participant name..."
-          placeholderTextColor="rgba(255,255,255,0.4)"
+          placeholderTextColor={TEXT_MUTED}
           value={searchTerm}
           onChangeText={setSearchTerm}
         />
         {searchTerm.length > 0 && (
           <TouchableOpacity onPress={() => setSearchTerm('')}>
-            <Ionicons name="close-circle" size={16} color="rgba(255,255,255,0.4)" />
+            <Ionicons name="close-circle" size={16} color={TEXT_MUTED} />
           </TouchableOpacity>
         )}
       </View>
 
       {isLoading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={BrandColors.primary} />
+          <ActivityIndicator size="large" color={GOLD} />
         </View>
       ) : (
         <FlatList
@@ -162,13 +172,15 @@ export default function ChatInboxScreen() {
             <RefreshControl
               refreshing={isRefetching}
               onRefresh={refetch}
-              tintColor={BrandColors.primary}
-              colors={[BrandColors.primary]}
+              tintColor={GOLD}
+              colors={[GOLD]}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Ionicons name="chatbubbles-outline" size={48} color={BrandColors.primary} />
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="chatbubbles-outline" size={32} color={GOLD} />
+              </View>
               <Text style={styles.emptyTitle}>No Messages Found</Text>
               <Text style={styles.emptyDesc}>
                 {searchTerm ? 'No chat threads match your search.' : 'Start a new inquiry or customer conversation!'}
@@ -229,13 +241,8 @@ export default function ChatInboxScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_COLOR },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -244,19 +251,19 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: BLACK,
+    backgroundColor: CARD_BG,
   },
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 8,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: '#fff', fontSize: FontSize.md, fontWeight: '900' },
+  headerTitle: { color: TEXT_MAIN, fontSize: FontSize.md, fontWeight: '900' },
 
   tabBar: {
     flexDirection: 'row',
@@ -264,7 +271,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
     gap: Spacing.two,
-    backgroundColor: BLACK,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
@@ -274,57 +281,69 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 10,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    borderRadius: 8,
+    backgroundColor: BG_COLOR,
     borderWidth: 1,
     borderColor: BORDER,
     gap: 6,
   },
   tabBtnActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: ESPRESSO,
+    borderColor: ESPRESSO,
   },
   tabText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 11,
     fontWeight: FontWeight.semibold,
   },
   tabTextActive: {
-    color: BLACK,
+    color: GOLD,
     fontWeight: '900',
   },
 
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: CARD_BG,
     marginHorizontal: Spacing.three,
     marginTop: Spacing.two,
     paddingHorizontal: Spacing.three,
     paddingVertical: 8,
-    borderRadius: 0,
+    borderRadius: 10,
     gap: 8,
     borderWidth: 1,
     borderColor: BORDER,
+    ...Shadows.sm,
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
   },
 
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  listContent: { padding: Spacing.three, gap: 8 },
+  unauthIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: 'rgba(217, 154, 61, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 154, 61, 0.2)',
+  },
+  listContent: { padding: Spacing.three, gap: 10 },
 
   threadCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     padding: Spacing.three,
-    borderRadius: 0,
+    borderRadius: 12,
     gap: Spacing.three,
     borderWidth: 1,
     borderColor: BORDER,
+    ...Shadows.sm,
   },
   avatarContainer: {
     position: 'relative',
@@ -332,33 +351,33 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: 44,
     height: 44,
-    borderRadius: 0,
+    borderRadius: 22,
   },
   avatarFallback: {
     width: 44,
     height: 44,
-    borderRadius: 0,
-    backgroundColor: BLACK,
+    borderRadius: 22,
+    backgroundColor: ESPRESSO,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: ESPRESSO,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: YELLOW,
+    color: GOLD,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
   onlineDot: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
+    bottom: 0,
+    right: 0,
     width: 10,
     height: 10,
-    borderRadius: 0,
-    backgroundColor: YELLOW,
-    borderWidth: 1,
-    borderColor: BLACK,
+    borderRadius: 5,
+    backgroundColor: '#10B981',
+    borderWidth: 1.5,
+    borderColor: CARD_BG,
   },
 
   threadDetails: {
@@ -371,13 +390,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   participantName: {
-    color: '#fff',
+    color: TEXT_MAIN,
     fontSize: FontSize.xs,
     fontWeight: '900',
     flex: 1,
   },
   timeText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: TEXT_MUTED,
     fontSize: 10,
   },
   threadBottomRow: {
@@ -386,18 +405,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   lastMessageText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 11,
     flex: 1,
   },
   unreadBadge: {
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 0,
+    borderRadius: 10,
   },
   unreadText: {
-    color: BLACK,
+    color: ESPRESSO,
     fontSize: 9,
     fontWeight: '900',
   },
@@ -408,6 +427,16 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
     gap: 8,
   },
-  emptyTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900' },
-  emptyDesc: { color: 'rgba(255,255,255,0.5)', fontSize: FontSize.xs, textAlign: 'center' },
+  emptyIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: 'rgba(217, 154, 61, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 154, 61, 0.2)',
+  },
+  emptyTitle: { color: TEXT_MAIN, fontSize: FontSize.sm, fontWeight: '900' },
+  emptyDesc: { color: TEXT_MUTED, fontSize: FontSize.xs, textAlign: 'center' },
 });

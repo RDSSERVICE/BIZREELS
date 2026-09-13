@@ -15,10 +15,10 @@ import {
 import { BrandColors, FontSize, Spacing } from '@/constants/theme';
 import { useSendOtp, useVerifyOtp } from '@/features/auth/mutations';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#2563EB';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
 
 interface OtpVerificationModalProps {
   visible: boolean;
@@ -156,7 +156,7 @@ export function OtpVerificationModal({
               <Text style={s.title}>VERIFY OTP</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
-              <Ionicons name="close" size={20} color="#fff" />
+              <Ionicons name="close" size={20} color="#0F172A" />
             </TouchableOpacity>
           </View>
 
@@ -223,11 +223,11 @@ export function OtpVerificationModal({
             onPress={handleVerify}
             disabled={isVerifying}>
             {isVerifying ? (
-              <ActivityIndicator color={BLACK} />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <>
                 <Text style={s.verifyButtonText}>VERIFY & COMPLETE</Text>
-                <Ionicons name="arrow-forward" size={18} color={BLACK} />
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
               </>
             )}
           </Pressable>
@@ -240,11 +240,13 @@ export function OtpVerificationModal({
 const s = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
+    backgroundColor: 'rgba(15,23,42,0.4)',
     justifyContent: 'flex-end',
   },
   container: {
     backgroundColor: DARK_CARD,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderTopWidth: 2,
     borderTopColor: YELLOW,
     borderLeftWidth: 1,
@@ -266,7 +268,7 @@ const s = StyleSheet.create({
   title: {
     fontSize: FontSize.xl,
     fontWeight: '900',
-    color: '#fff',
+    color: '#0F172A',
     letterSpacing: 1,
   },
   closeBtn: {
@@ -274,7 +276,7 @@ const s = StyleSheet.create({
   },
   subheading: {
     fontSize: FontSize.xs,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#64748B',
     lineHeight: 18,
   },
   highlight: {
@@ -288,6 +290,7 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(239,68,68,0.12)',
     borderWidth: 1,
     borderColor: '#EF4444',
+    borderRadius: 12,
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
   },
@@ -307,17 +310,18 @@ const s = StyleSheet.create({
   otpBox: {
     flex: 1,
     height: 52,
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
-    color: '#fff',
+    borderRadius: 14,
+    color: '#0F172A',
     fontSize: FontSize.xl,
     fontWeight: '900',
     textAlign: 'center',
   },
   otpBoxFilled: {
     borderColor: YELLOW,
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    backgroundColor: '#EFF6FF',
   },
   otpBoxError: {
     borderColor: '#EF4444',
@@ -329,11 +333,11 @@ const s = StyleSheet.create({
   },
   resendText: {
     fontSize: FontSize.xs,
-    color: 'rgba(255,255,255,0.6)',
+    color: '#64748B',
   },
   timerText: {
     fontSize: FontSize.xs,
-    color: 'rgba(255,255,255,0.4)',
+    color: '#94A3B8',
     fontWeight: '700',
   },
   resendLink: {
@@ -343,6 +347,7 @@ const s = StyleSheet.create({
   },
   verifyButton: {
     backgroundColor: YELLOW,
+    borderRadius: 16,
     height: 50,
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,7 +361,7 @@ const s = StyleSheet.create({
     opacity: 0.7,
   },
   verifyButtonText: {
-    color: BLACK,
+    color: '#FFFFFF',
     fontSize: FontSize.base,
     fontWeight: '900',
     letterSpacing: 0.5,

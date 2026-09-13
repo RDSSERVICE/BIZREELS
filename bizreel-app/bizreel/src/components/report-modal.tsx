@@ -21,10 +21,10 @@ import {
 import { FontSize, Spacing } from '@/constants/theme';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const YELLOW = '#2563EB';
+const BLACK = '#0F172A';
+const DARK_CARD = '#FFFFFF';
+const BORDER = '#E2E8F0';
 const RED = '#EF4444';
 
 interface ReportModalProps {
@@ -123,13 +123,13 @@ export function ReportModal({
               <Text style={styles.modalTitle}>Report Content / User</Text>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={22} color="#fff" />
+              <Ionicons name="close" size={22} color="#0F172A" />
             </TouchableOpacity>
           </View>
 
           <Text style={styles.targetLabel}>
             Reporting {targetType.toUpperCase()}:{' '}
-            <Text style={{ color: '#fff', fontWeight: '800' }}>
+            <Text style={{ color: '#0F172A', fontWeight: '800' }}>
               {targetTitle ? `"${targetTitle}"` : `#${targetId.slice(-6)}`}
             </Text>
           </Text>
@@ -162,7 +162,7 @@ export function ReportModal({
             <TextInput
               style={styles.notesInput}
               placeholder="Describe the issue (e.g. offensive language, fake product)..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={description}
               onChangeText={setDescription}
               multiline
@@ -201,12 +201,12 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(15, 23, 42, 0.4)',
   },
   modalCard: {
     backgroundColor: DARK_CARD,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     borderTopWidth: 2,
     borderTopColor: RED,
     padding: Spacing.four,
@@ -221,12 +221,12 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   modalTitle: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   targetLabel: {
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: '#64748B',
     fontSize: 11,
   },
   sectionHeader: {
@@ -239,23 +239,23 @@ const styles = StyleSheet.create({
   reasonOption: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 14,
     gap: 10,
   },
   reasonOptionSelected: {
     borderColor: YELLOW,
-    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+    backgroundColor: '#EFF6FF',
   },
   radioOuter: {
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: BORDER,
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -267,22 +267,22 @@ const styles = StyleSheet.create({
     backgroundColor: YELLOW,
   },
   reasonLabel: {
-    color: '#fff',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
   },
   reasonDesc: {
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: '#64748B',
     fontSize: 10,
     marginTop: 2,
   },
   notesInput: {
-    backgroundColor: BLACK,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: BORDER,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 10,
-    color: '#fff',
+    color: '#0F172A',
     fontSize: 11,
     minHeight: 60,
     textAlignVertical: 'top',
@@ -294,15 +294,15 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: BORDER,
     paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 12,
   },
   cancelBtnText: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: RED,
     paddingVertical: 12,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 12,
   },
   submitBtnText: {
     color: '#fff',

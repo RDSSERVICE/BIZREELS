@@ -19,7 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RoleSwitcher } from '@/components/role-switcher';
 import { VendorDrawerModal } from '@/components/vendor-drawer-modal';
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useAddToCart, useCart } from '@/features/cart/queries';
 import { useReelsFeed } from '@/features/reels/queries';
@@ -37,15 +37,26 @@ const CATEGORIES: Array<{
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
 }> = [
-  { id: '1', name: 'Electronics', icon: 'laptop-outline', color: '#4A90E2' },
-  { id: '2', name: 'Fashion', icon: 'shirt-outline', color: '#E91E63' },
-  { id: '3', name: 'Home & Living', icon: 'home-outline', color: '#FF9800' },
-  { id: '4', name: 'Vehicles', icon: 'car-outline', color: '#9C27B0' },
-  { id: '5', name: 'Real Estate', icon: 'business-outline', color: '#009688' },
-  { id: '6', name: 'Beauty & Salon', icon: 'sparkles-outline', color: '#EC407A' },
-  { id: '7', name: 'Digital Services', icon: 'flash-outline', color: '#00BCD4' },
-  { id: '8', name: 'Corporate Gifts', icon: 'gift-outline', color: '#795548' },
+  { id: '1', name: 'Electronics', icon: 'laptop-outline', color: '#2563EB' },
+  { id: '2', name: 'Fashion', icon: 'shirt-outline', color: '#EC4899' },
+  { id: '3', name: 'Home & Living', icon: 'home-outline', color: '#F59E0B' },
+  { id: '4', name: 'Vehicles', icon: 'car-outline', color: '#8B5CF6' },
+  { id: '5', name: 'Real Estate', icon: 'business-outline', color: '#10B981' },
+  { id: '6', name: 'Beauty & Salon', icon: 'sparkles-outline', color: '#F43F5E' },
+  { id: '7', name: 'Digital Services', icon: 'flash-outline', color: '#06B6D4' },
+  { id: '8', name: 'Corporate Gifts', icon: 'gift-outline', color: '#D97706' },
 ];
+
+const CATEGORY_BG_OPAQUE: Record<string, string> = {
+  'Electronics': '#EFF6FF',
+  'Fashion': '#FDF2F8',
+  'Home & Living': '#FEF3C7',
+  'Vehicles': '#F5F3FF',
+  'Real Estate': '#ECFDF5',
+  'Beauty & Salon': '#FFF1F2',
+  'Digital Services': '#ECFEFF',
+  'Corporate Gifts': '#FFFBEB',
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -214,17 +225,19 @@ export default function HomeScreen() {
             colors={[BrandColors.primary]}
           />
         }>
-        {/* Search Bar (Customer & Vendor mode only) */}
+        {/* Highlighted Search Bar (Customer & Vendor mode only) */}
         {!isCreator && (
           <TouchableOpacity
-            style={styles.searchBar}
-            activeOpacity={0.9}
+            style={styles.searchBarContainer}
+            activeOpacity={0.92}
             onPress={() => router.push('/(tabs)/search' as any)}>
-            <Ionicons name="search" size={18} color="rgba(255,255,255,0.4)" />
+            <View style={styles.searchIconBox}>
+              <Ionicons name="search" size={18} color={YELLOW} />
+            </View>
             <TextInput
               style={styles.searchInput}
               placeholder="Search 10,000+ Products, Services & Sellers..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#64748B"
               value={searchQuery}
               onChangeText={(t) => {
                 setSearchQuery(t);
@@ -236,10 +249,15 @@ export default function HomeScreen() {
               }}
               returnKeyType="search"
             />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+            {searchQuery.length > 0 ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+                <Ionicons name="close-circle" size={20} color="#94A3B8" />
               </TouchableOpacity>
+            ) : (
+              <View style={styles.searchActionBtn}>
+                <Text style={styles.searchActionText}>SEARCH</Text>
+                <Ionicons name="arrow-forward" size={12} color={YELLOW} />
+              </View>
             )}
           </TouchableOpacity>
         )}
@@ -266,13 +284,25 @@ export default function HomeScreen() {
 
         {/* Category Horizontal Selector (Customer mode only) */}
         {!isVendor && !isCreator && (
-          <>
+          <View style={styles.categoriesSectionContainer}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Categories</Text>
-              {selectedCategory && (
-                <TouchableOpacity onPress={() => setSelectedCategory(null)}>
-                  <Text style={styles.clearFilterText}>Clear Filter</Text>
+              <View style={styles.sectionHeaderTitleGroup}>
+                <View style={styles.sectionHeaderIconBox}>
+                  <Ionicons name="apps" size={14} color={YELLOW} />
+                </View>
+                <Text style={styles.sectionTitle}>Browse Categories</Text>
+              </View>
+              {selectedCategory ? (
+                <TouchableOpacity
+                  style={styles.clearFilterBadge}
+                  onPress={() => setSelectedCategory(null)}>
+                  <Text style={styles.clearFilterText}>Reset Filter</Text>
+                  <Ionicons name="close-circle" size={14} color="#EF4444" />
                 </TouchableOpacity>
+              ) : (
+                <View style={styles.categoryCountChip}>
+                  <Text style={styles.categoryCountChipText}>{CATEGORIES.length} Categories</Text>
+                </View>
               )}
             </View>
 
@@ -280,27 +310,91 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.categoryScroll}>
+              {/* "All" Category Tile */}
+              <TouchableOpacity
+                style={[
+                  styles.categoryCardTile,
+                  selectedCategory === null && styles.categoryCardTileSelectedAll,
+                ]}
+                onPress={() => setSelectedCategory(null)}
+                activeOpacity={0.8}>
+                <View
+                  style={[
+                    styles.categoryIconContainer,
+                    {
+                      backgroundColor: selectedCategory === null ? YELLOW : '#E2E8F0',
+                      borderColor: selectedCategory === null ? YELLOW : 'rgba(203, 213, 225, 0.6)',
+                    },
+                  ]}>
+                  <Ionicons
+                    name="grid"
+                    size={22}
+                    color={selectedCategory === null ? '#1E293B' : '#64748B'}
+                  />
+                  {selectedCategory === null && (
+                    <View style={[styles.categoryActiveCheckDot, { backgroundColor: '#241B15', borderColor: YELLOW }]}>
+                      <Ionicons name="checkmark" size={9} color={YELLOW} />
+                    </View>
+                  )}
+                </View>
+                <Text
+                  style={[
+                    styles.categoryTileName,
+                    selectedCategory === null && styles.categoryTileNameSelected,
+                  ]}>
+                  All
+                </Text>
+              </TouchableOpacity>
+
               {CATEGORIES.map((cat) => {
                 const isSelected = selectedCategory === cat.name;
+                const opaqueBg = CATEGORY_BG_OPAQUE[cat.name] || '#F1F5F9';
+
                 return (
                   <TouchableOpacity
                     key={cat.id}
                     style={[
-                      styles.categoryCard,
-                      isSelected && styles.categoryCardSelected,
+                      styles.categoryCardTile,
+                      isSelected && {
+                        backgroundColor: opaqueBg,
+                        borderColor: cat.color,
+                        borderWidth: 2,
+                      },
                     ]}
-                    onPress={() => setSelectedCategory(isSelected ? null : cat.name)}>
-                    <View style={[styles.categoryIconCircle, { backgroundColor: cat.color + '20' }]}>
-                      <Ionicons name={cat.icon} size={22} color={cat.color} />
+                    onPress={() => setSelectedCategory(isSelected ? null : cat.name)}
+                    activeOpacity={0.8}>
+                    <View
+                      style={[
+                        styles.categoryIconContainer,
+                        {
+                          backgroundColor: isSelected ? cat.color : cat.color + '22',
+                          borderColor: isSelected ? cat.color : cat.color + '40',
+                        },
+                      ]}>
+                      <Ionicons
+                        name={cat.icon}
+                        size={22}
+                        color={isSelected ? '#FFFFFF' : cat.color}
+                      />
+                      {isSelected && (
+                        <View style={[styles.categoryActiveCheckDot, { backgroundColor: '#241B15', borderColor: cat.color }]}>
+                          <Ionicons name="checkmark" size={9} color="#FFFFFF" />
+                        </View>
+                      )}
                     </View>
-                    <Text style={[styles.categoryName, isSelected && styles.categoryNameSelected]}>
+                    <Text
+                      style={[
+                        styles.categoryTileName,
+                        isSelected && { color: TEXT_DARK, fontWeight: '900' },
+                      ]}
+                      numberOfLines={2}>
                       {cat.name}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </ScrollView>
-          </>
+          </View>
         )}
 
         {/* Creator Studio Hub / Vendor Catalog / Customer Marketplace */}
@@ -567,29 +661,34 @@ export default function HomeScreen() {
                     key={offer._id ? `${offer._id}_${idx}` : `offer_${idx}`}
                     style={{
                       width: 220,
-                      backgroundColor: '#18181C',
-                      borderRadius: 12,
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 16,
                       borderWidth: 1,
-                      borderColor: '#F59E0B',
+                      borderColor: '#E2E8F0',
                       padding: 12,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.05,
+                      shadowRadius: 6,
+                      elevation: 2,
                     }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <View style={{ backgroundColor: '#F59E0B', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                        <Text style={{ color: '#0F0F12', fontSize: 10, fontWeight: '900' }}>{discText}</Text>
+                      <View style={{ backgroundColor: '#D99A3D', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '900' }}>{discText}</Text>
                       </View>
-                      <Ionicons name="pricetag" size={14} color="#F59E0B" />
+                      <Ionicons name="pricetag" size={14} color="#D99A3D" />
                     </View>
-                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
+                    <Text style={{ color: '#0F172A', fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
                       {offer.title || offer.offerName || 'Special Offer'}
                     </Text>
                     {Boolean(offer.description) && (
-                      <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginVertical: 4 }} numberOfLines={2}>
+                      <Text style={{ color: '#64748B', fontSize: 11, marginVertical: 4 }} numberOfLines={2}>
                         {offer.description}
                       </Text>
                     )}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#2D2D36' }}>
-                      <Text style={{ color: '#F59E0B', fontSize: 11, fontWeight: '900' }}>CODE: {code}</Text>
-                      <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                      <Text style={{ color: '#D97706', fontSize: 11, fontWeight: '900' }}>CODE: {code}</Text>
+                      <Text style={{ color: '#94A3B8', fontSize: 10 }}>
                         {offer.endTime ? new Date(offer.endTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Active'}
                       </Text>
                     </View>
@@ -790,14 +889,19 @@ export default function HomeScreen() {
 }
 
 const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const PRIMARY = '#2563EB';
+const LIGHT_BG = '#F6F4EE';
+const WHITE_CARD = '#FBF9F5';
+const BORDER = '#E5E0D4';
+const TEXT_DARK = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
+const BLACK = '#1E1B18';
+const DARK_CARD = '#FBF9F5';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: LIGHT_BG,
   },
   topHeader: {
     flexDirection: 'row',
@@ -807,7 +911,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: BLACK,
+    backgroundColor: WHITE_CARD,
   },
   brandGroup: {
     flexDirection: 'row',
@@ -820,48 +924,48 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   brandTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.lg,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   brandAccent: {
     color: YELLOW,
   },
   cartIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    width: 38,
+    height: 38,
+    borderRadius: Radius.full,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chatIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 0,
-    backgroundColor: DARK_CARD,
+    width: 38,
+    height: 38,
+    borderRadius: Radius.full,
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cartBadge: {
     position: 'absolute',
-    top: -4,
-    right: -4,
+    top: -2,
+    right: -2,
     backgroundColor: YELLOW,
     minWidth: 16,
     height: 16,
-    borderRadius: 0,
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
   },
   cartBadgeText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: 9,
     fontWeight: '900',
   },
@@ -870,36 +974,70 @@ const styles = StyleSheet.create({
     gap: Spacing.four,
   },
 
-  // ── Search Bar ──
-  searchBar: {
+  // ── Highlighted Search Bar ──
+  searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
+    backgroundColor: WHITE_CARD,
     marginHorizontal: Spacing.four,
     marginTop: Spacing.three,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 10,
-    borderRadius: 0,
-    borderWidth: 1,
-    borderColor: BORDER,
-    gap: Spacing.two,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: Radius.xl,
+    borderWidth: 1.5,
+    borderColor: 'rgba(217, 154, 61, 0.45)',
+    gap: 10,
+    shadowColor: '#D99A3D',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  searchIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#241B15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchInput: {
     flex: 1,
-    color: '#fff',
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
+    color: TEXT_DARK,
+    fontSize: 13,
+    fontWeight: '600',
+    paddingVertical: 4,
+  },
+  searchActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#241B15',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  searchActionText: {
+    color: YELLOW,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
 
-  // ── Hero Banner ──
+  // ── Bento Hero Banner ──
   heroBanner: {
     marginHorizontal: Spacing.four,
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.xl,
     padding: Spacing.four,
-    borderWidth: 2,
-    borderColor: YELLOW,
+    borderWidth: 1,
+    borderColor: BORDER,
     overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   heroContent: {
     gap: Spacing.two,
@@ -909,25 +1047,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
-    backgroundColor: YELLOW,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 0,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: YELLOW,
   },
   heroTagText: {
-    color: BLACK,
+    color: '#D97706',
     fontSize: FontSize.xs,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   heroTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.lg,
     fontWeight: '900',
     lineHeight: 26,
   },
   heroSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
   },
   heroBtn: {
@@ -935,14 +1075,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     backgroundColor: YELLOW,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    borderRadius: 0,
+    paddingHorizontal: Spacing.four,
+    paddingVertical: 10,
+    borderRadius: Radius.md,
     alignSelf: 'flex-start',
     marginTop: Spacing.one,
   },
   heroBtnText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
@@ -957,52 +1097,113 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
   },
   sectionTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
   seeAllText: {
-    color: YELLOW,
+    color: PRIMARY,
     fontSize: FontSize.xs,
-    fontWeight: '900',
+    fontWeight: '800',
+  },
+
+  // ── Bento Category Cards ──
+  categoriesSectionContainer: {
+    gap: 8,
+  },
+  sectionHeaderTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sectionHeaderIconBox: {
+    width: 26,
+    height: 26,
+    borderRadius: Radius.sm,
+    backgroundColor: '#241B15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryCountChip: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(203, 213, 225, 0.6)',
+  },
+  categoryCountChipText: {
+    color: TEXT_MUTED,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  clearFilterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.2)',
   },
   clearFilterText: {
     color: '#EF4444',
-    fontSize: FontSize.xs,
-    fontWeight: '900',
+    fontSize: 11,
+    fontWeight: '800',
   },
-
-  // ── Categories ──
   categoryScroll: {
     paddingHorizontal: Spacing.four,
-    gap: Spacing.two,
+    gap: 10,
+    paddingVertical: 6,
   },
-  categoryCard: {
+  categoryCardTile: {
     alignItems: 'center',
-    width: 72,
-    gap: 4,
+    width: 84,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: Radius.xl,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: 'rgba(203, 213, 225, 0.8)',
   },
-  categoryCardSelected: {
-    opacity: 1,
+  categoryCardTileSelectedAll: {
+    backgroundColor: '#FFFBEB',
+    borderColor: YELLOW,
+    borderWidth: 2,
   },
-  categoryIconCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 0,
+  categoryIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: BORDER,
-    backgroundColor: DARK_CARD,
+    borderWidth: 1.5,
+    position: 'relative',
   },
-  categoryName: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
+  categoryActiveCheckDot: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  categoryTileName: {
+    color: TEXT_MUTED,
+    fontSize: 11,
     textAlign: 'center',
-    fontWeight: FontWeight.semibold,
+    fontWeight: '700',
+    marginTop: 6,
+    lineHeight: 14,
   },
-  categoryNameSelected: {
-    color: YELLOW,
+  categoryTileNameSelected: {
+    color: TEXT_DARK,
     fontWeight: '900',
   },
 
@@ -1012,30 +1213,35 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   reelHighlightCard: {
-    width: 110,
-    height: 170,
-    borderRadius: 0,
+    width: 116,
+    height: 176,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
-    backgroundColor: DARK_CARD,
+    backgroundColor: WHITE_CARD,
     justifyContent: 'flex-end',
     padding: Spacing.two,
     borderWidth: 1,
     borderColor: BORDER,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   reelThumbnail: {
     ...StyleSheet.absoluteFillObject,
   },
   reelOverlayGradient: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(15,23,42,0.35)',
   },
   reelPlayBadge: {
     position: 'absolute',
     top: 8,
     right: 8,
-    width: 24,
-    height: 24,
-    borderRadius: 0,
+    width: 26,
+    height: 26,
+    borderRadius: Radius.full,
     backgroundColor: YELLOW,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1044,11 +1250,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowRadius: 4,
   },
 
-  // ── Product Grid ──
+  // ── Bento Product Grid ──
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1057,11 +1263,16 @@ const styles = StyleSheet.create({
   },
   productCard: {
     width: CARD_WIDTH,
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: BORDER,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   productImage: {
     width: '100%',
@@ -1070,7 +1281,7 @@ const styles = StyleSheet.create({
   productImageFallback: {
     width: '100%',
     height: 140,
-    backgroundColor: '#222228',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1079,13 +1290,13 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   productTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
-    fontWeight: '900',
+    fontWeight: '800',
     lineHeight: 16,
   },
   vendorName: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
   },
   priceRow: {
@@ -1095,30 +1306,30 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   productPrice: {
-    color: YELLOW,
+    color: '#D97706',
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   originalPrice: {
-    color: 'rgba(255,255,255,0.35)',
+    color: '#94A3B8',
     fontSize: 10,
     textDecorationLine: 'line-through',
   },
   addCartBtn: {
     backgroundColor: YELLOW,
-    width: 26,
-    height: 26,
-    borderRadius: 0,
+    width: 28,
+    height: 28,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   chatSmallBtn: {
-    backgroundColor: BLACK,
+    backgroundColor: WHITE_CARD,
     borderWidth: 1,
-    borderColor: YELLOW,
-    width: 26,
-    height: 26,
-    borderRadius: 0,
+    borderColor: BORDER,
+    width: 28,
+    height: 28,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1129,22 +1340,27 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   emptyListingsText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.sm,
   },
 
-  // ── Vendor Catalog ──
+  // ── Bento Vendor Catalog ──
   vendorCatalogContainer: {
     paddingHorizontal: Spacing.four,
     gap: Spacing.three,
   },
   vendorStoreCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.xl,
     padding: Spacing.four,
-    borderWidth: 2,
-    borderColor: YELLOW,
+    borderWidth: 1,
+    borderColor: BORDER,
     gap: Spacing.three,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   vendorStoreHeaderRow: {
     flexDirection: 'row',
@@ -1153,26 +1369,28 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   vendorStoreName: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.base,
     fontWeight: '900',
   },
   verifiedShieldBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 0,
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: YELLOW,
     gap: 3,
   },
   verifiedShieldText: {
-    color: BLACK,
+    color: '#D97706',
     fontSize: 9,
     fontWeight: '900',
   },
   vendorStoreSub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 10,
     marginTop: 2,
   },
@@ -1180,13 +1398,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: YELLOW,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radius.md,
     gap: 4,
   },
   addListingBtnText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: 11,
     fontWeight: '900',
   },
@@ -1194,10 +1412,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: BLACK,
-    paddingVertical: 10,
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 12,
     paddingHorizontal: Spacing.three,
-    borderRadius: 0,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: BORDER,
   },
@@ -1206,13 +1424,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   storeMetricValue: {
-    color: YELLOW,
+    color: PRIMARY,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   storeMetricLabel: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 9,
+    color: TEXT_MUTED,
+    fontSize: 10,
     marginTop: 1,
   },
   storeMetricDivider: {
@@ -1225,13 +1443,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   catalogCard: {
-    width: 150,
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    width: 154,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.lg,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: BORDER,
     position: 'relative',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
   catalogCardImage: {
     width: '100%',
@@ -1239,26 +1462,26 @@ const styles = StyleSheet.create({
   },
   catalogPriceBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
+    top: 6,
+    right: 6,
     backgroundColor: YELLOW,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 0,
+    borderRadius: Radius.md,
   },
   catalogPriceText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: 10,
     fontWeight: '900',
   },
   catalogCategoryTag: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(15,23,42,0.75)',
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 0,
+    borderRadius: Radius.sm,
   },
   catalogCategoryText: {
     color: '#fff',
@@ -1270,9 +1493,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   catalogItemTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
-    fontWeight: '900',
+    fontWeight: '800',
     lineHeight: 15,
   },
   catalogCardFooter: {
@@ -1287,42 +1510,42 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stockDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 0,
-    backgroundColor: YELLOW,
+    width: 6,
+    height: 6,
+    borderRadius: Radius.full,
+    backgroundColor: '#10B981',
   },
   stockText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 9,
   },
   editCardBtn: {
-    width: 22,
-    height: 22,
-    borderRadius: 0,
-    backgroundColor: 'rgba(245,158,11,0.15)',
+    width: 24,
+    height: 24,
+    borderRadius: Radius.md,
+    backgroundColor: 'rgba(37,99,235,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: 'rgba(37,99,235,0.2)',
   },
   emptyCatalogCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 0,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.xl,
     padding: Spacing.four,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: YELLOW,
+    borderWidth: 1,
+    borderColor: BORDER,
     gap: 8,
   },
   emptyCatalogTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: FontSize.sm,
     fontWeight: '900',
   },
   emptyCatalogDesc: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: FontSize.xs,
     textAlign: 'center',
   },
@@ -1332,76 +1555,83 @@ const styles = StyleSheet.create({
     backgroundColor: YELLOW,
     paddingHorizontal: Spacing.four,
     paddingVertical: 10,
-    borderRadius: 0,
+    borderRadius: Radius.md,
     gap: 6,
     marginTop: Spacing.two,
   },
   emptyCatalogBtnText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: FontSize.xs,
     fontWeight: '900',
   },
   headerLoginBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: Radius.md,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: PRIMARY,
   },
   headerLoginText: {
-    color: YELLOW,
+    color: PRIMARY,
     fontSize: 12,
     fontWeight: '700',
   },
   headerRegisterBtn: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: Radius.md,
     backgroundColor: YELLOW,
   },
   headerRegisterText: {
-    color: BLACK,
+    color: TEXT_DARK,
     fontSize: 12,
     fontWeight: '900',
   },
+
+  // ── Bento About Section ──
   aboutSection: {
     marginTop: 24,
     marginBottom: 32,
     paddingHorizontal: Spacing.four,
     paddingVertical: 20,
-    backgroundColor: '#141418',
-    borderRadius: 16,
+    backgroundColor: WHITE_CARD,
+    borderRadius: Radius.xl,
     borderWidth: 1,
     borderColor: BORDER,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   aboutHeaderRow: {
     alignItems: 'center',
     marginBottom: 20,
   },
   aboutBadge: {
-    backgroundColor: 'rgba(245,158,11,0.15)',
+    backgroundColor: 'rgba(37,99,235,0.1)',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: Radius.full,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: 'rgba(37,99,235,0.3)',
     marginBottom: 8,
   },
   aboutBadgeText: {
-    color: YELLOW,
+    color: PRIMARY,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1,
   },
   aboutTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: 18,
     fontWeight: '900',
     textAlign: 'center',
     marginBottom: 6,
   },
   aboutSubtitle: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 12,
     textAlign: 'center',
     lineHeight: 18,
@@ -1411,50 +1641,50 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   aboutCard: {
-    backgroundColor: DARK_CARD,
-    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: Radius.lg,
     padding: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: BORDER,
   },
   aboutIconBox: {
     width: 38,
     height: 38,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245,158,11,0.1)',
+    borderRadius: Radius.md,
+    backgroundColor: 'rgba(245,158,11,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   aboutCardTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 4,
   },
   aboutCardDesc: {
-    color: 'rgba(255,255,255,0.5)',
+    color: TEXT_MUTED,
     fontSize: 11,
     lineHeight: 16,
   },
   aboutCtaBox: {
     marginTop: 20,
     padding: 16,
-    backgroundColor: 'rgba(245,158,11,0.08)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(37,99,235,0.05)',
+    borderRadius: Radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.3)',
+    borderColor: 'rgba(37,99,235,0.2)',
     alignItems: 'center',
   },
   aboutCtaTitle: {
-    color: '#fff',
+    color: TEXT_DARK,
     fontSize: 14,
     fontWeight: '900',
     textAlign: 'center',
     marginBottom: 4,
   },
   aboutCtaSub: {
-    color: 'rgba(255,255,255,0.6)',
+    color: TEXT_MUTED,
     fontSize: 11,
     textAlign: 'center',
     marginBottom: 14,
@@ -1465,26 +1695,27 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   aboutCtaPrimaryBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: PRIMARY,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
   aboutCtaPrimaryText: {
-    color: BLACK,
+    color: '#fff',
     fontSize: 12,
     fontWeight: '900',
   },
   aboutCtaSecondaryBtn: {
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: PRIMARY,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
   aboutCtaSecondaryText: {
-    color: YELLOW,
+    color: PRIMARY,
     fontSize: 12,
     fontWeight: '700',
   },
 });
+
