@@ -10749,28 +10749,76 @@
 - **Method:** `POST`
 - **Canonical URL:** `/api/v1/reels/:id/boost`
 - **Source File:** [`reelRoutes.js:69`](file:///d:/BizReels%20Website/backend/src/routes/reelRoutes.js#L69)
+- **Controller File:** [`reelController.js:266`](file:///d:/BizReels%20Website/backend/src/controllers/reelController.js#L266)
 - **Authentication:** Required (JWT Bearer)
-- **Required Roles:** Any authenticated user
+- **Required Roles:** Reel Creator / Vendor owning the reel
 - **Headers:**
   - `Content-Type: application/json`
   - `Authorization: Bearer <access_token>`
 - **URL Path Parameters:**
   | Parameter | Type | Required | Description |
   |---|---|---|---|
-  | `id` | String (ObjectId) | Yes | Identifier of target resource. |
-- **Request Body:** Accepts JSON formatted request body adhering to domain schema.
-- **Success Response (200/201):**
+  | `id` | String (ObjectId) | Yes | MongoDB `_id` of the reel to boost. |
+- **Request Body:**
+  ```json
+  {
+    "durationDays": 7
+  }
+  ```
+  *(Accepts `durationDays`, `duration_days`, or `days`. Min: 1, Max: 90. Defaults to 1 if omitted).*
+- **Business Logic & Charging Rules:**
+  - **Plan Free Boosts**: If vendor has `free_reel_boosts > 0` (from Starter: 1, Growth: 3, Business: 5 subscription recharge packs), consumes **1 Free Boost token** with **0 Credits** deducted.
+  - **Credit Deduction**: If no free boosts remain, charges `durationDays * ratePerDay` (**2.00 Credits/day** by default, dynamically configured by Admin in `AppSettings.key: 'credit_rates'`).
+  - **Expiration Calculation**: Extends from current `boostExpiresAt` if already active, or from `Date.now()` if unboosted/expired.
+  - **Database Updates**: Atomically sets `isBoosted: true`, `is_boosted: true`, `boostExpiresAt`, `boosted_until`, `boostDurationDays`, `boostActivatedAt`, `boost_status: 'active'`.
+  - **Socket Dispatch**: Emits `reel:updated` event to vendor room.
+- **Success Response (200 OK — Paid Boost):**
   ```json
   {
     "success": true,
-    "message": "Operation completed successfully.",
-    "data": {}
+    "message": "Reel boosted successfully.",
+    "data": {
+      "success": true,
+      "type": "credits",
+      "usedFreeBoost": false,
+      "durationDays": 7,
+      "ratePerDay": 2.0,
+      "freeBoostRemaining": 0,
+      "remainingFreeBoosts": 0,
+      "deductedAmount": 14.0,
+      "creditsDeducted": 14.0,
+      "newBalance": 86.0,
+      "referenceId": "boost_paid_1789332000000",
+      "boostedUntil": "2026-09-21T01:40:00.000Z",
+      "boostExpiresAt": "2026-09-21T01:40:00.000Z"
+    }
+  }
+  ```
+- **Success Response (200 OK — Free Plan Boost Used):**
+  ```json
+  {
+    "success": true,
+    "message": "Reel boosted successfully.",
+    "data": {
+      "success": true,
+      "type": "free_boost",
+      "usedFreeBoost": true,
+      "durationDays": 7,
+      "ratePerDay": 2.0,
+      "freeBoostRemaining": 2,
+      "remainingFreeBoosts": 2,
+      "deductedAmount": 0,
+      "creditsDeducted": 0,
+      "boostedUntil": "2026-09-21T01:40:00.000Z",
+      "boostExpiresAt": "2026-09-21T01:40:00.000Z"
+    }
   }
   ```
 - **Error Responses:**
+  - `400 Bad Request`: Insufficient credits to boost reel for requested days.
   - `401 Unauthorized`: Missing or expired access token.
-  - `400 Bad Request`: Invalid request payload or validation failure.
-  - `404 Not Found`: Resource ID not found.
+  - `403 Forbidden`: Attempting to boost a reel not created by the authenticated user.
+  - `404 Not Found`: Reel ID not found.
   - `500 Internal Server Error`: Server execution error.
 
 ---

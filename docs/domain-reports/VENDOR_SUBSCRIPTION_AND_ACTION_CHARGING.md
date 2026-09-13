@@ -45,7 +45,7 @@
 | **Unique Listing / Reel View** | **0.20 Credits** | 24 Hours | Logged on unique IP/user reel view |
 | **Chat Message Inquiry** | **0.10 Credits** | 24 Hours | Customer initiates direct chat thread |
 | **Order / Deal Request** | **5.00 Credits** | 24 Hours | Customer submits order quotation request |
-| **Additional Reel Boost Token** | **2.00 Credits** | Per Boost | Vendor boosts reel after free tokens are used |
+| **Reel Feed Boost** | **Free / 2.00 Credits / day** (Admin-configurable) | Per Day | 1 Free Boost consumed from plan, or dynamic rate (default: 2.00 Credits/day) deducted per day. Detailed guide: [REEL_BOOSTING_AND_CREDIT_RATES.md](./REEL_BOOSTING_AND_CREDIT_RATES.md) |
 
 ---
 
