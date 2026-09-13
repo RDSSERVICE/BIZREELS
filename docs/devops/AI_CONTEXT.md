@@ -91,7 +91,7 @@ All models map to lowercase, snake_case collection names inside MongoDB:
 * **Google Gemini API**: Implements structured JSON prompts for category guessing, text improvements, matching demands to nearby vendors, and chat negotiator assistance. Calls are daily-capped per user.
 * **Razorpay Gateway**: Backend signs order IDs at `/payments/order`. Frontend mounts SDK widget. Verification at `/payments/verify` uses SHA256 HMAC hashes. Webhook endpoint parses raw buffer buffers into `req.rawBody` for webhook validations.
 * **MSG91 (SMS API)**: Routes phone verification OTPs. Sandbox stub active in development mode (`MSG91_DEV_MODE=true`).
-* **Cloudinary**: Frontend requests signed parameters via `/media/sign` and uploads images/videos directly to Cloudinary buckets, bypassing backend routers.
+* **Cloudinary**: Direct CDN Stream architecture (`mediaApi.uploadMediaStream`). Frontend requests signed upload tokens from `POST /media/sign` and streams raw video/image binaries (up to 50MB) directly to Cloudinary edge nodes. Node.js processes 0 MB of media payloads. The resulting permanent CDN URL is sent in `<1KB` JSON payloads when publishing reels or listings; Base64 data strings in JSON payloads are forbidden.
 * **FCM (Firebase Cloud Messaging)**: Delivers backend push alerts to active device registration tokens.
 
 ---

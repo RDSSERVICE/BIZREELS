@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   FiLayers, FiTag, FiVideo, FiCheckCircle, FiCheck, FiImage, FiX, FiMapPin, FiUsers, FiEye, FiPlus,
-  FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle, FiShield, FiUploadCloud, FiTrash2
+  FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle, FiShield, FiUploadCloud, FiTrash2, FiLoader
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
@@ -12,6 +12,7 @@ import OfferFormModal from '../listings/OfferFormModal';
 import { useListCategoriesQuery } from '../../../features/admin/adminApi';
 import { useGetVendorOffersQuery, useCreateVendorOfferMutation } from '../../../features/vendor/vendorApi';
 import { selectCurrentUser } from '../../../features/auth/authSlice';
+import { mediaApi } from '../../../lib/api';
 
 // PURPOSE OPTIONS PER POST TYPE
 const PURPOSE_OPTIONS = {
@@ -471,8 +472,8 @@ export default function CreateReelWizardModal({
     }
   };
 
-  // Handle File Uploads (Limit up to 5)
-  const handleFileUpload = (e) => {
+  // Handle File Uploads via Direct CDN Streaming (Approach 1)
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -486,34 +487,60 @@ export default function CreateReelWizardModal({
       toast.error(`Maximum 5 images/videos allowed. Only processing first ${availableSlots} file(s).`);
     }
 
-    const readPromises = filesToProcess.map((file) => {
-      return new Promise((resolve) => {
-        if (file.size > 50 * 1024 * 1024) {
-          toast.error(`Skipped ${file.name}: exceeds 50MB limit.`);
-          return resolve(null);
-        }
-        const isVideo = file.type.startsWith('video/') || file.name.match(/\.(mp4|mov|webm)$/i);
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          resolve({
-            url: evt.target.result,
-            name: file.name,
-            type: isVideo ? 'video' : 'image',
-          });
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readPromises).then((results) => {
-      const validResults = results.filter(Boolean);
-      setCustomMediaList((prev) => [...prev, ...validResults]);
-      if (validResults.some(r => r.type === 'video')) {
-        setMediaType('video');
-      } else if (customMediaList.length === 0) {
-        setMediaType('image');
+    for (const file of filesToProcess) {
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`Skipped ${file.name}: exceeds 50MB limit.`);
+        continue;
       }
-    });
+
+      const isVideo = file.type?.startsWith('video/') || file.name.match(/\.(mp4|mov|webm)$/i);
+      const localPreviewUrl = URL.createObjectURL(file);
+      const tempId = `media_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+      // Instantly show local preview with progress bar
+      setCustomMediaList((prev) => [
+        ...prev,
+        {
+          id: tempId,
+          url: localPreviewUrl,
+          name: file.name,
+          type: isVideo ? 'video' : 'image',
+          isUploading: true,
+          progress: 0,
+        },
+      ]);
+      if (isVideo) setMediaType('video');
+
+      const toastId = toast.loading(`Streaming ${file.name} to CDN...`);
+
+      // Stream file directly to CDN / storage
+      try {
+        const uploaded = await mediaApi.uploadMediaStream(file, (progress) => {
+          setCustomMediaList((prev) =>
+            prev.map((item) => (item.id === tempId ? { ...item, progress } : item))
+          );
+        });
+
+        // Replace local object URL with clean CDN URL
+        setCustomMediaList((prev) =>
+          prev.map((item) =>
+            item.id === tempId
+              ? {
+                  ...item,
+                  url: uploaded.url,
+                  isUploading: false,
+                  progress: 100,
+                }
+              : item
+          )
+        );
+        toast.success(`✓ ${file.name} uploaded to CDN!`, { id: toastId });
+      } catch (err) {
+        console.error('Direct CDN upload failed:', err);
+        toast.error(`Upload failed for ${file.name}: ${err.message || 'Error'}`, { id: toastId });
+        setCustomMediaList((prev) => prev.filter((item) => item.id !== tempId));
+      }
+    }
   };
 
   const removeCustomMediaItem = (index) => {
@@ -1241,6 +1268,16 @@ export default function CreateReelWizardModal({
                               ) : (
                                 <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
                               )}
+                              
+                              {/* Uploading Progress Overlay */}
+                              {item.isUploading && (
+                                <div className="absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-1 z-10">
+                                  <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-1"></div>
+                                  <span className="text-[10px] font-black text-amber-300">{item.progress || 0}%</span>
+                                  <span className="text-[8px] text-white/90 font-bold tracking-tight">Streaming CDN</span>
+                                </div>
+                              )}
+
                               <div className="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                                 #{idx + 1}
                               </div>
@@ -1362,17 +1399,27 @@ export default function CreateReelWizardModal({
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (evt) => {
-                                if (evt.target?.result && typeof setThumbnailUrl === 'function') {
-                                  setThumbnailUrl(evt.target.result);
-                                  toast.success('Thumbnail cover image selected!');
+                              if (file.size > 15 * 1024 * 1024) {
+                                return toast.error('Thumbnail cover image must be under 15MB');
+                              }
+                              const localPreview = URL.createObjectURL(file);
+                              if (typeof setThumbnailUrl === 'function') {
+                                setThumbnailUrl(localPreview);
+                              }
+                              const toastId = toast.loading('Streaming thumbnail cover to CDN...');
+                              try {
+                                const uploaded = await mediaApi.uploadMediaStream(file, undefined, 'uploads/thumbnails');
+                                if (typeof setThumbnailUrl === 'function') {
+                                  setThumbnailUrl(uploaded.url);
                                 }
-                              };
-                              reader.readAsDataURL(file);
+                                toast.success('Cover thumbnail uploaded to CDN!', { id: toastId });
+                              } catch (err) {
+                                console.error('Thumbnail upload failed:', err);
+                                toast.error('Failed to upload thumbnail: ' + (err.message || 'Error'), { id: toastId });
+                              }
                             }
                           }}
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"

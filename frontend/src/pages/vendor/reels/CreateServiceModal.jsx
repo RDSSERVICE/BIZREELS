@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
 import { useCreateListingMutation } from '../../../features/vendor/vendorApi';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiTool, FiDollarSign, FiImage, FiX, FiUploadCloud } from 'react-icons/fi';
 
 /**
  * CreateServiceModal
@@ -61,6 +61,23 @@ export default function CreateServiceModal({
 
   const [createListing, { isLoading }] = useCreateListingMutation();
 
+  const handleImageFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 15 * 1024 * 1024) {
+        return toast.error('Image size must be under 15MB');
+      }
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        if (evt.target?.result) {
+          setImageUrl(evt.target.result);
+          toast.success('Service photo attached!');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !price || !category) {
@@ -97,14 +114,24 @@ export default function CreateServiceModal({
   return (
     <AdminModal isOpen={isOpen} onClose={onClose} title="Create New Service Listing" maxWidth="max-w-lg">
       <form onSubmit={handleSubmit} className="space-y-4 text-left font-sans">
-        <p className="text-xs text-slate-300 leading-relaxed">
-          List a new service. Once created, it will be automatically selected for your Service Reel / Image Post.
-        </p>
+        
+        {/* Info Banner */}
+        <div className="p-3.5 bg-[#f8f4ec] rounded-2xl border border-[#e3dccb] flex items-start gap-3 shadow-2xs">
+          <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-200 text-amber-800 flex items-center justify-center shrink-0">
+            <FiTool size={16} />
+          </div>
+          <div>
+            <p className="text-xs font-black text-[#1a1a1a]">Quick Service Creator</p>
+            <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-0.5">
+              List a new service. Once created, it will be automatically selected for your Service Reel / Image Post.
+            </p>
+          </div>
+        </div>
 
         {/* SERVICE TITLE */}
         <div>
-          <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
-            Service Title *
+          <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block mb-1.5">
+            Service Title <span className="text-amber-600">*</span>
           </label>
           <input
             type="text"
@@ -112,25 +139,25 @@ export default function CreateServiceModal({
             placeholder="e.g. Full Home Deep Cleaning & Sanitization"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
+            className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition shadow-2xs"
           />
         </div>
 
         {/* CATEGORY & SUBCATEGORY — dynamic dropdowns */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
-              Category *
+            <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block mb-1.5">
+              Category <span className="text-amber-600">*</span>
             </label>
             {availableCategories.length > 0 ? (
               <select
                 required
                 value={category}
                 onChange={handleCategoryChange}
-                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none transition"
+                className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition shadow-2xs cursor-pointer"
               >
                 {availableCategories.map((cat) => (
-                  <option key={cat} value={cat} className="bg-[#1c1d22] text-slate-100">{cat}</option>
+                  <option key={cat} value={cat} className="bg-white text-[#1a1a1a]">{cat}</option>
                 ))}
               </select>
             ) : (
@@ -140,23 +167,23 @@ export default function CreateServiceModal({
                 placeholder="Loading categories..."
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 outline-none"
+                className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] outline-none shadow-2xs"
               />
             )}
           </div>
 
           <div>
-            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+            <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block mb-1.5">
               Sub Category
             </label>
             {availableSubcategories.length > 0 ? (
               <select
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
-                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none transition"
+                className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition shadow-2xs cursor-pointer"
               >
                 {availableSubcategories.map((sub) => (
-                  <option key={sub} value={sub} className="bg-[#1c1d22] text-slate-100">{sub}</option>
+                  <option key={sub} value={sub} className="bg-white text-[#1a1a1a]">{sub}</option>
                 ))}
               </select>
             ) : (
@@ -165,45 +192,98 @@ export default function CreateServiceModal({
                 placeholder="e.g. General"
                 value={subcategory}
                 onChange={(e) => setSubcategory(e.target.value)}
-                className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 outline-none"
+                className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] outline-none shadow-2xs"
               />
             )}
           </div>
         </div>
 
-        {/* PRICE & IMAGE URL */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* PRICE & IMAGE */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
-              Price / Rate (₹) *
+            <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block mb-1.5">
+              Price / Rate (₹) <span className="text-amber-600">*</span>
             </label>
-            <input
-              type="number"
-              required
-              min="0"
-              placeholder="e.g. 1999"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 outline-none transition"
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                ₹
+              </span>
+              <input
+                type="number"
+                required
+                min="0"
+                placeholder="e.g. 1999"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="w-full p-3 pl-8 bg-white border border-[#e3dccb] rounded-xl text-xs font-bold text-[#1a1a1a] placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition shadow-2xs"
+              />
+            </div>
           </div>
+
           <div>
-            <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
-              Image URL (Optional)
+            <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block mb-1.5">
+              Image URL / Photo (Optional)
             </label>
-            <input
-              type="url"
-              placeholder="https://..."
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 outline-none transition"
-            />
+            <div className="relative">
+              <input
+                type="url"
+                placeholder="https://example.com/photo.jpg"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                className="w-full p-3 pr-8 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition shadow-2xs"
+              />
+              {imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setImageUrl('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                  title="Clear Image"
+                >
+                  <FiX size={14} />
+                </button>
+              ) : (
+                <label className="absolute right-2.5 top-1/2 -translate-y-1/2 text-amber-600 hover:text-amber-700 p-1 cursor-pointer" title="Upload Photo from Device">
+                  <FiUploadCloud size={16} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
           </div>
         </div>
 
+        {/* IMAGE PREVIEW IF ATTACHED */}
+        {imageUrl && (
+          <div className="flex items-center gap-3 p-2.5 bg-[#f8f4ec] rounded-xl border border-[#e3dccb]">
+            <div className="w-12 h-12 rounded-lg overflow-hidden border border-[#e3dccb] bg-white shrink-0">
+              <img
+                src={imageUrl}
+                alt="Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-bold text-slate-700">Photo Attached</p>
+              <p className="text-[10px] text-slate-500 truncate">{imageUrl.slice(0, 45)}...</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setImageUrl('')}
+              className="px-2 py-1 text-[10px] font-bold text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
         {/* DESCRIPTION */}
         <div>
-          <label className="text-[10px] font-extrabold uppercase text-amber-300 tracking-wider block mb-1.5">
+          <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider block mb-1.5">
             Service Details / Description
           </label>
           <textarea
@@ -211,7 +291,7 @@ export default function CreateServiceModal({
             placeholder="Describe features and scope of this service..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 outline-none transition"
+            className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition shadow-2xs resize-none"
           />
         </div>
 
@@ -220,16 +300,16 @@ export default function CreateServiceModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3.5 bg-white/10 border border-white/10 text-slate-300 font-bold text-xs rounded-full hover:bg-white/15 hover:text-white transition cursor-pointer"
+            className="flex-1 py-3 bg-white border border-[#e3dccb] text-slate-700 hover:text-black font-bold text-xs rounded-full hover:bg-[#ede5d8] transition cursor-pointer shadow-2xs"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="flex-1 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all flex items-center justify-center gap-1.5 border border-amber-400 cursor-pointer"
+            className="flex-1 py-3 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all flex items-center justify-center gap-1.5 border border-amber-400 cursor-pointer disabled:opacity-50"
           >
-            <FiPlus size={14} />
+            <FiPlus size={15} />
             {isLoading ? 'Creating...' : 'Create & Select Service'}
           </button>
         </div>

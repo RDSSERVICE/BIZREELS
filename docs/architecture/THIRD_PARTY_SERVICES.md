@@ -43,13 +43,16 @@ BizReels integrates with external systems to provide AI, payment, messaging, not
 
 ---
 
-## 4. Cloudinary (Media Hosting)
+## 4. Cloudinary (Media Hosting & Direct CDN Streaming)
 
-* **Service Module**: `backend/src/services/cloudinary.service.js`
+* **Backend Service Module**: `backend/src/services/cloudinary.service.js`
+* **Frontend Helper**: `frontend/src/lib/api.js` (`mediaApi.uploadMediaStream`)
+* **Architecture**: **Direct CDN Streaming (Gold Standard / Approach 1)**
 * **Flow**:
-  1. Client requests authorization signature parameters via `POST /media/sign` specifying folder destinations.
-  2. Client uploads images or video files directly to Cloudinary endpoints using the signature parameters.
-  3. Client posts the resulting secure Cloudinary URL back to the server. This prevents server-side memory saturation from large media uploads.
+  1. **Signature Generation**: Client issues authenticated `POST /api/v1/media/sign` specifying `folder` and `resource_type` ('video' or 'image'). Backend validates vendor session and generates a secure timestamped HMAC-SHA1 signature.
+  2. **Direct Browser-to-Edge Stream**: Client directly streams the binary video file (up to 50MB) via multipart `FormData` to `https://api.cloudinary.com/v1_1/{cloud_name}/{resource_type}/upload`. Live upload progress (`onUploadProgress`) powers the UI progress bar. Node.js processes **0 MB** of media traffic, completely avoiding memory buffering and thread blocking.
+  3. **Fallback Proxy**: If Cloudinary credentials are omitted in development, `mediaApi.uploadMediaStream` gracefully falls back to streaming via `POST /api/v1/media/upload`.
+  4. **Lightweight JSON Publish**: Once CDN upload resolves, the client sends only the clean CDN URL (`https://res.cloudinary.com/...`) in `POST /api/v1/reels` (`< 1 KB` payload). Base64 media data in JSON payloads is strictly prohibited.
 
 ---
 

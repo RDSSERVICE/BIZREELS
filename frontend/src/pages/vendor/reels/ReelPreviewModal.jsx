@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiCalendar, FiAlertTriangle, FiSend, FiPercent, FiBell, FiTag, FiVideo, FiMapPin, FiUsers } from 'react-icons/fi';
+import { FiCalendar, FiAlertTriangle, FiSend, FiPercent, FiBell, FiTag, FiVideo, FiMapPin, FiUsers, FiLoader } from 'react-icons/fi';
 import AdminModal from '../../../features/admin/components/AdminModal';
 
 export default function ReelPreviewModal({
@@ -48,6 +48,7 @@ export default function ReelPreviewModal({
 
   const mediaList = (mediaOption === 'service_media' ? selectedServiceMediaUrls : customMediaList) || [];
   const mainMedia = customMediaList?.[0]?.url || customMediaUrl || selectedServiceMediaUrls?.[0];
+  const isStreamingMedia = mediaOption !== 'service_media' && Array.isArray(customMediaList) && customMediaList.some(item => item.isUploading);
 
   return (
     <AdminModal
@@ -222,18 +223,26 @@ export default function ReelPreviewModal({
         <div className="grid grid-cols-3 gap-3 pt-2">
           <button
             type="button"
-            disabled={isPublishing}
+            disabled={isPublishing || isStreamingMedia}
             onClick={() => onPublish(isScheduled ? 'scheduled' : 'published')}
-            className="py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-amber-400"
+            className="py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-amber-400 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <FiSend size={14} /> {isPublishing ? 'Publishing...' : isScheduled ? 'Schedule' : 'Publish Now'}
+            {isStreamingMedia ? (
+              <>
+                <FiLoader size={14} className="animate-spin" /> Uploading to CDN...
+              </>
+            ) : (
+              <>
+                <FiSend size={14} /> {isPublishing ? 'Publishing...' : isScheduled ? 'Schedule' : 'Publish Now'}
+              </>
+            )}
           </button>
 
           <button
             type="button"
-            disabled={isPublishing}
+            disabled={isPublishing || isStreamingMedia}
             onClick={() => onPublish('draft')}
-            className="py-3.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs rounded-full flex items-center justify-center gap-1 cursor-pointer transition shadow-2xs"
+            className="py-3.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs rounded-full flex items-center justify-center gap-1 cursor-pointer transition shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Save as Draft
           </button>

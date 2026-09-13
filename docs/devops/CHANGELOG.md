@@ -2,6 +2,20 @@
 
 All notable changes to the BizReels local social commerce platform will be documented in this file.
 
+## [1.5.0] - 2026-09-14
+
+### Added & Changed
+* **Direct CDN Stream Architecture (Approach 1) for Reels & Media Uploads**:
+  * **Zero-RAM Direct CDN Uploads**: Integrated client-side streaming engine in `frontend/src/lib/api.js` (`mediaApi.uploadMediaStream`) utilizing `POST /api/v1/media/sign`. Binary video and image files up to 50MB stream directly from the vendor's browser to Cloudinary's Edge CDN with real-time percentage progress tracking (`onUploadProgress`).
+  * **Payload Optimization & 413 Entity Too Large Resolution**: Eliminated Base64 data encoding in reel creation requests. Reel publication payload (`POST /api/v1/reels`) reduced from 35MB–50MB down to `< 1 KB` (clean CDN URL only), preventing Node.js Out-Of-Memory (OOM) crashes and event-loop thread blocking.
+  * **Express Payload Guards & 413 Error Handler**: Reverted global `express.json()` and `express.urlencoded()` limits back to secure `10mb` in `backend/src/app.js`. Added dedicated operational handler in `errorHandler.js` for `entity.too.large` / HTTP 413.
+  * **In-Flight Upload Guards**: Added safeguards in `VendorReelsPage.jsx` and `ReelPreviewModal.jsx` disabling publish actions with visual loader indicators while media is actively uploading to CDN.
+* **Mongoose 9 `pre('save')` Middleware Fixes**:
+  * Removed legacy `next()` callback invocation in `backend/src/models/Reel.js` and `backend/src/models/Offer.js` to conform with Mongoose 9 synchronous pre-save hooks, resolving the critical `next is not a function` publishing crash.
+  * Increased database connection and server selection timeouts to 30,000ms in `connection.js` to eliminate false Atlas disconnects during intermittent network spikes.
+* **Warm Bento-Brutalism Design Modernization**:
+  * Completely redesigned `CreateReelWizardModal.jsx`, `CreateProductModal.jsx`, `CreateServiceModal.jsx`, and `ReelBoostModal.jsx` to match BizReels' warm beige theme (`#f8f4ec` containers, `#e3dccb` borders, amber action accents, and `Outfit`/`Archivo` typography).
+
 ---
 
 ## [1.4.0] - 2026-09-11

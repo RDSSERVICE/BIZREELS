@@ -210,6 +210,14 @@ export default function VendorReelsPage() {
       }
     }
 
+    // Ensure all media files have finished uploading to CDN
+    if (mediaOption !== 'service_media' && uploadMode === 'file') {
+      const isStillUploading = customMediaList.some(item => item.isUploading);
+      if (isStillUploading) {
+        return toast.error('Media is still uploading to CDN. Please wait a moment until upload finishes.');
+      }
+    }
+
     // Determine final media URLs (up to 5 items)
     let finalMedia = [];
     if (mediaOption === 'service_media') {

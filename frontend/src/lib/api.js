@@ -233,6 +233,64 @@ export const mediaApi = {
       },
     });
   },
+  uploadMediaStream: async (file, onProgress, folder = "uploads/reels") => {
+    const isVideo = file.type?.startsWith("video/") || /\.(mp4|mov|webm|m4v|avi|mkv|3gp)$/i.test(file.name);
+    const resourceType = isVideo ? "video" : "image";
+
+    try {
+      // 1. Get signed credentials from backend
+      const signRes = await mediaApi.sign(folder, resourceType);
+      const signData = signRes?.data;
+
+      // 2. Direct CDN upload to Cloudinary if signed mode active
+      if (signData?.mode === "signed" && signData.cloud_name && signData.api_key && signData.signature) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("api_key", signData.api_key);
+        formData.append("timestamp", signData.timestamp);
+        formData.append("signature", signData.signature);
+        formData.append("folder", signData.folder);
+
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${signData.cloud_name}/${resourceType}/upload`;
+        const cdnRes = await axios.post(cloudinaryUrl, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (evt) => {
+            if (onProgress && evt.total) {
+              onProgress(Math.round((evt.loaded / evt.total) * 100));
+            }
+          },
+        });
+
+        const finalUrl = cdnRes.data?.secure_url || cdnRes.data?.url;
+        return {
+          url: finalUrl,
+          name: file.name,
+          type: resourceType,
+          public_id: cdnRes.data?.public_id,
+        };
+      }
+
+      // 3. Fallback: stream through backend /v1/media/upload without base64
+      const res = await mediaApi.upload(file, folder, resourceType, onProgress);
+      const finalUrl = res.data?.secure_url || res.data?.url;
+      return {
+        url: finalUrl,
+        name: file.name,
+        type: resourceType,
+        public_id: res.data?.public_id,
+      };
+    } catch (err) {
+      console.warn("Direct CDN sign failed, falling back to /v1/media/upload:", err);
+      const res = await mediaApi.upload(file, folder, resourceType, onProgress);
+      const finalUrl = res.data?.secure_url || res.data?.url;
+      return {
+        url: finalUrl,
+        name: file.name,
+        type: resourceType,
+        public_id: res.data?.public_id,
+      };
+    }
+  },
 };
 
 /**

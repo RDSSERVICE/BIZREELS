@@ -15,7 +15,7 @@ This feature houses the core Instagram Reels module for the BizReels application
 
 ## Coding Conventions
 1.  **Optimistic Updates**: For like status changes, always apply optimistic query updates to immediately modify `likesCount` and `hasLiked` locally, reverting only if the server transaction errors out.
-2.  **Memory Uploads**: Videos are streamed from buffers to Cloudinary. Do not upload large files on standard JSON requests. Always use the `publishReel` mutation passing a `FormData` object.
+2.  **Direct CDN Stream Uploads**: Videos and images are streamed directly to Cloudinary via `mediaApi.uploadMediaStream(file, onProgress, folder)` using signed tokens from `POST /api/v1/media/sign`. Never encode large media files as Base64 strings inside JSON requests. Always pass the resulting permanent CDN URL (`https://res.cloudinary.com/...`) in the JSON payload to keep requests under `< 1 KB`.
 
 ## How to Extend
 To add a "boost reel" payment check before showing the Sponsor badge:

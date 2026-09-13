@@ -50,6 +50,12 @@ const errorHandler = (err, req, res, next) => {
     error = ApiError.serviceUnavailable('Database service temporarily unavailable or timed out. Please try again.');
   }
 
+  // ── Body Parser Payload Too Large (413) ───────────────
+  if (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413) {
+    error = ApiError.badRequest('Uploaded media payload exceeds server size limit. Please upload video/images under 50MB.');
+    error.statusCode = 413;
+  }
+
   // ── Determine status code ──────────────────────────────
   const statusCode = error.statusCode || 500;
   const isOperational = error.isOperational !== undefined ? error.isOperational : false;
