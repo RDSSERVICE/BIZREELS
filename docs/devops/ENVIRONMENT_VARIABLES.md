@@ -39,6 +39,18 @@ The application requires specific configurations configured in `.env` files.
 | **`ADMIN_NAME`** | Yes | `Admin` | Default name label for the platform administrator. |
 | **`ALLOW_DEV_ADMIN_LOGIN`**| Yes | `true` | Toggles the dev admin bypass login endpoint. |
 | **`DEV_ADMIN_OVERRIDE_TOKEN`**| No | `your-dev-token` | Secret string required to authenticate via the dev admin login route. |
+| **`META_APP_ID`** | No | `your_meta_app_id` | Meta Developer App ID for WhatsApp Business Cloud API & Embedded Signup. |
+| **`META_APP_SECRET`** | No | `your_meta_app_secret` | Meta App Secret for validating incoming webhook signatures (HMAC-SHA256). |
+| **`META_WA_VERIFY_TOKEN`** | No | `bizreels_whatsapp_verify_2026` | Token used by Meta to verify the incoming webhook callback URL. |
+| **`META_WA_ACCESS_TOKEN`** | No | `your_system_user_token` | Permanent Meta System User Access Token for Graph API message operations. |
+| **`META_WA_PHONE_NUMBER_ID`** | No | `your_phone_number_id` | Default BizReels fallback phone number ID in WhatsApp Business Platform. |
+| **`META_WA_WABA_ID`** | No | `your_waba_id` | BizReels WhatsApp Business Account (WABA) ID. |
+| **`WHATSAPP_PROVIDER`** | No | `meta` | Outbound and CRM WhatsApp provider selector (`meta` or `twilio`). |
+| **`EXOTEL_SID`** | No | `your_exotel_sid` | Exotel Account SID for initiating click-to-call telephony. |
+| **`EXOTEL_API_KEY`** | No | `your_exotel_api_key` | Exotel API Key credential for telephony REST requests. |
+| **`EXOTEL_API_TOKEN`** | No | `your_exotel_api_token` | Exotel API Token credential for telephony REST requests. |
+| **`EXOTEL_PHONE`** | No | `0XXXXXXXXXX` | Virtual Landline / Caller ID allocated by Exotel for proxy calls. |
+| **`APP_URL`** | No | `https://api.yourdomain.com` | Base public server URL passed to Exotel for receiving call webhook callbacks. |
 
 ---
 
@@ -46,4 +58,8 @@ The application requires specific configurations configured in `.env` files.
 
 | Variable Name | Required | Default / Value | Description |
 | :--- | :--- | :--- | :--- |
-| **`VITE_BACKEND_URL`** | Yes | `http://localhost:8001` | The target backend Express API server base URL. |
+| **`VITE_BACKEND_URL`** | Yes | `http://localhost:5000` | The target backend Express API server base URL. |
+| **`VITE_API_URL`** | No | `http://localhost:5000/api/v1` | Explicit REST API prefix override. |
+| **`VITE_GOOGLE_MAPS_API_KEY`** | No | `your_api_key` | Google Maps Platform JavaScript API Key. |
+| **`VITE_META_APP_ID`** | No | `your_meta_app_id` | Meta Developer App ID for Facebook JS SDK (Embedded Signup popup). |
+| **`VITE_META_CONFIG_ID`** | No | `your_config_id` | Meta Embedded Signup Configuration ID for onboarding WhatsApp numbers. |
