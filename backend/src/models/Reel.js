@@ -218,10 +218,9 @@ const sanitizeImageUrl = (url) => {
   return url;
 };
 
-reelSchema.pre('save', function (next) {
+reelSchema.pre('save', function () {
   if (this.videoUrl) this.videoUrl = sanitizeMediaUrl(this.videoUrl);
   if (this.thumbnailUrl) this.thumbnailUrl = sanitizeImageUrl(this.thumbnailUrl);
-  next();
 });
 
 reelSchema.post(['find', 'findOne', 'findOneAndUpdate'], function (docs) {

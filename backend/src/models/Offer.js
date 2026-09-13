@@ -83,7 +83,7 @@ const offerSchema = new mongoose.Schema({
 });
 
 // Calculate duration and transition status on save
-offerSchema.pre('save', function (next) {
+offerSchema.pre('save', function () {
   const now = new Date();
 
   // 1. Calculate duration string
@@ -114,8 +114,6 @@ offerSchema.pre('save', function (next) {
       this.status = 'Expired';
     }
   }
-
-  next();
 });
 
 // Indexes for performance

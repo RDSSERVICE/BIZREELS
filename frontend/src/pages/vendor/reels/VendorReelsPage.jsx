@@ -216,9 +216,16 @@ export default function VendorReelsPage() {
       finalMedia = selectedServiceMediaUrls.slice(0, 5);
     } else {
       if (uploadMode === 'file') {
-        finalMedia = customMediaList.map(item => item.url).slice(0, 5);
+        finalMedia = customMediaList.map(item => item.url).filter(Boolean).slice(0, 5);
+        if (finalMedia.length === 0 && customMediaUrl?.trim()) {
+          finalMedia = [customMediaUrl.trim()];
+        }
       } else {
-        if (customMediaUrl) finalMedia = [customMediaUrl];
+        if (customMediaUrl?.trim()) {
+          finalMedia = [customMediaUrl.trim()];
+        } else if (customMediaList.length > 0) {
+          finalMedia = customMediaList.map(item => item.url).filter(Boolean).slice(0, 5);
+        }
       }
     }
 

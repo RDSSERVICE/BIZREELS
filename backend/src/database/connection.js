@@ -44,7 +44,7 @@ const startBackgroundReconnect = (options) => {
     try {
       isConnecting = true;
       logger.info('Background reconnect worker: Attempting connection to MongoDB Atlas...', { service: 'database' });
-      await mongoose.connect(config.mongoUri, { ...options, serverSelectionTimeoutMS: 5000 });
+      await mongoose.connect(config.mongoUri, { ...options, serverSelectionTimeoutMS: 30000 });
       logger.info('MongoDB Connected via background reconnect worker!', { service: 'database' });
       clearInterval(reconnectInterval);
       reconnectInterval = null;
@@ -126,8 +126,8 @@ const connectDB = async () => {
     minPoolSize: 10,
     family: 4, // Force IPv4 to prevent Windows / ISP IPv6 resolution delays
     socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,
-    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 30000,
+    serverSelectionTimeoutMS: 30000,
     maxIdleTimeMS: 30000,
     heartbeatFrequencyMS: 10000,
     retryWrites: true,

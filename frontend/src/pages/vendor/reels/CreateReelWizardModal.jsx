@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import {
   FiLayers, FiTag, FiVideo, FiCheckCircle, FiCheck, FiImage, FiX, FiMapPin, FiUsers, FiEye, FiPlus,
-  FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle, FiRefreshCw
+  FiPercent, FiZap, FiBell, FiStar, FiGift, FiCalendar, FiAlertCircle, FiShield, FiUploadCloud, FiTrash2
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import AdminModal from '../../../features/admin/components/AdminModal';
@@ -16,32 +16,32 @@ import { selectCurrentUser } from '../../../features/auth/authSlice';
 // PURPOSE OPTIONS PER POST TYPE
 const PURPOSE_OPTIONS = {
   services: [
-    { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & visibility', icon: FiStar, color: 'amber' },
-    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon', icon: FiPercent, color: 'green' },
-    { key: 'Announcement', label: 'Announcement', desc: 'Updates or important info', icon: FiBell, color: 'blue' },
-    { key: 'New Service Launch', label: 'New Launch', desc: 'Introduce a brand-new service', icon: FiZap, color: 'purple' },
+    { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & local visibility', icon: FiStar, color: 'amber' },
+    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon code', icon: FiPercent, color: 'green' },
+    { key: 'Announcement', label: 'Announcement', desc: 'Service updates or important notices', icon: FiBell, color: 'blue' },
+    { key: 'New Service Launch', label: 'New Launch', desc: 'Introduce a brand-new service offering', icon: FiZap, color: 'purple' },
   ],
   product: [
-    { key: 'General Promotion', label: 'General Promotion', desc: 'Standard showcase & visibility', icon: FiStar, color: 'amber' },
-    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a discount or coupon', icon: FiPercent, color: 'green' },
-    { key: 'New Arrival', label: 'New Arrival', desc: 'Showcase a new product', icon: FiZap, color: 'purple' },
-    { key: 'Flash Sale', label: 'Flash Sale', desc: 'Limited-time deal with urgency', icon: FiGift, color: 'red' },
+    { key: 'General Promotion', label: 'General Promotion', desc: 'Showcase product highlights & features', icon: FiStar, color: 'amber' },
+    { key: 'Offer / Discount', label: 'Offer / Discount', desc: 'Promote a special discount or coupon', icon: FiPercent, color: 'green' },
+    { key: 'New Arrival', label: 'New Arrival', desc: 'Showcase newly stocked products', icon: FiZap, color: 'purple' },
+    { key: 'Flash Sale', label: 'Flash Sale', desc: 'Limited-time deal with immediate urgency', icon: FiGift, color: 'red' },
   ],
   shop: [
-    { key: 'General Promotion', label: 'General Promotion', desc: 'General business showcase', icon: FiStar, color: 'amber' },
-    { key: 'Grand Opening', label: 'Grand Opening', desc: 'New shop or branch launch', icon: FiZap, color: 'purple' },
-    { key: 'Special Event', label: 'Special Event', desc: 'Sale event, fair, or seasonal', icon: FiCalendar, color: 'blue' },
-    { key: 'Business Update', label: 'Business Update', desc: 'Hours, location, or news update', icon: FiAlertCircle, color: 'orange' },
+    { key: 'General Promotion', label: 'General Promotion', desc: 'General storefront & brand showcase', icon: FiStar, color: 'amber' },
+    { key: 'Grand Opening', label: 'Grand Opening', desc: 'New store branch or re-launch event', icon: FiZap, color: 'purple' },
+    { key: 'Special Event', label: 'Special Event', desc: 'Festive sale, seasonal fair or expo', icon: FiCalendar, color: 'blue' },
+    { key: 'Business Update', label: 'Business Update', desc: 'Store timings, address or services news', icon: FiAlertCircle, color: 'orange' },
   ],
 };
 
 const COLOR_MAP = {
-  amber:  { active: 'bg-amber-950/60 border-amber-500 text-amber-200 shadow-amber-500/20',  dot: 'bg-amber-500'  },
-  green:  { active: 'bg-emerald-950/60 border-emerald-500 text-emerald-200 shadow-emerald-500/20', dot: 'bg-emerald-500' },
-  blue:   { active: 'bg-blue-950/60 border-blue-500 text-blue-200 shadow-blue-500/20',     dot: 'bg-blue-500'   },
-  purple: { active: 'bg-amber-950/60 border-amber-500 text-amber-200 shadow-amber-500/20', dot: 'bg-amber-500' },
-  red:    { active: 'bg-red-950/60 border-red-500 text-red-200 shadow-red-500/20',        dot: 'bg-red-500'    },
-  orange: { active: 'bg-orange-950/60 border-orange-500 text-orange-200 shadow-orange-500/20', dot: 'bg-orange-500' },
+  amber:  { active: 'bg-amber-50 border-amber-500 text-amber-900 ring-2 ring-amber-400/25', iconBg: 'bg-amber-100 text-amber-800' },
+  green:  { active: 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-2 ring-emerald-400/25', iconBg: 'bg-emerald-100 text-emerald-800' },
+  blue:   { active: 'bg-blue-50 border-blue-500 text-blue-900 ring-2 ring-blue-400/25', iconBg: 'bg-blue-100 text-blue-800' },
+  purple: { active: 'bg-purple-50 border-purple-500 text-purple-900 ring-2 ring-purple-400/25', iconBg: 'bg-purple-100 text-purple-800' },
+  red:    { active: 'bg-rose-50 border-rose-500 text-rose-900 ring-2 ring-rose-400/25', iconBg: 'bg-rose-100 text-rose-800' },
+  orange: { active: 'bg-orange-50 border-orange-500 text-orange-900 ring-2 ring-orange-400/25', iconBg: 'bg-orange-100 text-orange-800' },
 };
 
 // PROMOTION AREAS
@@ -88,7 +88,7 @@ export default function CreateReelWizardModal({
   onClose,
   vendorListings,
   onOpenPreview,
-  
+
   // States passed from parent so parent has access to them for preview/publish
   postType,
   setPostType,
@@ -255,14 +255,11 @@ export default function CreateReelWizardModal({
     const parents = categoriesList.filter(c => {
       if (c.parent_id) return false;
       if (postType === 'services') {
-        // STRICTLY service categories only
         return c.category_type === 'service';
       }
       if (postType === 'product') {
-        // STRICTLY product categories only
         return c.category_type === 'product' || !c.category_type;
       }
-      // 'shop' posts
       return true;
     });
     const children = categoriesList.filter(c => c.parent_id);
@@ -275,7 +272,7 @@ export default function CreateReelWizardModal({
       data[parent.name] = subcategories.length > 0 ? subcategories : ['General'];
     });
 
-    // Fallback if no matching categories in database
+    // Fallback defaults if no matching categories
     if (Object.keys(data).length === 0) {
       if (postType === 'services') {
         data['Services'] = ['Plumber', 'Electrician', 'Carpenter', 'AC Repair', 'Cleaning', 'Painter', 'General'];
@@ -307,7 +304,7 @@ export default function CreateReelWizardModal({
           if (onboardedSubcategories.length > 0) {
             const matchedSubs = subs.filter(s => onboardedSubcategories.includes(s));
             if (matchedSubs.length > 0) {
-              subs = matchedSubs; // STRICTLY ONLY onboarded subcategories
+              subs = matchedSubs;
             }
           }
           filteredData[catName] = subs;
@@ -320,7 +317,7 @@ export default function CreateReelWizardModal({
     return data;
   }, [categoriesList, postType, onboardedCategories, onboardedSubcategories]);
 
-  // Set default category / subcategory dynamically when postType or dynamicCategoriesData changes
+  // Set default category / subcategory dynamically
   useEffect(() => {
     const available = Object.keys(dynamicCategoriesData);
     if (available.length > 0) {
@@ -357,7 +354,7 @@ export default function CreateReelWizardModal({
 
   const availableCategoriesList = Object.keys(dynamicCategoriesData);
 
-  // Filter vendor services strictly matching onboarded categories & subcategories
+  // Filter vendor services strictly matching categories
   const vendorServices = React.useMemo(() => {
     return (vendorListings || []).filter(l => {
       if (l.type !== 'service' && l.type) return false;
@@ -372,7 +369,7 @@ export default function CreateReelWizardModal({
     });
   }, [vendorListings, availableCategoriesList, dynamicCategoriesData]);
 
-  // Filter vendor products strictly matching onboarded categories & subcategories
+  // Filter vendor products strictly matching categories
   const vendorProducts = React.useMemo(() => {
     return (vendorListings || []).filter(l => {
       if (l.type !== 'product') return false;
@@ -387,7 +384,7 @@ export default function CreateReelWizardModal({
     });
   }, [vendorListings, availableCategoriesList, dynamicCategoriesData]);
 
-  // Further contextual filter by currently selected category in wizard (if selected)
+  // Contextual filter by currently selected category in wizard
   const filteredServices = React.useMemo(() => {
     if (!postCategory) return vendorServices;
     return vendorServices.filter(s => s.category === postCategory);
@@ -411,7 +408,7 @@ export default function CreateReelWizardModal({
       setSelectedServiceData(service);
       if (service.category) setPostCategory(service.category);
       if (service.subcategory) setPostSubcategory(service.subcategory);
-      if (service.title && !caption) setCaption(service.title + ' - ' + (service.description || ''));
+      if (service.title && !caption) setCaption(service.title + (service.description ? ` - ${service.description}` : ''));
 
       const media = [...(service.images || []), ...(service.videos || [])];
       if (media.length > 0) {
@@ -435,7 +432,7 @@ export default function CreateReelWizardModal({
       setSelectedProductData(product);
       if (product.category) setPostCategory(product.category);
       if (product.subcategory) setPostSubcategory(product.subcategory);
-      if (product.title && !caption) setCaption(product.title + ' - ' + (product.description || ''));
+      if (product.title && !caption) setCaption(product.title + (product.description ? ` - ${product.description}` : ''));
 
       const media = [...(product.images || []), ...(product.videos || [])];
       if (media.length > 0) {
@@ -453,7 +450,7 @@ export default function CreateReelWizardModal({
       setSelectedServiceData(newService);
       if (newService.category) setPostCategory(newService.category);
       if (newService.subcategory) setPostSubcategory(newService.subcategory);
-      if (newService.title) setCaption(newService.title + ' - ' + (newService.description || ''));
+      if (newService.title) setCaption(newService.title + (newService.description ? ` - ${newService.description}` : ''));
       const media = [...(newService.images || []), ...(newService.videos || [])];
       if (media.length > 0) setSelectedServiceMediaUrls([media[0]]);
       toast.success(`Selected newly created service: "${newService.title}"`);
@@ -467,7 +464,7 @@ export default function CreateReelWizardModal({
       setSelectedProductData(newProduct);
       if (newProduct.category) setPostCategory(newProduct.category);
       if (newProduct.subcategory) setPostSubcategory(newProduct.subcategory);
-      if (newProduct.title) setCaption(newProduct.title + ' - ' + (newProduct.description || ''));
+      if (newProduct.title) setCaption(newProduct.title + (newProduct.description ? ` - ${newProduct.description}` : ''));
       const media = [...(newProduct.images || []), ...(newProduct.videos || [])];
       if (media.length > 0) setSelectedServiceMediaUrls([media[0]]);
       toast.success(`Selected newly created product: "${newProduct.title}"`);
@@ -552,7 +549,9 @@ export default function CreateReelWizardModal({
   const modalTitle =
     postType === 'product' ? 'Create Product Reel / Image Post Flow' :
     postType === 'shop'    ? 'Create Shop / Business Reel Flow' :
-                            'Create Service Reel / Image Post Flow';
+                             'Create Service Reel / Image Post Flow';
+
+  const progressPercent = wizardStep === 1 ? 33 : wizardStep === 2 ? 66 : 100;
 
   return (
     <AdminModal
@@ -561,34 +560,52 @@ export default function CreateReelWizardModal({
       title={modalTitle}
       maxWidth="max-w-3xl"
     >
-      <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-2">
-        
-        {/* STEP INDICATOR HEADER */}
-        <div className="flex items-center justify-between border-b border-amber-500/25 pb-4 text-xs">
-          <span className="px-3.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold uppercase tracking-wider text-[10px] sm:text-xs flex items-center gap-1.5 font-display">
-            Step {wizardStep} of 3: {
-              wizardStep === 1 ? 'Content & Category' :
-              wizardStep === 2 ? 'Media & Caption' :
-              'Promotion & Audience'
-            }
-          </span>
-          <div className="flex items-center gap-1.5">
+      <div className="space-y-6 font-sans">
+
+        {/* ── STEPPER HEADER WITH PROGRESS BAR ── */}
+        <div className="space-y-3 pb-2 border-b border-[#e3dccb]">
+          <div className="flex items-center justify-between text-xs">
+            <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-extrabold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+              Step {wizardStep} of 3: {
+                wizardStep === 1 ? 'Content & Purpose' :
+                wizardStep === 2 ? 'Media & Caption' :
+                'Promotion & Audience'
+              }
+            </span>
+            <span className="text-[11px] font-bold text-slate-500">
+              {progressPercent}% Completed
+            </span>
+          </div>
+
+          {/* Progress bar track */}
+          <div className="w-full h-1.5 bg-[#ede5d8] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-amber-500 to-amber-600 transition-all duration-300 rounded-full"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Step Pill Buttons */}
+          <div className="flex items-center justify-between gap-2 pt-1">
             {[
-              { num: 1, label: '1. Category' },
-              { num: 2, label: '2. Upload Video' },
-              { num: 3, label: '3. Targeting' },
+              { num: 1, label: '1. Content & Item' },
+              { num: 2, label: '2. Media & Caption' },
+              { num: 3, label: '3. Targeting & Reach' },
             ].map((step) => (
               <button
                 key={step.num}
                 type="button"
                 onClick={() => setWizardStep(step.num)}
-                className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 font-bold text-[11px] transition-all cursor-pointer ${
-                  wizardStep === step.num ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/25 border border-amber-400 scale-105 font-extrabold' :
-                  wizardStep > step.num ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/10 text-slate-300 hover:bg-white/20 border border-white/15'
+                className={`flex-1 py-2 px-2.5 rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-bold transition-all cursor-pointer ${
+                  wizardStep === step.num
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm font-extrabold border border-amber-400 scale-[1.01]'
+                    : wizardStep > step.num
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100'
+                    : 'bg-[#f8f4ec] text-slate-600 border border-[#e3dccb] hover:bg-[#ede5d8]'
                 }`}
               >
-                {wizardStep > step.num ? <FiCheck size={13} className="text-emerald-400" /> : null}
-                <span>{step.label}</span>
+                {wizardStep > step.num ? <FiCheck size={13} className="text-emerald-600 flex-shrink-0" /> : null}
+                <span className="truncate">{step.label}</span>
               </button>
             ))}
           </div>
@@ -596,95 +613,106 @@ export default function CreateReelWizardModal({
 
         {/* ── STEP 1: CONTENT TYPE, CATEGORY & PURPOSE ── */}
         {wizardStep === 1 && (
-          <div className="space-y-6 animate-fade-in">
-            
+          <div className="space-y-5 animate-fade-in">
+
             {/* 1. SELECT CONTENT TYPE */}
-            <div>
-              <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest block mb-2">
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3 shadow-2xs">
+              <label className="text-xs font-black text-[#241b15] uppercase tracking-wider block">
                 1. Select Content Type *
               </label>
               <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
                 <button
                   type="button"
-                  onClick={() => setPostType('services')}
-                  className={`py-3.5 px-4 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
-                    postType === 'services'
-                      ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02] font-black'
-                      : 'bg-[#31333e] border border-white/12 text-slate-200 hover:bg-[#3b3e4c] hover:text-white hover:border-amber-500/40 font-bold'
+                  onClick={() => setPostType('product')}
+                  className={`p-3.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                    postType === 'product'
+                      ? 'bg-white border-2 border-amber-500 text-amber-900 shadow-sm font-black ring-2 ring-amber-400/20'
+                      : 'bg-white/70 border border-[#e3dccb] text-slate-700 hover:bg-white hover:text-black hover:border-amber-400'
                   }`}
                 >
-                  <FiLayers size={19} />
-                  <span>Service Post</span>
+                  <div className={`p-2 rounded-xl ${postType === 'product' ? 'bg-amber-500 text-white' : 'bg-[#f8f4ec] text-amber-700'}`}>
+                    <FiTag size={18} />
+                  </div>
+                  <span>Product Post</span>
+                  <span className="text-[10px] font-normal text-slate-500">Items &amp; Goods</span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setPostType('product')}
-                  className={`py-3.5 px-4 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
-                    postType === 'product'
-                      ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02] font-black'
-                      : 'bg-[#31333e] border border-white/12 text-slate-200 hover:bg-[#3b3e4c] hover:text-white hover:border-amber-500/40 font-bold'
+                  onClick={() => setPostType('services')}
+                  className={`p-3.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                    postType === 'services'
+                      ? 'bg-white border-2 border-amber-500 text-amber-900 shadow-sm font-black ring-2 ring-amber-400/20'
+                      : 'bg-white/70 border border-[#e3dccb] text-slate-700 hover:bg-white hover:text-black hover:border-amber-400'
                   }`}
                 >
-                  <FiTag size={19} />
-                  <span>Product Post</span>
+                  <div className={`p-2 rounded-xl ${postType === 'services' ? 'bg-amber-500 text-white' : 'bg-[#f8f4ec] text-amber-700'}`}>
+                    <FiLayers size={18} />
+                  </div>
+                  <span>Service Post</span>
+                  <span className="text-[10px] font-normal text-slate-500">Skills &amp; Repairs</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={() => setPostType('shop')}
-                  className={`py-3.5 px-4 rounded-2xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                  className={`p-3.5 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
                     postType === 'shop'
-                      ? 'bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/25 scale-[1.02] font-black'
-                      : 'bg-[#31333e] border border-white/12 text-slate-200 hover:bg-[#3b3e4c] hover:text-white hover:border-amber-500/40 font-bold'
+                      ? 'bg-white border-2 border-amber-500 text-amber-900 shadow-sm font-black ring-2 ring-amber-400/20'
+                      : 'bg-white/70 border border-[#e3dccb] text-slate-700 hover:bg-white hover:text-black hover:border-amber-400'
                   }`}
                 >
-                  <FiVideo size={19} />
+                  <div className={`p-2 rounded-xl ${postType === 'shop' ? 'bg-amber-500 text-white' : 'bg-[#f8f4ec] text-amber-700'}`}>
+                    <FiVideo size={18} />
+                  </div>
                   <span>Shop / Business</span>
+                  <span className="text-[10px] font-normal text-slate-500">Store &amp; Brand</span>
                 </button>
               </div>
             </div>
 
-            {/* 2. SELECT CATEGORY */}
-            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
-              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
-                <FiLayers /> 2. Select {postType === 'product' ? 'Product' : postType === 'services' ? 'Service' : 'Shop'} Category
+            {/* 2. SELECT CATEGORY & SUBCATEGORY */}
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3.5 shadow-2xs">
+              <h4 className="font-black text-xs uppercase text-[#241b15] tracking-wider flex items-center gap-2">
+                <FiLayers className="text-amber-600" /> 2. Select {postType === 'product' ? 'Product' : postType === 'services' ? 'Service' : 'Shop'} Category
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-300 uppercase block mb-1.5">
+                  <label className="text-[10px] font-bold text-slate-700 uppercase block mb-1.5">
                     Category *
                   </label>
                   <select
                     value={postCategory}
                     onChange={handleCategoryChange}
-                    className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
+                    className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition cursor-pointer shadow-2xs"
                   >
                     {Object.keys(dynamicCategoriesData).map(cat => (
-                      <option key={cat} value={cat} className="bg-[#1c1d22] text-slate-100">{cat}</option>
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-extrabold text-slate-300 uppercase block mb-1.5">
+                  <label className="text-[10px] font-bold text-slate-700 uppercase block mb-1.5">
                     Sub Category *
                   </label>
                   <select
                     value={postSubcategory}
                     onChange={(e) => setPostSubcategory(e.target.value)}
-                    className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
+                    className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition cursor-pointer shadow-2xs"
                   >
                     {(dynamicCategoriesData[postCategory] || ['General']).map(sub => (
-                      <option key={sub} value={sub} className="bg-[#1c1d22] text-slate-100">{sub}</option>
+                      <option key={sub} value={sub}>{sub}</option>
                     ))}
                   </select>
                 </div>
               </div>
             </div>
 
-            {/* 3. SELECT PURPOSE */}
-            <div>
-              <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest block mb-2.5">
+            {/* 3. SELECT POST PURPOSE */}
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3 shadow-2xs">
+              <label className="text-xs font-black text-[#241b15] uppercase tracking-wider block">
                 3. Select Post Purpose *
               </label>
 
@@ -699,51 +727,48 @@ export default function CreateReelWizardModal({
                       type="button"
                       onClick={() => {
                         setPostPurpose(p.key);
-                        // Reset extra fields when purpose changes
                         setDiscountPercent('');
                         setCouponCode('');
                         setDiscountValidity('');
                         setAnnouncementTagline('');
                       }}
-                      className={`p-4 rounded-2xl text-left border transition-all cursor-pointer ${
+                      className={`p-4 rounded-xl text-left border transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-gradient-to-br from-amber-950/70 to-amber-900/50 border-2 border-amber-500 text-amber-100 shadow-md shadow-amber-500/25 scale-[1.01]'
-                          : 'bg-[#2b2d36] border border-white/12 text-slate-200 hover:bg-[#353844] hover:border-amber-500/40 hover:text-white'
+                          ? colors.active
+                          : 'bg-white border-[#e3dccb] text-slate-700 hover:border-amber-400 hover:shadow-2xs'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                            isActive ? 'bg-amber-500 text-white shadow-sm font-bold' : 'bg-white/10 text-amber-300'
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            isActive ? 'bg-amber-500 text-white font-bold' : colors.iconBg
                           }`}>
                             <Icon size={15} />
                           </div>
-                          <span className="font-bold text-xs text-white">{p.label}</span>
+                          <span className="font-extrabold text-xs text-[#1a1a1a]">{p.label}</span>
                         </div>
-                        {isActive && <FiCheckCircle size={16} className="text-amber-400 flex-shrink-0" />}
+                        {isActive && <FiCheckCircle size={16} className="text-amber-600 flex-shrink-0" />}
                       </div>
-                      <span className="text-[11px] text-slate-300 block leading-tight pl-0.5">{p.desc}</span>
+                      <span className="text-[11px] text-slate-600 block pl-0.5 leading-snug">{p.desc}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* CONDITIONAL EXTRA FIELDS — Offer / Discount & Flash Sale (Select from Listings Dynamic Offers) */}
+              {/* Dynamic Offers selector when Offer / Discount or Flash Sale */}
               {(postPurpose === 'Offer / Discount' || postPurpose === 'Flash Sale') && (
-                <div className="mt-4 p-4 sm:p-5 bg-gradient-to-br from-emerald-950/40 via-emerald-900/20 to-slate-900/60 border border-emerald-500/35 rounded-2xl space-y-3.5 animate-fade-in font-sans">
-                  
-                  {/* Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-emerald-500/20 pb-3">
+                <div className="mt-3 p-4 bg-emerald-50/70 border border-emerald-300 rounded-xl space-y-3 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-emerald-200">
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-500/30">
-                        <FiPercent size={16} />
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                        <FiPercent size={14} />
                       </div>
                       <div>
-                        <p className="text-xs font-black text-emerald-300 uppercase tracking-wider">
-                          Select Offer / Discount from Listings
+                        <p className="text-xs font-black text-emerald-900 uppercase tracking-wide">
+                          Link Active Offer / Discount
                         </p>
-                        <p className="text-[10px] text-slate-300">
-                          Link an active offer created in your Listings &amp; Offers portal
+                        <p className="text-[10px] text-emerald-700">
+                          Select from your listings offers or create a new coupon
                         </p>
                       </div>
                     </div>
@@ -751,274 +776,334 @@ export default function CreateReelWizardModal({
                     <button
                       type="button"
                       onClick={() => setShowCreateOfferModal(true)}
-                      className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow-sm shadow-amber-500/20 self-start sm:self-auto"
+                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-lg transition cursor-pointer flex items-center gap-1 self-start sm:self-auto shadow-2xs"
                     >
                       <FiPlus size={13} />
-                      <span>+ Create New Dynamic Offer</span>
+                      <span>+ Create New Offer</span>
                     </button>
                   </div>
 
-                  {/* SELECT EXISTING ACTIVE OFFER */}
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {activeOffers.length > 0 ? (
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-emerald-300 uppercase block">
-                          Choose Active Offer from Your Listings Catalog *
+                      <div>
+                        <label className="text-[10px] font-bold text-emerald-900 uppercase block mb-1">
+                          Choose Active Offer ({activeOffers.length} available)
                         </label>
                         <select
                           value={selectedOfferId}
                           onChange={(e) => handleSelectOffer(e.target.value)}
-                          className="w-full p-3 bg-[#16181e] border border-emerald-500/35 rounded-xl text-xs font-bold text-white focus:border-emerald-400 outline-none transition cursor-pointer"
+                          className="w-full p-2.5 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-[#1a1a1a] focus:border-emerald-500 outline-none transition cursor-pointer"
                         >
-                          <option value="" className="bg-[#16181e] text-slate-300">-- Select an active offer ({activeOffers.length} available) --</option>
+                          <option value="">-- Choose an active offer --</option>
                           {activeOffers.map(offer => (
-                            <option key={offer._id || offer.id} value={offer._id || offer.id} className="bg-[#16181e] text-white">
+                            <option key={offer._id || offer.id} value={offer._id || offer.id}>
                               {offer.title} • {offer.discountType === 'fixed' ? `Flat ₹${offer.discountValue}` : `${offer.discountValue || 15}% OFF`} {offer.couponCode ? `(Code: ${offer.couponCode})` : ''}
                             </option>
                           ))}
                         </select>
                       </div>
                     ) : (
-                      <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-xs text-emerald-200 space-y-2">
-                        <p className="font-bold flex items-center gap-1.5">
-                          <FiAlertCircle size={14} className="text-emerald-400" />
-                          No active offers found in your listings.
-                        </p>
-                        <p className="text-[11px] text-slate-300">
-                          Click <strong>"+ Create New Dynamic Offer"</strong> above to create a discount/offer for your listings and link it directly to this post.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Active Offer Details Preview (if selected) */}
-                    {selectedOfferId && (
-                      <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl space-y-2 text-xs">
-                        <div className="flex items-center justify-between text-emerald-300 font-bold">
-                          <span>Applied: {discountPercent ? `${discountPercent}% Discount` : 'Offer Active'}</span>
-                          {couponCode && (
-                            <span className="font-mono bg-emerald-500/20 px-2 py-0.5 rounded text-white border border-emerald-500/30">
-                              CODE: {couponCode}
-                            </span>
-                          )}
-                        </div>
-                        {discountValidity && (
-                          <p className="text-[11px] text-slate-300">
-                            Valid Till: <strong className="text-emerald-300">{new Date(discountValidity).toLocaleDateString()}</strong>
-                          </p>
-                        )}
-                      </div>
+                      <p className="text-xs text-emerald-800 font-medium">
+                        No active offers in your catalog. Click <strong>"+ Create New Offer"</strong> to add one.
+                      </p>
                     )}
                   </div>
-
                 </div>
               )}
 
-              {/* CONDITIONAL EXTRA FIELDS — Announcement-style purposes */}
+              {/* Announcement Tagline for special events */}
               {(postPurpose === 'Announcement' || postPurpose === 'New Service Launch' ||
                 postPurpose === 'New Arrival' || postPurpose === 'Grand Opening' ||
                 postPurpose === 'Special Event' || postPurpose === 'Business Update') && (
-                <div className="mt-3.5 p-4 bg-amber-500/15 border border-amber-500/35 rounded-2xl space-y-2 animate-fade-in">
-                  <p className="text-[11px] font-extrabold text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
-                    <FiBell size={13} /> Announcement Tagline (Optional)
+                <div className="mt-3 p-3.5 bg-amber-50 border border-amber-300 rounded-xl space-y-2 animate-fade-in">
+                  <p className="text-[11px] font-extrabold text-amber-900 uppercase tracking-wide flex items-center gap-1.5">
+                    <FiBell size={13} className="text-amber-700" /> Announcement Tagline (Optional)
                   </p>
                   <input
                     type="text"
                     maxLength={80}
-                    placeholder={`e.g. ${postPurpose === 'Grand Opening' ? 'We are now open at MG Road!' :
-                      postPurpose === 'Special Event' ? 'Mega Sale this Saturday! 10AM–6PM' :
-                      postPurpose === 'New Arrival' ? 'Just arrived – limited stock!' :
-                      'Now offering home visits & online consultations'}`}
+                    placeholder="e.g. Mega Clearance Sale this weekend! Now open at Main Market."
                     value={announcementTagline}
                     onChange={(e) => setAnnouncementTagline(e.target.value)}
-                    className="w-full p-3 bg-[#1c1d22] border border-amber-500/35 rounded-xl text-xs text-white focus:border-amber-400 outline-none"
+                    className="w-full p-2.5 bg-white border border-amber-300 rounded-lg text-xs text-[#1a1a1a] focus:border-amber-500 outline-none"
                   />
-                  <p className="text-[10px] text-slate-400 text-right">{announcementTagline.length}/80</p>
+                  <p className="text-[10px] text-slate-500 text-right">{announcementTagline.length}/80</p>
                 </div>
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setWizardStep(2)}
-              className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
-            >
-              Continue to Media & Caption Selection →
-            </button>
-          </div>
-        )}
-
-        {/* ── STEP 2: SELECT ITEM & MEDIA ── */}
-        {wizardStep === 2 && (
-          <div className="space-y-6 animate-fade-in">
-            
-            {/* 4. SELECT ITEM (OPTION A vs B) - ONLY FOR PRODUCT & SERVICE POSTS */}
+            {/* 4. LINKED ITEM SELECTOR (PRODUCT OR SERVICE) */}
             {postType !== 'shop' && (
-              <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
-                <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
-                  <FiTag /> 4. Select {postType === 'product' ? 'Product' : 'Service'}
+              <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3.5 shadow-2xs">
+                <h4 className="font-black text-xs uppercase text-[#241b15] tracking-wider flex items-center gap-2">
+                  <FiTag className="text-amber-600" /> 4. Select {postType === 'product' ? 'Product to Showcase' : 'Service to Showcase'}
                 </h4>
 
-                <div className="space-y-3.5">
-                  {postType === 'services' ? (
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[10px] font-bold text-slate-300 uppercase block">
-                          Option A – Select Existing Listed Service
-                        </label>
-                        {filteredServices.length > 0 && (
-                          <span className="text-[10px] text-amber-400 font-extrabold">
-                            {filteredServices.length} service(s) available
-                          </span>
-                        )}
-                      </div>
-
-                      {filteredServices.length > 0 ? (
-                        <select
-                          value={selectedServiceId}
-                          onChange={(e) => handleSelectExistingService(e.target.value)}
-                          className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
-                        >
-                          <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed services ({filteredServices.length}) --</option>
-                          {filteredServices.map(s => (
-                            <option key={s._id || s.id} value={s._id || s.id} className="bg-[#1c1d22] text-slate-100">
-                              {s.title} (₹{s.price || s.sellingPrice || 0}) • {s.category}{s.subcategory ? ` - ${s.subcategory}` : ''}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="p-3 bg-red-500/10 border border-red-500/25 rounded-xl text-xs text-red-300 space-y-1">
-                          <p className="font-bold flex items-center gap-1.5">
-                            <span>⚠️ Not Found:</span>
-                            <span>No listed services found for onboarded category "{postCategory || 'Services'}".</span>
-                          </p>
-                          <p className="text-[11px] text-red-200/80">
-                            Please select Option B below to create a service for this category first.
-                          </p>
-                        </div>
+                {postType === 'product' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-700 uppercase block">
+                        Choose Existing Listed Product
+                      </label>
+                      {filteredProducts.length > 0 && (
+                        <span className="text-[10px] text-amber-800 font-extrabold bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                          {filteredProducts.length} product(s) available
+                        </span>
                       )}
                     </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[10px] font-bold text-slate-300 uppercase block">
-                          Option A – Select Existing Listed Product
-                        </label>
-                        {filteredProducts.length > 0 && (
-                          <span className="text-[10px] text-amber-400 font-extrabold">
-                            {filteredProducts.length} product(s) available
-                          </span>
-                        )}
-                      </div>
 
-                      {filteredProducts.length > 0 ? (
-                        <select
-                          value={selectedProductId}
-                          onChange={(e) => handleSelectExistingProduct(e.target.value)}
-                          className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs font-semibold text-slate-100 focus:border-amber-500 outline-none"
-                        >
-                          <option value="" className="bg-[#1c1d22] text-slate-100">-- Choose from your listed products ({filteredProducts.length}) --</option>
-                          {filteredProducts.map(p => (
-                            <option key={p._id || p.id} value={p._id || p.id} className="bg-[#1c1d22] text-slate-100">
-                              {p.title} (₹{p.price || p.sellingPrice || 0}) • {p.category}{p.subcategory ? ` - ${p.subcategory}` : ''}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="p-3 bg-red-500/10 border border-red-500/25 rounded-xl text-xs text-red-300 space-y-1">
-                          <p className="font-bold flex items-center gap-1.5">
-                            <span>⚠️ Not Found:</span>
-                            <span>No listed products found for onboarded category "{postCategory || 'Products'}".</span>
-                          </p>
-                          <p className="text-[11px] text-red-200/80">
-                            Please select Option B below to create a product for this category first.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {postType === 'services' && selectedServiceData && (
-                    <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-200">
-                      <div className="flex items-center justify-between font-bold">
-                        <span>Selected: {selectedServiceData.title}</span>
-                        <span>Price: ₹{selectedServiceData.price || selectedServiceData.sellingPrice || 0}</span>
-                      </div>
-                      <p className="text-[11px] text-emerald-300 line-clamp-2">
-                        {selectedServiceData.description || 'No description provided.'}
-                      </p>
-                    </div>
-                  )}
-
-                  {postType === 'product' && selectedProductData && (
-                    <div className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs space-y-1 text-emerald-200">
-                      <div className="flex items-center justify-between font-bold">
-                        <span>Selected: {selectedProductData.title}</span>
-                        <span>Price: ₹{selectedProductData.price || selectedProductData.sellingPrice || 0}</span>
-                      </div>
-                      <p className="text-[11px] text-emerald-300 line-clamp-2">
-                        {selectedProductData.description || 'No description provided.'}
-                      </p>
-                    </div>
-                  )}
-
-                  {postType === 'services' && (
-                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                      <span className="text-[11px] text-slate-300">Can't find the service?</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowCreateServiceModal(true)}
-                        className="px-3.5 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-white transition rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                    {filteredProducts.length > 0 ? (
+                      <select
+                        value={selectedProductId}
+                        onChange={(e) => handleSelectExistingProduct(e.target.value)}
+                        className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] focus:border-amber-500 outline-none cursor-pointer shadow-2xs"
                       >
-                        <FiPlus size={13} /> Option B – Create New Service
-                      </button>
-                    </div>
-                  )}
+                        <option value="">-- Choose from your listed products ({filteredProducts.length}) --</option>
+                        {filteredProducts.map(p => (
+                          <option key={p._id || p.id} value={p._id || p.id}>
+                            {p.title} (₹{p.price || p.sellingPrice || 0}) • {p.category}{p.subcategory ? ` - ${p.subcategory}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
+                        <p className="font-bold flex items-center gap-1.5">
+                          <span>⚠️ No listed products found for "{postCategory || 'Category'}".</span>
+                        </p>
+                        <p className="text-[11px] text-slate-600">
+                          Create a new product listing below to tag it in this reel.
+                        </p>
+                      </div>
+                    )}
 
-                  {postType === 'product' && (
-                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                      <span className="text-[11px] text-slate-300">Can't find the product?</span>
+                    {/* Rich Product Preview Card when a product is selected */}
+                    {selectedProductData && (
+                      <div className="p-3.5 bg-white border-2 border-emerald-500/40 rounded-xl shadow-2xs flex items-center justify-between gap-3 animate-fade-in">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-14 h-14 rounded-lg bg-[#f8f4ec] border border-[#e3dccb] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            {selectedProductData.images?.[0] ? (
+                              <img src={selectedProductData.images[0]} alt={selectedProductData.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <FiTag size={20} className="text-amber-600" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              Selected Product
+                            </span>
+                            <h5 className="font-black text-xs text-[#1a1a1a] truncate mt-1">
+                              {selectedProductData.title}
+                            </h5>
+                            <p className="text-xs font-bold text-emerald-700">
+                              ₹{selectedProductData.price || selectedProductData.sellingPrice || 0}
+                              {selectedProductData.category && (
+                                <span className="text-[10px] font-normal text-slate-500 ml-2">
+                                  • {selectedProductData.category}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectExistingProduct('')}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer flex-shrink-0"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#e3dccb]">
+                      <span className="text-xs text-slate-600">Can't find the product?</span>
                       <button
                         type="button"
                         onClick={() => setShowCreateProductModal(true)}
-                        className="px-3.5 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-white transition rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer"
+                        className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
                       >
-                        <FiPlus size={13} /> Option B – Create New Product
+                        <FiPlus size={13} /> + Create New Product
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-700 uppercase block">
+                        Choose Existing Listed Service
+                      </label>
+                      {filteredServices.length > 0 && (
+                        <span className="text-[10px] text-amber-800 font-extrabold bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200">
+                          {filteredServices.length} service(s) available
+                        </span>
+                      )}
+                    </div>
+
+                    {filteredServices.length > 0 ? (
+                      <select
+                        value={selectedServiceId}
+                        onChange={(e) => handleSelectExistingService(e.target.value)}
+                        className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs font-semibold text-[#1a1a1a] focus:border-amber-500 outline-none cursor-pointer shadow-2xs"
+                      >
+                        <option value="">-- Choose from your listed services ({filteredServices.length}) --</option>
+                        {filteredServices.map(s => (
+                          <option key={s._id || s.id} value={s._id || s.id}>
+                            {s.title} (₹{s.price || s.sellingPrice || 0}) • {s.category}{s.subcategory ? ` - ${s.subcategory}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1">
+                        <p className="font-bold flex items-center gap-1.5">
+                          <span>⚠️ No listed services found for "{postCategory || 'Category'}".</span>
+                        </p>
+                        <p className="text-[11px] text-slate-600">
+                          Create a new service listing below to tag it in this reel.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Rich Service Preview Card when a service is selected */}
+                    {selectedServiceData && (
+                      <div className="p-3.5 bg-white border-2 border-emerald-500/40 rounded-xl shadow-2xs flex items-center justify-between gap-3 animate-fade-in">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-14 h-14 rounded-lg bg-[#f8f4ec] border border-[#e3dccb] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            {selectedServiceData.images?.[0] ? (
+                              <img src={selectedServiceData.images[0]} alt={selectedServiceData.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <FiLayers size={20} className="text-amber-600" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              Selected Service
+                            </span>
+                            <h5 className="font-black text-xs text-[#1a1a1a] truncate mt-1">
+                              {selectedServiceData.title}
+                            </h5>
+                            <p className="text-xs font-bold text-emerald-700">
+                              ₹{selectedServiceData.price || selectedServiceData.sellingPrice || 0}
+                              {selectedServiceData.category && (
+                                <span className="text-[10px] font-normal text-slate-500 ml-2">
+                                  • {selectedServiceData.category}
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSelectExistingService('')}
+                          className="px-2.5 py-1 text-[11px] font-bold text-slate-500 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer flex-shrink-0"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#e3dccb]">
+                      <span className="text-xs text-slate-600">Can't find the service?</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateServiceModal(true)}
+                        className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition"
+                      >
+                        <FiPlus size={13} /> + Create New Service
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* CAPTION / POST TITLE */}
-            <div>
-              <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-widest block mb-1.5">
-                Post Caption * (No Contact Info Allowed)
-              </label>
+            {/* CONTINUE TO STEP 2 BUTTON */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setWizardStep(2)}
+                className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
+              >
+                <span>Continue to Media &amp; Caption Selection →</span>
+              </button>
+            </div>
+
+          </div>
+        )}
+
+        {/* ── STEP 2: SELECT MEDIA & CAPTION ── */}
+        {wizardStep === 2 && (
+          <div className="space-y-5 animate-fade-in">
+
+            {/* CAPTION INPUT */}
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-2.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-[#241b15] uppercase tracking-wider block">
+                  Post Caption &amp; Description *
+                </label>
+                <span className="text-[10px] font-bold text-slate-500">
+                  {caption.length}/2200
+                </span>
+              </div>
+
               <textarea
                 required
                 rows={3}
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                placeholder={`Describe your ${postType === 'product' ? 'product' : postType === 'services' ? 'service' : 'business'} highlights...`}
-                className="w-full p-3.5 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition"
+                placeholder={`Describe your ${postType === 'product' ? 'product features, quality, pricing, warranty' : postType === 'services' ? 'service highlights, guarantees, expertise' : 'store offerings & highlights'}...`}
+                className="w-full p-3.5 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition shadow-2xs"
               />
+
+              {/* Hashtags Quick Suggestions */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[10px] font-bold text-slate-500 mr-1">Suggest:</span>
+                {['#NewArrival', '#BestDeal', '#LocalStore', '#SpecialOffer', '#QualityGuaranteed'].map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      if (!caption.includes(tag)) {
+                        setCaption(prev => prev ? `${prev} ${tag}` : tag);
+                      }
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-white hover:bg-amber-50 border border-[#e3dccb] hover:border-amber-400 text-[10px] font-bold text-slate-700 hover:text-amber-900 transition cursor-pointer"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+
+              {/* Safety notice banner */}
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-[11px] text-amber-900">
+                <FiShield className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                <span>
+                  <strong>Safety Notice:</strong> Do not include phone numbers, WhatsApp, emails, QR codes, or external links in caption. Customers connect with you via verified platform buttons.
+                </span>
+              </div>
             </div>
 
             {/* 5. SELECT MEDIA */}
-            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
-              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
-                <FiImage /> 5. Select Media
-              </h4>
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-xs uppercase text-[#241b15] tracking-wider flex items-center gap-2">
+                  <FiImage className="text-amber-600" /> 5. Select Media (Up to 5 Videos/Images)
+                </h4>
+                <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
+                  Vertical 9:16 Recommended
+                </span>
+              </div>
 
-              {/* Source selection tab buttons */}
+              {/* Source selection tab buttons if service/product selected */}
               {postType !== 'shop' && (selectedServiceData || selectedProductData) ? (
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setMediaOption('upload_new')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
-                      mediaOption === 'upload_new' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-xs' : 'bg-[#1c1d22] border-white/15 text-slate-200'
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      mediaOption === 'upload_new'
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-2xs font-black'
+                        : 'bg-white border-[#e3dccb] text-slate-700 hover:bg-[#ede5d8]'
                     }`}
                   >
                     ☁️ Option A – Upload New Video/Photos
@@ -1026,8 +1111,10 @@ export default function CreateReelWizardModal({
                   <button
                     type="button"
                     onClick={() => setMediaOption('service_media')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
-                      mediaOption === 'service_media' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-xs' : 'bg-[#1c1d22] border-white/15 text-slate-200'
+                    className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      mediaOption === 'service_media'
+                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-2xs font-black'
+                        : 'bg-white border-[#e3dccb] text-slate-700 hover:bg-[#ede5d8]'
                     }`}
                   >
                     🖼️ Option B – Select from Item Gallery
@@ -1036,8 +1123,7 @@ export default function CreateReelWizardModal({
               ) : null}
 
               {mediaOption === 'service_media' && postType !== 'shop' && (selectedServiceData || selectedProductData) ? (
-                <div>
-                  {/* Pull media from active selected product/service */}
+                <div className="bg-white p-4 rounded-xl border border-[#e3dccb] space-y-3">
                   {(() => {
                     const activeItem = postType === 'product' ? selectedProductData : selectedServiceData;
                     const gallery = [...(activeItem?.images || []), ...(activeItem?.videos || [])];
@@ -1045,14 +1131,14 @@ export default function CreateReelWizardModal({
                       return (
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <label className="text-[10px] font-bold text-slate-300 uppercase block">
-                              Select up to 5 Images/Videos from Item Gallery:
+                            <label className="text-[10px] font-bold text-slate-700 uppercase block">
+                              Select from Item Gallery:
                             </label>
-                            <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
+                            <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full">
                               {selectedServiceMediaUrls.length} / 5 Selected
                             </span>
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2.5">
                             {gallery.map((url, idx) => {
                               const isSelected = selectedServiceMediaUrls.includes(url);
                               return (
@@ -1060,17 +1146,19 @@ export default function CreateReelWizardModal({
                                   key={idx}
                                   onClick={() => toggleServiceMediaUrl(url)}
                                   className={`w-20 h-20 rounded-xl overflow-hidden border-2 cursor-pointer relative transition ${
-                                    isSelected ? 'border-amber-500 ring-2 ring-amber-500/40 scale-95' : 'border-white/15 opacity-70 hover:opacity-100'
+                                    isSelected
+                                      ? 'border-amber-500 ring-2 ring-amber-400/40 scale-95 shadow-sm'
+                                      : 'border-[#e3dccb] opacity-80 hover:opacity-100'
                                   }`}
                                 >
-                                  {url.match(/\.(mp4|webm)(\?.*)?$/i) ? (
+                                  {url.match(/\.(mp4|webm|mov)(\?.*)?$/i) ? (
                                     <video src={url} className="w-full h-full object-cover" />
                                   ) : (
                                     <img src={url} alt="Gallery item" className="w-full h-full object-cover" />
                                   )}
                                   {isSelected && (
-                                    <div className="absolute inset-0 bg-amber-500/40 flex items-center justify-center font-bold text-white text-xs">
-                                      <FiCheckCircle size={22} />
+                                    <div className="absolute inset-0 bg-amber-500/30 flex items-center justify-center font-bold text-white">
+                                      <FiCheckCircle size={22} className="drop-shadow-md text-white" />
                                     </div>
                                   )}
                                 </div>
@@ -1081,14 +1169,14 @@ export default function CreateReelWizardModal({
                       );
                     }
                     return (
-                      <div className="p-4 bg-[#1c1d22] border border-amber-500/35 rounded-xl text-center space-y-3">
-                        <p className="text-xs text-slate-300 font-bold">
+                      <div className="p-4 text-center space-y-2">
+                        <p className="text-xs text-slate-600 font-bold">
                           Selected item does not have any gallery media items yet.
                         </p>
                         <button
                           type="button"
                           onClick={() => setMediaOption('upload_new')}
-                          className="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-extrabold shadow-md cursor-pointer hover:scale-105 transition"
+                          className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm cursor-pointer transition"
                         >
                           ☁️ Upload Video / Photo File Now
                         </button>
@@ -1097,220 +1185,288 @@ export default function CreateReelWizardModal({
                   })()}
                 </div>
               ) : (
-                <div className="space-y-3.5">
-                  <div className="flex items-center gap-2 p-1 bg-[#1c1d22] border border-white/15 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setUploadMode('file')}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                        uploadMode === 'file' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs font-extrabold' : 'text-slate-300 hover:text-white'
-                      }`}
-                    >
-                      <FiImage size={14} /> Upload Photos / Videos (Max 5)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setUploadMode('url')}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                        uploadMode === 'url' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs font-extrabold' : 'text-slate-300 hover:text-white'
-                      }`}
-                    >
-                      <FiTag size={14} /> Enter Media URL
-                    </button>
-                  </div>
+                <div className="space-y-4">
+                  {/* Option 1: File Upload */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <FiUploadCloud className="text-amber-600" size={14} /> Option 1: Upload Video or Photo Files (Max 5)
+                      </label>
+                      <span className="text-[10px] font-extrabold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                        {customMediaList.length} / 5 Attached
+                      </span>
+                    </div>
 
-                  {uploadMode === 'file' ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-300 uppercase block">
-                          Upload Files (Select up to 5 items) *
-                        </label>
-                        <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
-                          {customMediaList.length} / 5 Uploaded
-                        </span>
-                      </div>
-
-                      {customMediaList.length < 5 && (
-                        <div className="border-2 border-dashed border-amber-500/40 hover:border-amber-400 rounded-2xl p-5 text-center bg-white/5 hover:bg-white/10 transition cursor-pointer relative">
-                          <input
-                            type="file"
-                            multiple
-                            accept="image/*,video/*"
-                            onChange={handleFileUpload}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                          />
-                          <div className="flex flex-col items-center gap-1 text-slate-300">
-                            <FiImage className="w-8 h-8 text-amber-400 opacity-80 mb-1" />
-                            <span className="font-bold text-xs text-white">
-                              Click or Drag & Drop (Select up to {5 - customMediaList.length} files)
-                            </span>
-                            <span className="text-[10px] text-slate-400">Supports JPG, PNG, WEBP, MP4, MOV (Max 50MB)</span>
-                          </div>
+                    {/* UPLOAD NEW MEDIA DRAG/CLICK AREA */}
+                    <div className="border-2 border-dashed border-[#e3dccb] hover:border-amber-500 rounded-2xl p-6 bg-white text-center cursor-pointer relative transition-all group shadow-2xs">
+                      <input
+                        type="file"
+                        accept="video/*,image/*"
+                        multiple
+                        onChange={(e) => {
+                          setUploadMode('file');
+                          handleFileUpload(e);
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                      />
+                      <div className="flex flex-col items-center justify-center gap-2 text-slate-600 group-hover:text-amber-800 transition">
+                        <div className="w-12 h-12 rounded-full bg-[#f8f4ec] group-hover:bg-amber-100 text-amber-700 flex items-center justify-center transition">
+                          <FiUploadCloud size={24} />
                         </div>
-                      )}
+                        <div>
+                          <p className="text-xs font-extrabold text-[#1a1a1a]">
+                            Click or drag video &amp; photo files here
+                          </p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Supports MP4, MOV, WebP, JPG (Max 50MB per file, up to 5 items)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                      {customMediaList.length > 0 && (
-                        <div className="grid grid-cols-5 gap-2 pt-1">
+                    {/* CUSTOM MEDIA ITEMS LIST */}
+                    {customMediaList.length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase block">
+                          Attached Media Files ({customMediaList.length} / 5):
+                        </label>
+                        <div className="flex flex-wrap gap-2.5">
                           {customMediaList.map((item, idx) => (
-                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-slate-900 border-2 border-amber-500 group shadow-md">
-                              {item.type === 'video' ? (
+                            <div
+                              key={idx}
+                              className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-[#e3dccb] bg-black shadow-2xs group"
+                            >
+                              {item.type === 'video' || item.url?.match(/\.(mp4|mov|webm)$/i) ? (
                                 <video src={item.url} className="w-full h-full object-cover" />
                               ) : (
-                                <img src={item.url} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                                <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
                               )}
+                              <div className="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                #{idx + 1}
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => removeCustomMediaItem(idx)}
-                                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md hover:bg-red-700 transition cursor-pointer"
+                                className="absolute top-1 right-1 p-1 rounded-md bg-rose-600 text-white hover:bg-rose-700 transition cursor-pointer shadow-sm z-20"
+                                title="Remove media"
                               >
-                                <FiX size={12} />
+                                <FiTrash2 size={12} />
                               </button>
-                              <div className="absolute bottom-1 left-1 bg-black/75 px-1.5 py-0.5 rounded text-[9px] font-extrabold text-white">
-                                #{idx + 1}
-                              </div>
                             </div>
                           ))}
                         </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DIVIDER: OR */}
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-[#e3dccb]"></div>
+                    <span className="flex-shrink mx-3 text-[10px] font-black text-slate-600 uppercase bg-[#ede5d8] px-3 py-1 rounded-full border border-[#d8cfbe] shadow-2xs">
+                      — OR ENTER DIRECT MEDIA URL —
+                    </span>
+                    <div className="flex-grow border-t border-[#e3dccb]"></div>
+                  </div>
+
+                  {/* Option 2: Direct Media URL */}
+                  <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3 shadow-2xs">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[10px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                          <FiTag className="text-amber-600" size={14} /> Option 2: Direct Media URL (Video or Photo Link)
+                        </label>
+                        <span className="text-[10px] text-amber-900 font-extrabold bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                          CDN / Cloudinary / External Link
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          placeholder="https://example.com/reel-video.mp4 or https://example.com/product-photo.jpg"
+                          value={customMediaUrl}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCustomMediaUrl(val);
+                            if (val.trim()) {
+                              setUploadMode('url');
+                            }
+                            const isVid = val.startsWith('data:video/') || (() => {
+                              try {
+                                const path = val.split('?')[0].split('#')[0];
+                                return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)$/i.test(path);
+                              } catch {
+                                return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)/i.test(val);
+                              }
+                            })();
+                            setMediaType(isVid ? 'video' : 'image');
+                          }}
+                          className="w-full p-3 pr-10 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none shadow-2xs transition"
+                        />
+                        {customMediaUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomMediaUrl('');
+                              if (customMediaList.length > 0) {
+                                setUploadMode('file');
+                              }
+                            }}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-600 p-1 cursor-pointer transition"
+                            title="Clear URL"
+                          >
+                            <FiX size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Live Preview for URL */}
+                    {customMediaUrl && (
+                      <div className="space-y-1.5 pt-1">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase block">
+                          URL Live Preview:
+                        </label>
+                        <div className="aspect-[9/16] max-h-48 bg-black rounded-xl overflow-hidden border-2 border-[#e3dccb] shadow-sm flex items-center justify-center relative">
+                          {customMediaUrl.match(/\.(mp4|webm|mov)(\?.*)?$/i) || customMediaUrl.startsWith('data:video/') ? (
+                            <video src={customMediaUrl} controls className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={customMediaUrl} alt="URL Preview" className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                          )}
+                          <span className="absolute top-2 left-2 bg-black/75 text-amber-300 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                            {mediaType === 'video' ? '🎬 Video Reel' : '📷 Image Post'}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {postType !== 'shop' && (
+                      <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          checked={saveToServiceGallery}
+                          onChange={(e) => setSaveToServiceGallery(e.target.checked)}
+                          className="w-4 h-4 rounded text-amber-600 focus:ring-0 cursor-pointer"
+                        />
+                        <span>Save this media to listing gallery automatically</span>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* THUMBNAIL COVER OPTION */}
+                  <div className="pt-2 border-t border-[#e3dccb]">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase block mb-1.5">
+                      Custom Reel Cover Thumbnail (Optional)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="border border-dashed border-[#e3dccb] hover:border-amber-500 rounded-xl p-3 bg-white flex-1 text-center cursor-pointer relative transition">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (evt) => {
+                                if (evt.target?.result && typeof setThumbnailUrl === 'function') {
+                                  setThumbnailUrl(evt.target.result);
+                                  toast.success('Thumbnail cover image selected!');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        />
+                        <div className="text-xs text-slate-600 font-bold flex items-center justify-center gap-2">
+                          <FiImage size={16} className="text-amber-600" />
+                          <span>{thumbnailUrl ? 'Change Thumbnail Cover' : 'Upload Custom Cover Image'}</span>
+                        </div>
+                      </div>
+                      {thumbnailUrl && (
+                        <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-amber-500 relative shrink-0 shadow-sm">
+                          <img src={thumbnailUrl} alt="Cover" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => typeof setThumbnailUrl === 'function' && setThumbnailUrl('')}
+                            className="absolute top-0 right-0 p-0.5 bg-rose-600 text-white rounded-bl cursor-pointer"
+                          >
+                            <FiX size={12} />
+                          </button>
+                        </div>
                       )}
                     </div>
-                  ) : (
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1">
-                        Media File URL (MP4 Video or Image URL)
-                      </label>
-                      <input
-                        type="url"
-                        placeholder="https://example.com/media.mp4"
-                        value={customMediaUrl}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCustomMediaUrl(val);
-                          const isVid = val.startsWith('data:video/') || (() => {
-                            try {
-                              const path = val.split('?')[0].split('#')[0];
-                              return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)$/i.test(path);
-                            } catch {
-                              return /\.(mp4|webm|mov|m4v|avi|mkv|3gp|flv|ogv)/i.test(val);
-                            }
-                          })();
-                          setMediaType(isVid ? 'video' : 'image');
-                        }}
-                        className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 focus:border-amber-500 outline-none"
-                      />
-                    </div>
-                  )}
-
-                  {postType !== 'shop' && (
-                    <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={saveToServiceGallery}
-                        onChange={(e) => setSaveToServiceGallery(e.target.checked)}
-                        className="w-4 h-4 rounded text-amber-500"
-                      />
-                      <span>Save new media to service/product gallery for future use</span>
-                    </label>
-                  )}
+                  </div>
                 </div>
               )}
-
-              {/* UPLOAD REEL THUMBNAIL COVER IMAGE */}
-              <div className="pt-3.5 border-t border-white/10 space-y-2">
-                <label className="text-[10px] font-extrabold text-amber-300 uppercase tracking-wider block">
-                  🖼️ Upload Reel Thumbnail Cover Image (Optional)
-                </label>
-                <div className="flex items-center gap-3">
-                  <div className="border border-dashed border-amber-500/40 hover:border-amber-400 rounded-xl p-3.5 bg-[#1c1d22] flex-1 text-center cursor-pointer relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onload = (evt) => {
-                            if (evt.target?.result && typeof setThumbnailUrl === 'function') {
-                              setThumbnailUrl(evt.target.result);
-                              toast.success('Thumbnail cover image selected!');
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                    <div className="text-xs text-slate-300 font-bold flex items-center justify-center gap-2">
-                      <FiImage size={16} className="text-amber-400" />
-                      <span>{thumbnailUrl ? 'Change Thumbnail Cover' : 'Click to Upload Custom Cover Thumbnail'}</span>
-                    </div>
-                  </div>
-                  {thumbnailUrl && (
-                    <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-amber-400 relative shrink-0 shadow-md">
-                      <img src={thumbnailUrl} alt="Thumbnail Cover" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => typeof setThumbnailUrl === 'function' && setThumbnailUrl('')}
-                        className="absolute top-0 right-0 p-0.5 bg-red-600 text-white rounded-bl cursor-pointer"
-                      >
-                        <FiX size={12} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* ACTION ROW: BACK & CONTINUE */}
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setWizardStep(1)}
-                className="w-1/3 py-3.5 bg-white/10 border border-white/10 text-slate-200 font-bold text-xs rounded-full hover:bg-white/15 hover:text-white transition cursor-pointer"
+                className="w-1/3 py-3.5 bg-white border border-[#e3dccb] text-slate-700 font-bold text-xs rounded-full hover:bg-[#ede5d8] transition cursor-pointer shadow-2xs"
               >
                 ← Back
               </button>
               <button
                 type="button"
                 onClick={() => setWizardStep(3)}
-                className="w-2/3 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
+                className="w-2/3 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
               >
-                Continue to Promotion & Audience →
+                Continue to Promotion &amp; Audience →
               </button>
             </div>
+
           </div>
         )}
 
         {/* ── STEP 3: PROMOTION AREA & AUDIENCE ── */}
         {wizardStep === 3 && (
-          <div className="space-y-6 animate-fade-in">
-            
+          <div className="space-y-5 animate-fade-in">
+
             {/* 6A. PROMOTION AREA */}
-            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
-              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
-                <FiMapPin /> 6A. Promotion Area (Single Choice) *
-              </h4>
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-xs uppercase text-[#241b15] tracking-wider flex items-center gap-2">
+                  <FiMapPin className="text-amber-600" /> 6A. Promotion Area (Single Choice) *
+                </h4>
+                <span className="text-[10px] font-bold text-slate-500">
+                  Selected: <strong className="text-amber-900">{promotionArea}</strong>
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-                {PROMOTION_AREAS.map((area) => (
-                  <button
-                    key={area}
-                    type="button"
-                    onClick={() => setPromotionArea(area)}
-                    className={`p-2.5 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
-                      promotionArea === area
-                        ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400 shadow-md shadow-amber-500/20 scale-[1.02] font-extrabold'
-                        : 'bg-[#1c1d22] border border-white/12 text-slate-200 hover:border-amber-500/40 hover:text-white'
-                    }`}
-                  >
-                    {area}
-                  </button>
-                ))}
+                {PROMOTION_AREAS.map((area) => {
+                  const isSelected = promotionArea === area;
+                  return (
+                    <button
+                      key={area}
+                      type="button"
+                      onClick={() => setPromotionArea(area)}
+                      className={`p-2.5 rounded-xl text-xs font-bold border transition text-center cursor-pointer ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-400 shadow-sm scale-[1.02] font-black'
+                          : 'bg-white border-[#e3dccb] text-slate-700 hover:border-amber-400 hover:text-black shadow-2xs'
+                      }`}
+                    >
+                      {area}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* 6B. TARGET AUDIENCE */}
-            <div className="p-4 sm:p-5 bg-[#2b2d36] rounded-2xl border border-amber-500/25 space-y-3.5">
-              <h4 className="font-extrabold text-xs uppercase text-amber-300 tracking-wider flex items-center gap-2">
-                <FiUsers /> 6B. Target Audience (Multi-Select) *
-              </h4>
+            <div className="bg-[#f8f4ec] p-4 sm:p-5 rounded-2xl border border-[#e3dccb] space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <h4 className="font-black text-xs uppercase text-[#241b15] tracking-wider flex items-center gap-2">
+                  <FiUsers className="text-amber-600" /> 6B. Target Audience (Multi-Select) *
+                </h4>
+                <span className="text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
+                  {selectedTargetAudiences.length} Selected
+                </span>
+              </div>
 
               <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1">
                 {PREDEFINED_AUDIENCES.map((tag) => {
@@ -1320,10 +1476,10 @@ export default function CreateReelWizardModal({
                       key={tag}
                       type="button"
                       onClick={() => toggleAudienceTag(tag)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border transition flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition flex items-center gap-1.5 cursor-pointer ${
                         isSelected
-                          ? 'bg-emerald-500 text-white border border-emerald-400 shadow-md shadow-emerald-500/20 font-extrabold'
-                          : 'bg-[#1c1d22] border border-white/12 text-slate-200 hover:bg-white/10 hover:text-white'
+                          ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm font-extrabold'
+                          : 'bg-white border-[#e3dccb] text-slate-700 hover:bg-[#ede5d8] shadow-2xs'
                       }`}
                     >
                       {isSelected && <FiCheck size={12} />}
@@ -1334,36 +1490,38 @@ export default function CreateReelWizardModal({
               </div>
 
               {/* CUSTOM TARGET AUDIENCE */}
-              <div className="pt-2">
-                <label className="text-[10px] font-bold text-slate-300 uppercase block mb-1.5">
+              <div className="pt-2 border-t border-[#e3dccb]">
+                <label className="text-[10px] font-bold text-slate-700 uppercase block mb-1.5">
                   Custom Target Audience Description
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Lawyers, CA, gym members, foodies, college students"
+                  placeholder="e.g. Lawyers, CA, gym members, foodies, tech professionals"
                   value={customTargetAudience}
                   onChange={(e) => setCustomTargetAudience(e.target.value)}
-                  className="w-full p-3 bg-[#1c1d22] border border-white/15 rounded-xl text-xs text-slate-100 focus:border-amber-500 outline-none"
+                  className="w-full p-3 bg-white border border-[#e3dccb] rounded-xl text-xs text-[#1a1a1a] focus:border-amber-500 outline-none shadow-2xs"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* ACTION ROW: BACK & OPEN PREVIEW */}
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setWizardStep(2)}
-                className="w-1/3 py-3.5 bg-white/10 border border-white/10 text-slate-200 font-bold text-xs rounded-full hover:bg-white/15 hover:text-white transition cursor-pointer"
+                className="w-1/3 py-3.5 bg-white border border-[#e3dccb] text-slate-700 font-bold text-xs rounded-full hover:bg-[#ede5d8] transition cursor-pointer shadow-2xs"
               >
                 ← Back
               </button>
               <button
                 type="button"
                 onClick={onOpenPreview}
-                className="w-2/3 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
+                className="w-2/3 py-3.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.01] transition-all cursor-pointer flex items-center justify-center gap-2 border border-amber-400"
               >
-                <FiEye size={15} /> Open Preview & Publish Summary →
+                <FiEye size={15} /> Open Preview &amp; Publish Summary →
               </button>
             </div>
+
           </div>
         )}
 
