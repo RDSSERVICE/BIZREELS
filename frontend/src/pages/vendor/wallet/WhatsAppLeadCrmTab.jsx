@@ -102,6 +102,30 @@ export default function WhatsAppLeadCrmTab() {
     fetchData();
   }, [statusFilter]);
 
+  // Initialize Meta Facebook SDK if app id is available
+  useEffect(() => {
+    const metaAppId = import.meta.env.VITE_META_APP_ID;
+    if (!metaAppId || window.FB) return;
+
+    window.fbAsyncInit = function () {
+      window.FB.init({
+        appId: metaAppId,
+        autoLogAppEvents: true,
+        xfbml: true,
+        version: 'v20.0',
+      });
+    };
+
+    if (!document.getElementById('facebook-jssdk')) {
+      const js = document.createElement('script');
+      js.id = 'facebook-jssdk';
+      js.src = 'https://connect.facebook.net/en_US/sdk.js';
+      js.async = true;
+      js.defer = true;
+      document.body.appendChild(js);
+    }
+  }, []);
+
   // Handle Meta Embedded Signup popup
   const handleLaunchEmbeddedSignup = () => {
     if (window.FB) {

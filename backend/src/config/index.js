@@ -76,6 +76,7 @@ const config = {
 
   // ── Meta WhatsApp Business Cloud API ────────────────────
   metaWhatsApp: {
+    appId: process.env.META_APP_ID || '',
     appSecret: process.env.META_APP_SECRET || '',
     verifyToken: process.env.META_WA_VERIFY_TOKEN || 'bizreels_whatsapp_verify_2026',
     accessToken: process.env.META_WA_ACCESS_TOKEN || '',
@@ -83,6 +84,14 @@ const config = {
     phoneNumberId: process.env.META_WA_PHONE_NUMBER_ID || '',
     wabaId: process.env.META_WA_WABA_ID || '',
     webhookMode: process.env.META_WA_WEBHOOK_MODE || 'sandbox', // 'live' or 'sandbox'
+  },
+
+  // ── Exotel Telephony Calling Integration ─────────────────
+  exotel: {
+    sid: process.env.EXOTEL_SID || '',
+    apiKey: process.env.EXOTEL_API_KEY || '',
+    apiToken: process.env.EXOTEL_API_TOKEN || '',
+    phone: process.env.EXOTEL_PHONE || '',
   },
 
   // ── Resend Email ─────────────────────────────────────────
