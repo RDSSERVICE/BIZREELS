@@ -149,9 +149,23 @@ export default function ReelFullscreenViewer({
     } catch {}
   };
 
-  const handleWhatsApp = (reel) => {
-    handleTrackInteraction('whatsapp_contact', reel);
+  const handleWhatsApp = async (reel) => {
     const phone = reel.creator?.phone || reel.creator?.vendorProfile?.whatsapp || '';
+    const vendorId = reel.creator?._id || reel.creator?.id || reel.creator;
+    const listingId = reel.targetListing?._id || reel.targetListing?.id || (typeof reel.targetListing === 'string' ? reel.targetListing : undefined);
+    // Try click context API first
+    try {
+      const { data: ctxRes } = await api.post('/v1/whatsapp/click', {
+        vendorId,
+        listingId,
+      });
+      if (ctxRes?.data?.wa_link) {
+        window.open(ctxRes.data.wa_link, '_blank');
+        return;
+      }
+    } catch {}
+    // Fallback
+    handleTrackInteraction('whatsapp_contact', reel);
     const text = `Hi! I saw your reel on BizReels and I'm interested.`;
     if (phone) {
       window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');

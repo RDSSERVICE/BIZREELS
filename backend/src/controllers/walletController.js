@@ -15,6 +15,9 @@ class WalletController {
     return ApiResponse.ok(res, 'Wallet details loaded.', {
       balance: balance.credits,
       walletBalance: balance.credits,
+      credits: balance.credits,
+      free_reel_boosts: balance.free_reel_boosts || 0,
+      freeReelBoosts: balance.free_reel_boosts || 0,
       balance_inr_paise: balance.balance_inr_paise,
       is_frozen: balance.is_frozen,
     });
@@ -23,7 +26,11 @@ class WalletController {
   // ── Quick Balance Check ─────────────────────────────────
   getBalance = asyncHandler(async (req, res) => {
     const balance = await walletService.getBalance(req.user._id);
-    return ApiResponse.ok(res, 'Balance fetched.', { balance: balance.credits });
+    return ApiResponse.ok(res, 'Balance fetched.', {
+      balance: balance.credits,
+      credits: balance.credits,
+      free_reel_boosts: balance.free_reel_boosts || 0,
+    });
   });
 
   // ── Get Active Subscription ─────────────────────────────
@@ -116,7 +123,10 @@ class WalletController {
         target_role: obj.target_role || userType,
         billing_cycle: obj.billing_cycle,
         price_inr: obj.price_inr,
-        duration_days: obj.duration_days || 30,
+        wallet_credits: obj.wallet_credits || 0,
+        free_reel_boosts: obj.free_reel_boosts || 0,
+        badge_text: obj.badge_text || null,
+        duration_days: obj.duration_days || null,
         features_list: obj.features_list || (obj.features ? obj.features.split(',').map(f => f.trim()) : []),
         features: obj.features || '',
         product_limit: obj.product_limit,

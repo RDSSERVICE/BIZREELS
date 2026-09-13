@@ -135,33 +135,42 @@ export default function ImageFullscreenViewer({
     } catch {}
   };
 
-  const handleWhatsApp = (post) => {
+  const handleWhatsApp = async (post) => {
     const vendor = post.creator || post.vendor;
-    const isVerified =
-      vendor?.kyc_status === 'approved' ||
-      vendor?.is_subscribed_verified === true ||
-      vendor?.isVerified === true ||
-      vendor?.is_verified === true ||
-      vendor?.vendorProfile?.isVerified === true ||
-      vendor?.verified_badge === true ||
-      ['verified_vendor', 'premium_verified', 'trusted_vendor', 'premium_vendor', 'verified'].includes(
-        vendor?.vendorProfile?.verificationStatus || vendor?.verificationStatus || vendor?.vendorProfile?.tier || vendor?.tier
-      ) ||
-      Boolean(vendor?.vendorProfile?.contactVerified?.whatsapp || vendor?.vendorProfile?.contactVerified?.mobile);
+    const vendorId = vendor?._id || vendor?.id || (typeof vendor === 'string' ? vendor : undefined);
+    const listingId = post.targetListing?._id || post.targetListing?.id || (typeof post.targetListing === 'string' ? post.targetListing : undefined);
 
-    if (!isVerified) {
+    // Guard: Only allow direct WhatsApp if the vendor has verified their contact number
+    const isContactVerified =
+      Boolean(vendor?.vendorProfile?.contactVerified?.whatsapp || vendor?.vendorProfile?.contactVerified?.mobile);
+    if (!isContactVerified) {
       toast.error('⚠️ This vendor is not verified yet. Direct WhatsApp inquiry is only available for verified vendors.', {
         id: 'unverified-vendor-whatsapp'
       });
       return;
     }
 
+    // Try WhatsApp click tracking context API first
+    if (vendorId) {
+      try {
+        const { data: ctxRes } = await api.post('/v1/whatsapp/click', {
+          vendorId,
+          listingId,
+        });
+        if (ctxRes?.data?.wa_link) {
+          window.open(ctxRes.data.wa_link, '_blank');
+          return;
+        }
+      } catch (e) {
+        console.warn('WhatsApp click tracking failed, falling back', e);
+      }
+    }
+
     const rawPhone =
       vendor?.vendorProfile?.whatsapp ||
       vendor?.vendorProfile?.whatsappNumber ||
+      vendor?.vendorProfile?.contactMobile ||
       vendor?.phone ||
-      vendor?.vendorProfile?.mobileNumber ||
-      vendor?.vendorProfile?.phone ||
       vendor?.whatsapp ||
       '';
 

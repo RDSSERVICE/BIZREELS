@@ -28,6 +28,8 @@ import {
 } from '../../../features/vendor/vendorApi';
 import { api } from '../../../lib/api';
 import { useLanguage } from '../../../context/LanguageContext';
+import { FaWhatsapp } from 'react-icons/fa';
+import WhatsAppLeadCrmTab from './WhatsAppLeadCrmTab';
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -40,14 +42,15 @@ const loadRazorpayScript = () => {
   });
 };
 
-// Credit Consumption Rate Schedule
+// Credit Consumption Rate Schedule (7 Approved Commercial Rates)
 const DEFAULT_CREDIT_RATES = [
-  { action: 'Lead Contact Unlock', rate: '5 Credits', description: 'Unlock direct phone & WhatsApp contact of buyer lead', category: 'Leads' },
-  { action: 'Standard Reel Upload', rate: '0 Credits (Free)', description: 'Publish product reel to local discovery feed', category: 'Reels' },
-  { action: 'Reel 24h Feature Boost', rate: '25 Credits', description: 'Pin reel to top of local feeds for 24 hours with priority ranking', category: 'Boost' },
-  { action: 'AI Content Generation', rate: '2 Credits', description: 'Generate AI reel script, caption & SEO hashtags', category: 'AI' },
-  { action: 'Catalog Product Boost', rate: '10 Credits', description: 'Highlight product listing in category search results for 7 days', category: 'Catalog' },
-  { action: 'Direct Buyer Broadcast', rate: '15 Credits', description: 'Broadcast offer notification to interested buyers in your pincode', category: 'Marketing' },
+  { action: 'Unique Reel / Product View', rate: '0.20 Credit', description: 'Charged when a customer views your product or reel (deduplicated once per 24 hours)', category: 'Views' },
+  { action: 'WhatsApp Contact Click', rate: '2.50 Credits', description: 'Charged when a buyer initiates a WhatsApp inquiry for your items (24h dedup)', category: 'Leads' },
+  { action: 'Connected Voice Call', rate: '2.50 Credits', description: 'Charged ONLY when a phone call successfully connects via Exotel (0 if busy/missed)', category: 'Telephony' },
+  { action: 'In-App First Chat Message', rate: '0.10 Credit', description: 'Charged when a buyer begins a conversation thread with your store (24h dedup)', category: 'Chat' },
+  { action: 'Product / Service Inquiry', rate: '0.10 Credit', description: 'Charged when a customer sends a formal enquiry form for your listing', category: 'Inquiries' },
+  { action: 'Customer Order Request', rate: '5.00 Credits', description: 'Charged when a buyer places a verified product or service order request', category: 'Orders' },
+  { action: 'Additional Reel Boost', rate: '2.00 Credits', description: 'Charged per reel boost after all plan-included free boosts are utilized (1 free boost consumed first)', category: 'Promotion' },
 ];
 
 export default function VendorWalletPage() {
@@ -64,6 +67,22 @@ export default function VendorWalletPage() {
   const { data: creditRatesData } = useGetCreditRatesQuery();
   const [rechargeWallet] = useRechargeWalletMutation();
 
+  // Call History State
+  const [callHistory, setCallHistory] = useState([]);
+  const [loadingCalls, setLoadingCalls] = useState(false);
+
+  const fetchCalls = () => {
+    setLoadingCalls(true);
+    api.get('/v1/calls/vendor-history')
+      .then((res) => {
+        if (res.data?.data?.items) {
+          setCallHistory(res.data.data.items);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCalls(false));
+  };
+
   // Production Grade: Real-time Socket.IO listeners for instant wallet updates
   useEffect(() => {
     const socket = getSocket();
@@ -72,28 +91,42 @@ export default function VendorWalletPage() {
     const handleWalletUpdate = () => {
       refetchWallet();
       refetchTx();
+      fetchCalls();
     };
 
     socket.on('wallet:updated', handleWalletUpdate);
     socket.on('payment:success', handleWalletUpdate);
     socket.on('transaction:new', handleWalletUpdate);
+    socket.on('call:status_update', handleWalletUpdate);
 
     return () => {
       socket.off('wallet:updated', handleWalletUpdate);
       socket.off('payment:success', handleWalletUpdate);
       socket.off('transaction:new', handleWalletUpdate);
+      socket.off('call:status_update', handleWalletUpdate);
     };
   }, [refetchWallet, refetchTx]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [amount, setAmount] = useState('1000');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('wallet'); // 'wallet' | 'rates'
+  const [activeTab, setActiveTab] = useState('wallet'); // 'wallet' | 'calls' | 'whatsapp' | 'rates'
+
+  useEffect(() => {
+    if (activeTab === 'calls') {
+      fetchCalls();
+    }
+  }, [activeTab]);
 
   // Payout Withdrawal State
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutLoading, setPayoutLoading] = useState(false);
+
+  // Balances
+  const vendorCredits = walletData?.data?.credits ?? walletData?.credits ?? walletData?.data?.balance ?? walletData?.balance ?? 0;
+  const freeReelBoosts = walletData?.data?.free_reel_boosts ?? walletData?.free_reel_boosts ?? 0;
+  const earningsInr = (walletData?.data?.balance_inr_paise ?? walletData?.balance_inr_paise ?? 0) / 100;
 
   const handleRequestPayout = async (e) => {
     if (e) e.preventDefault();
@@ -102,8 +135,8 @@ export default function VendorWalletPage() {
       toast.error('Please enter a valid withdrawal amount.');
       return;
     }
-    if (numAmt > balance) {
-      toast.error('Withdrawal amount cannot exceed available balance.');
+    if (numAmt > earningsInr) {
+      toast.error('Withdrawal amount cannot exceed available sales earnings.');
       return;
     }
 
@@ -122,13 +155,13 @@ export default function VendorWalletPage() {
     }
   };
 
-  // Dynamic Packs & Rates from Backend (zero client-side hardcoding)
+  // Dynamic Packs & Rates from Backend
   const topupPacks = Array.isArray(topupPacksData) ? topupPacksData : topupPacksData?.data || [];
   const creditRates = Array.isArray(creditRatesData) && creditRatesData.length > 0
     ? creditRatesData
     : creditRatesData?.rates || DEFAULT_CREDIT_RATES;
 
-  const balance = walletData?.data?.balance ?? walletData?.data?.walletBalance ?? walletData?.balance ?? walletData?.walletBalance ?? 0;
+  const balance = vendorCredits;
   const rawTx = txData?.data || txData || [];
   const transactions = Array.isArray(rawTx) ? rawTx : rawTx.transactions || [];
 
@@ -280,17 +313,99 @@ export default function VendorWalletPage() {
     },
   ];
 
+  const callColumns = [
+    {
+      key: 'createdAt',
+      label: bi('Date & Time', 'दिनांक और समय'),
+      render: (val, row) => {
+        const d = new Date(val || row?.createdAt);
+        if (isNaN(d.getTime())) return <span className="text-slate-400 text-xs">N/A</span>;
+        return (
+          <div className="flex flex-col font-sans">
+            <span className="font-black text-xs text-[#1a1a1a]">
+              {d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+            <span className="text-[10px] text-slate-500 font-bold">
+              {d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'customerName',
+      label: bi('Customer Lead', 'ग्राहक लीड'),
+      render: (val, row) => (
+        <div className="flex flex-col font-sans">
+          <span className="font-extrabold text-xs text-[#1a1a1a]">{val || 'Customer'}</span>
+          <span className="text-[10px] text-slate-600 font-mono font-bold">{row?.customerPhone || 'Direct Dial'}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'productTitle',
+      label: bi('Inquiry Subject', 'पूछताछ विषय'),
+      render: (val) => (
+        <span className="font-bold text-xs text-slate-800 line-clamp-1 max-w-[200px]">
+          {val || 'Direct Store Line'}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      label: bi('Call Status', 'कॉल स्थिति'),
+      render: (val) => {
+        const isCompleted = val === 'completed';
+        return (
+          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+            isCompleted
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+              : 'bg-amber-100 text-amber-800 border border-amber-300'
+          }`}>
+            {isCompleted ? bi('Connected', 'जुड़ गया') : (val || bi('Unconnected', 'अनुत्तरित'))}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'durationSeconds',
+      label: bi('Duration', 'अवधि'),
+      render: (val) => {
+        const secs = Number(val || 0);
+        const mins = Math.floor(secs / 60);
+        const remSecs = secs % 60;
+        return (
+          <span className="text-xs font-mono font-bold text-slate-700">
+            {mins > 0 ? `${mins}m ${remSecs}s` : `${remSecs}s`}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'creditsDeducted',
+      label: bi('Credits Deducted', 'कटौती'),
+      render: (val, row) => {
+        const charged = row?.isCharged;
+        return (
+          <span className={`font-black text-xs font-mono ${charged ? 'text-rose-600' : 'text-slate-400'}`}>
+            {charged ? `-${(val || 2.50).toFixed(2)} Credits` : '0.00 (No Charge)'}
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 font-sans p-2 sm:p-4 animate-fade-in pb-20">
       {/* Header */}
       <AdminPageHeader
         icon={TbCurrencyRupee}
-        title={bi('Vendor Wallet & Credit Rates', 'विक्रेता वॉलेट और क्रेडिट दरें')}
-        subtitle={bi('Preload wallet balance, manage reel boost credits, and check platform credit rate schedule', 'वॉलेट बैलेंस लोड करें, रील बूस्ट क्रेडिट प्रबंधित करें और दर तालिका देखें')}
+        title={bi('Vendor Wallet & Commercial Accounts', 'विक्रेता वॉलेट और वाणिज्यिक खाता')}
+        subtitle={bi('Manage non-expiring usage credits, track connected call leads, and withdraw sales revenue', 'क्रेडिट बैलेंस प्रबंधित करें, कॉल लीड्स देखें और बिक्री आय निकालें')}
       />
 
       {/* Navigation Tabs (Neo-Brutalist Pill Bar) */}
-      <div className="flex items-center gap-2 border-b-2 border-[#241b15] pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b-2 border-[#241b15] pb-2">
         <button
           type="button"
           onClick={() => setActiveTab('wallet')}
@@ -308,6 +423,36 @@ export default function VendorWalletPage() {
 
         <button
           type="button"
+          onClick={() => setActiveTab('calls')}
+          className={`px-4 py-2 text-xs font-black rounded-xl transition cursor-pointer border-2 ${
+            activeTab === 'calls'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+              : 'bg-white text-[#1a1a1a] border-[#e3dccb] hover:border-[#241b15]'
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <FiZap size={16} />
+            <span>{bi('Call History & Leads', 'कॉल इतिहास और लीड्स')}</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('whatsapp')}
+          className={`px-4 py-2 text-xs font-black rounded-xl transition cursor-pointer border-2 ${
+            activeTab === 'whatsapp'
+              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] shadow-xs'
+              : 'bg-white text-[#1a1a1a] border-[#e3dccb] hover:border-[#241b15]'
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <FaWhatsapp size={16} className={activeTab === 'whatsapp' ? 'text-[#25D366]' : 'text-emerald-600'} />
+            <span>{bi('WhatsApp Leads & CRM', 'व्हाट्सएप लीड्स और सीआरएम')}</span>
+          </span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('rates')}
           className={`px-4 py-2 text-xs font-black rounded-xl transition cursor-pointer border-2 ${
             activeTab === 'rates'
@@ -316,55 +461,108 @@ export default function VendorWalletPage() {
           }`}
         >
           <span className="flex items-center gap-1.5">
-            <FiZap size={16} />
+            <FiInfo size={16} />
             <span>{bi('Credit Rate Schedule', 'क्रेडिट दर अनुसूची')}</span>
           </span>
         </button>
       </div>
 
-      {/* HERO BALANCE BANNER */}
-      <div className="bg-[#241b15] text-white p-6 sm:p-8 rounded-2xl border-2 border-[#241b15] shadow-md flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 relative overflow-hidden">
-        <div className="flex flex-col gap-1.5 z-10">
-          <span className="text-[10.5px] font-black uppercase tracking-widest text-[#d99a3d] bg-white/10 px-3 py-0.5 rounded-md self-start">
-            {bi('AVAILABLE VENDOR BALANCE', 'उपलब्ध विक्रेता वॉलेट बैलेंस')}
-          </span>
-          <h2 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            ₹{balance.toLocaleString('en-IN')}
-          </h2>
-          <p className="text-xs text-slate-300 font-bold max-w-xl">
-            {bi(
-              'Preloaded credits for reel boosts, lead contact unlocks, catalog feature badges, and AI tools',
-              'रील बूस्ट, लीड अनलॉक, कैटलॉग बैज और AI टूल्स के लिए प्रीलोडेड बैलेंस'
-            )}
-          </p>
+      {/* NEO-BRUTALIST DUAL BALANCE DASHBOARD */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* CARD 1: PLATFORM USAGE CREDITS */}
+        <div className="bg-[#241b15] text-white p-6 sm:p-7 rounded-2xl border-2 border-[#241b15] shadow-md flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-[#d99a3d]/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="space-y-3 z-10">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#d99a3d] bg-white/10 px-2.5 py-1 rounded-md">
+                ⚡ {bi('PLATFORM USAGE CREDITS', 'प्लेटफ़ॉर्म उपयोग क्रेडिट्स')}
+              </span>
+              <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                ✓ {bi('Non-Expiring Balance', 'कभी समाप्त नहीं होते')}
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-baseline gap-2">
+                <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+                  {Number(vendorCredits || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider">{bi('Credits', 'क्रेडिट्स')}</span>
+              </div>
+
+              {freeReelBoosts > 0 && (
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-black">
+                  <FiZap size={13} className="fill-emerald-400 text-emerald-400" />
+                  <span>{freeReelBoosts} {bi('Free Reel Boosts Remaining', 'मुफ़्त रील बूस्ट शेष')}</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-300 font-medium">
+              {bi(
+                'Draws down at 0.20/view, 2.50/WhatsApp, 2.50/call, 0.10/chat, 0.10/inquiry, 5.00/order. Credits accumulate on every recharge.',
+                'प्रत्येक रीचार्ज पर क्रेडिट जमा होते हैं और कॉल, व्हाट्सएप, व्यूज़ पर स्वतः कटते हैं।'
+              )}
+            </p>
+          </div>
+
+          <div className="pt-5 mt-4 border-t border-white/10 flex items-center gap-3 z-10">
+            <Link
+              to="/vendor/subscription"
+              className="flex-1 py-3 px-4 bg-[#d99a3d] text-[#1a1a1a] hover:bg-[#eab35b] text-xs font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2"
+            >
+              <FiZap size={16} className="fill-current" />
+              <span>{bi('RECHARGE CREDITS', 'क्रेडिट रीचार्ज करें')}</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setActiveTab('rates')}
+              className="py-3 px-4 bg-white/10 hover:bg-white/20 text-white text-xs font-black rounded-xl border border-white/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <FiInfo size={15} />
+              <span>{bi('View Rates', 'दरें देखें')}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 z-10 w-full sm:w-auto shrink-0">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-6 py-3 bg-[#d99a3d] text-[#1a1a1a] hover:bg-[#eab35b] text-xs font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer border-none"
-          >
-            <FiPlus size={18} strokeWidth={3} />
-            <span>{bi('RECHARGE WALLET', 'वॉलेट रीचार्ज करें')}</span>
-          </button>
-          <button
-            onClick={() => {
-              setPayoutAmount(balance > 0 ? String(balance) : '');
-              setIsPayoutModalOpen(true);
-            }}
-            disabled={balance <= 0}
-            className="px-5 py-3 bg-emerald-600 text-white hover:bg-emerald-500 text-xs font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <FiArrowUpRight size={18} strokeWidth={2.5} />
-            <span>{bi('WITHDRAW TO BANK', 'बैंक में निकालें')}</span>
-          </button>
-          <Link
-            to="/vendor/subscription"
-            className="px-5 py-3 bg-white/10 text-white hover:bg-white/20 text-xs font-black rounded-xl transition flex items-center justify-center gap-2 border border-white/20"
-          >
-            <FiCreditCard size={16} />
-            <span>{bi('View Subscriptions', 'सब्सक्रिप्शन देखें')}</span>
-          </Link>
+        {/* CARD 2: SALES EARNINGS & PAYOUTS */}
+        <div className="bg-white text-[#1a1a1a] p-6 sm:p-7 rounded-2xl border-2 border-[#241b15] shadow-md flex flex-col justify-between relative overflow-hidden">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-md border border-emerald-300">
+                💰 {bi('ORDER SALES REVENUE', 'ऑर्डर बिक्री राजस्व')}
+              </span>
+              <span className="text-[10px] font-extrabold text-slate-600 bg-[#f8f4ec] border border-[#e3dccb] px-2 py-0.5 rounded-full">
+                {bi('Withdrawable', 'निकासी योग्य')}
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-baseline gap-1 font-mono">
+                <span className="text-2xl font-black text-emerald-700">₹</span>
+                <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-3xl sm:text-4xl font-black text-[#1a1a1a] tracking-tight">
+                  {Number(earningsInr || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium mt-1">
+                {bi('Net customer order earnings processed and cleared into your merchant account.', 'ग्राहकों के पूर्ण ऑर्डर से प्राप्त शुद्ध राशि जो बैंक में हस्तांतरणीय है।')}
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-5 mt-4 border-t border-[#e3dccb] flex items-center gap-3">
+            <button
+              onClick={() => {
+                setPayoutAmount(earningsInr > 0 ? String(earningsInr) : '');
+                setIsPayoutModalOpen(true);
+              }}
+              disabled={earningsInr <= 0}
+              className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer border-none disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FiArrowUpRight size={18} strokeWidth={2.5} />
+              <span>{bi('WITHDRAW TO BANK', 'बैंक में निकालें')}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -467,6 +665,43 @@ export default function VendorWalletPage() {
             />
           </div>
         </>
+      )}
+
+      {/* CALL HISTORY & TELEPHONY LEADS TAB CONTENT */}
+      {activeTab === 'calls' && (
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e3dccb] shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#e3dccb] pb-3 gap-2">
+            <div>
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs sm:text-sm uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+                <FiZap className="text-[#d99a3d]" size={18} /> {bi('TELEPHONY CALL LEADS & CONNECT CHARGES', 'कॉल लीड्स और कनेक्ट शुल्क')}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                {bi('Incoming buyer voice calls powered by Exotel. 2.50 Credits deducted only when call connects successfully.', 'Exotel पावर्ड कॉल्स। केवल कॉल कनेक्ट होने पर 2.50 क्रेडिट्स कटते हैं।')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchCalls}
+              className="px-3 py-1.5 rounded-lg bg-[#f8f4ec] hover:bg-[#eae3d2] text-slate-700 text-xs font-bold border border-[#e3dccb] self-start sm:self-auto cursor-pointer"
+            >
+              {bi('Refresh Calls', 'रीफ़्रेश करें')}
+            </button>
+          </div>
+
+          <AdminDataTable
+            columns={callColumns}
+            data={callHistory}
+            loading={loadingCalls}
+            searchPlaceholder={bi('Search by customer or product...', 'ग्राहक या उत्पाद खोजें...')}
+            emptyMessage={bi('No voice call interactions recorded yet.', 'अभी तक कोई कॉल बातचीत दर्ज नहीं हुई।')}
+            testId="vendor-calls-table"
+          />
+        </div>
+      )}
+
+      {/* WHATSAPP LEADS & META CLOUD API CRM TAB CONTENT */}
+      {activeTab === 'whatsapp' && (
+        <WhatsAppLeadCrmTab />
       )}
 
       {/* CREDIT RATE SCHEDULE TAB CONTENT */}

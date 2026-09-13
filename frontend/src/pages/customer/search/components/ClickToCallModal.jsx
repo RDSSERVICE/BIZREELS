@@ -50,15 +50,44 @@ export default function ClickToCallModal({
     ? (rawPhone.startsWith('+') ? rawPhone : (cleanPhone.length === 12 ? `+${cleanPhone.slice(0, 2)} ${cleanPhone.slice(2, 7)} ${cleanPhone.slice(7)}` : rawPhone))
     : '+91 98765 43210 (Direct Line)';
 
+  const [checkingAvailability, setCheckingAvailability] = useState(true);
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [availabilityMsg, setAvailabilityMsg] = useState('');
+
+  useEffect(() => {
+    const targetUserId = vendorObj._id || vendorObj.id;
+    if (!targetUserId) {
+      setCheckingAvailability(false);
+      return;
+    }
+    api.post('/v1/calls/check-availability', { vendorId: targetUserId })
+      .then((res) => {
+        if (res.data?.data) {
+          setIsAvailable(res.data.data.available !== false);
+          if (res.data.data.available === false) {
+            setAvailabilityMsg(
+              res.data.data.message ||
+              bi('Vendor is currently unavailable for voice calls. Please connect via WhatsApp or Chat.', 'विक्रेता वर्तमान में कॉल के लिए उपलब्ध नहीं है। कृपया व्हाट्सएप या चैट पर संपर्क करें।')
+            );
+          }
+        }
+      })
+      .catch(() => {
+        setIsAvailable(true); // graceful fallback
+      })
+      .finally(() => {
+        setCheckingAvailability(false);
+      });
+  }, [vendorObj, bi]);
+
   const handleDirectCall = async () => {
     try {
       const listingId = item._id || item.id;
       const targetUserId = vendorObj._id || vendorObj.id;
-      if (listingId && targetUserId) {
-        api.post('/v1/users/me/track-interaction', {
-          type: 'click_to_call',
-          listingId,
-          targetUserId,
+      if (targetUserId) {
+        api.post('/v1/calls/initiate', {
+          vendorId: targetUserId,
+          listingId: listingId || null,
         }).catch(() => {});
       }
     } catch {}
@@ -124,7 +153,9 @@ export default function ClickToCallModal({
               <p className="text-xs text-slate-300 truncate flex items-center gap-1 mt-0.5">
                 <span>📍 {city}</span>
                 <span>•</span>
-                <span className="text-emerald-400 font-semibold">{bi('Available for Calls', 'कॉल के लिए उपलब्ध')}</span>
+                <span className={isAvailable ? "text-emerald-400 font-semibold" : "text-amber-400 font-semibold"}>
+                  {isAvailable ? bi('Available for Calls', 'कॉल के लिए उपलब्ध') : bi('Call Paused · Use WhatsApp', 'कॉल रोकी गई · व्हाट्सएप चुनें')}
+                </span>
               </p>
             </div>
           </div>
@@ -153,41 +184,59 @@ export default function ClickToCallModal({
 
         {/* ── Call & Contact Action Menu ── */}
         <div className="p-5 space-y-3.5">
-          {/* Primary Action 1: Direct Call */}
-          <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border-2 border-emerald-500/40 space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-emerald-600 text-white shadow-xs">
-                  <FiPhoneCall size={18} />
+          {/* Primary Action 1: Direct Call / Unavailable notice */}
+          {isAvailable ? (
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border-2 border-emerald-500/40 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-emerald-600 text-white shadow-xs">
+                    <FiPhoneCall size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-[#1a1a1a]">
+                      {bi('Direct Voice Call', 'सीधा फ़ोन कॉल')}
+                    </h4>
+                    <p className="text-[11px] font-mono font-bold text-slate-600">{displayPhone}</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-xs font-black text-[#1a1a1a]">
-                    {bi('Direct Voice Call', 'सीधा फ़ोन कॉल')}
-                  </h4>
-                  <p className="text-[11px] font-mono font-bold text-slate-600">{displayPhone}</p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={handleCopyPhone}
+                  className="p-2 rounded-lg bg-white border border-[#e3dccb] hover:border-[#d99a3d] text-slate-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition shadow-2xs"
+                  title={bi('Copy Phone Number', 'नंबर कॉपी करें')}
+                >
+                  {copied ? <FiCheck size={13} className="text-emerald-600" /> : <FiCopy size={13} />}
+                  <span className="text-[10px]">{copied ? bi('Copied', 'कॉपी') : bi('Copy', 'कॉपी')}</span>
+                </button>
               </div>
 
               <button
                 type="button"
-                onClick={handleCopyPhone}
-                className="p-2 rounded-lg bg-white border border-[#e3dccb] hover:border-[#d99a3d] text-slate-700 text-xs font-bold flex items-center gap-1 cursor-pointer transition shadow-2xs"
-                title={bi('Copy Phone Number', 'नंबर कॉपी करें')}
+                onClick={handleDirectCall}
+                className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center justify-center gap-2 shadow-md cursor-pointer tracking-wide"
               >
-                {copied ? <FiCheck size={13} className="text-emerald-600" /> : <FiCopy size={13} />}
-                <span className="text-[10px]">{copied ? bi('Copied', 'कॉपी') : bi('Copy', 'कॉपी')}</span>
+                <FiPhone size={15} className="animate-bounce" />
+                <span>{bi('Call Now (Direct Dial)', 'अभी कॉल करें (डायरेक्ट डायल)')}</span>
               </button>
             </div>
-
-            <button
-              type="button"
-              onClick={handleDirectCall}
-              className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black transition flex items-center justify-center gap-2 shadow-md cursor-pointer tracking-wide"
-            >
-              <FiPhone size={15} className="animate-bounce" />
-              <span>{bi('Call Now (Direct Dial)', 'अभी कॉल करें (डायरेक्ट डायल)')}</span>
-            </button>
-          </div>
+          ) : (
+            <div className="p-3.5 rounded-xl bg-amber-50 border-2 border-amber-300 space-y-2">
+              <div className="flex items-start gap-2.5">
+                <div className="p-1.5 rounded-lg bg-amber-500 text-white shrink-0 mt-0.5">
+                  <FiPhoneCall size={16} />
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-amber-900">
+                    {bi('Calls Currently Paused', 'कॉल वर्तमान में रोकी गई है')}
+                  </h4>
+                  <p className="text-[11px] font-medium text-amber-800 mt-0.5 leading-snug">
+                    {availabilityMsg || bi('Vendor is currently unavailable for phone calls. Please contact via WhatsApp or Chat below.', 'विक्रेता वर्तमान में कॉल के लिए उपलब्ध नहीं है। कृपया नीचे व्हाट्सएप या चैट का उपयोग करें।')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Alternative Contact Options */}
           <div className="grid grid-cols-2 gap-2.5">

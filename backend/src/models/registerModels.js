@@ -39,6 +39,9 @@ require('./OtpRequest');
 require('./LiveStream');
 require('./Interaction');
 require('./Proposal');
+require('./WhatsAppLead');
+require('./WhatsAppMessage');
+require('./WhatsAppTrackingContext');
 
 // Multi-model files (these use registerOrReuse, safe to load after standalone models)
 require('./Admin');

@@ -52,8 +52,13 @@ export default function ActiveSubscriptionCard({
             </p>
           </div>
 
-          {/* Expiry Pill */}
-          {planExpires && (
+          {/* Non-Expiring or Expiry Pill */}
+          {roleParam === 'vendor' ? (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+              <span>✓</span>
+              <span>{bi('Non-Expiring Balance (Valid until consumed)', 'क्रेडिट कभी समाप्त नहीं होते')}</span>
+            </div>
+          ) : planExpires ? (
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 text-xs font-semibold">
               <FiCalendar className="text-[#d99a3d]" size={13} />
               <span>{bi('Renews / Expires on:', 'नवीनीकरण / समाप्ति:')}</span>
@@ -65,24 +70,34 @@ export default function ActiveSubscriptionCard({
                 })}
               </strong>
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Right: Wallet Balance & Quick Recharge Widget */}
         <div className="flex flex-col sm:flex-row lg:flex-col sm:items-center lg:items-end gap-3 shrink-0">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 w-full sm:w-auto min-w-[240px] flex items-center justify-between gap-4">
+          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 w-full sm:w-auto min-w-[260px] flex items-center justify-between gap-4">
             <div className="space-y-0.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                {roleParam === 'creator' ? bi('Creator Wallet Balance', 'क्रिएटर वॉलेट शेष') : bi('Vendor Wallet Balance', 'विक्रेता वॉलेट शेष')}
+                {roleParam === 'creator' ? bi('Creator Wallet Balance', 'क्रिएटर वॉलेट शेष') : bi('Platform Usage Credits', 'प्लेटफ़ॉर्म उपयोग क्रेडिट्स')}
               </span>
-              <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono flex items-center">
-                <TbCurrencyRupee size={22} className="-mr-1 text-emerald-400" />
-                <span>{Number(walletBalance || 0).toLocaleString('en-IN')}</span>
+              <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono flex items-center gap-1.5">
+                {roleParam === 'creator' ? (
+                  <>
+                    <TbCurrencyRupee size={22} className="-mr-1 text-emerald-400" />
+                    <span className="text-emerald-400">{Number(walletBalance || 0).toLocaleString('en-IN')}</span>
+                  </>
+                ) : (
+                  <>
+                    <FiZap size={18} className="text-amber-400 fill-amber-400" />
+                    <span>{Number(walletBalance || 0).toLocaleString('en-IN')}</span>
+                    <span className="text-xs font-bold text-slate-300 font-sans">{bi('Credits', 'क्रेडिट')}</span>
+                  </>
+                )}
               </div>
             </div>
 
             <Link
-              to={walletLink}
+              to={roleParam === 'creator' ? '/creator/wallet' : '/vendor/wallet'}
               className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-[#d99a3d] hover:bg-[#c4882e] text-[#1a1a1a] text-xs font-black transition shadow-sm shrink-0"
             >
               <span>{bi('Recharge', 'रिचार्ज')}</span>

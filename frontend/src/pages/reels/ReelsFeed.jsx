@@ -346,17 +346,31 @@ const ReelsFeed = () => {
 
                   {/* G. Click to WhatsApp */}
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       const creator = reel.creator || reel.vendor;
                       const phone = creator?.phone || creator?.vendorProfile?.contactPhone;
-                      if (phone) {
-                        let cleanPhone = phone.replace(/[^0-9]/g, '');
-                        if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
-                        const text = encodeURIComponent(`Hi! I saw your reel "${reel.caption || ''}" on BizReels and would like to inquire...`);
-                        window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
-                      } else {
+                      if (!phone) {
                         toast.error('Seller WhatsApp not available for this reel');
+                        return;
                       }
+                      const vendorId = creator?._id || creator?.id;
+                      const listingId = reel.targetListing?._id || reel.targetListing?.id || (typeof reel.targetListing === 'string' ? reel.targetListing : undefined);
+                      // Try click context API
+                      try {
+                        const { data: ctxRes } = await api.post('/v1/whatsapp/click', {
+                          vendorId,
+                          listingId,
+                        });
+                        if (ctxRes?.data?.wa_link) {
+                          window.open(ctxRes.data.wa_link, '_blank');
+                          return;
+                        }
+                      } catch {}
+                      // Fallback: direct wa.me link
+                      let cleanPhone = phone.replace(/[^0-9]/g, '');
+                      if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+                      const text = encodeURIComponent(`Hi! I saw your reel "${reel.caption || ''}" on BizReels and would like to inquire...`);
+                      window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
                     }}
                     className="p-2.5 rounded-full bg-emerald-500/80 text-white hover:bg-emerald-500 backdrop-blur-md border border-white/10 text-[10px] flex flex-col items-center gap-0.5"
                     title="G. Click to WhatsApp"

@@ -101,6 +101,24 @@ class ListingController {
       console.error('Failed to auto-increment listing view count:', err);
     }
     const listing = await listingService.getListingDetails(id, currentUserId);
+
+    // Deduct 0.20 credit for listing view with 24-hour dedup protection
+    if (listing && currentUserId) {
+      const vendorId = listing.vendor?._id || listing.vendor || listing.vendorId;
+      if (vendorId) {
+        try {
+          const actionChargeService = require('../services/action-charge.service');
+          actionChargeService.deductAction({
+            vendorId: vendorId.toString(),
+            customerId: currentUserId.toString(),
+            targetId: id,
+            actionType: 'view',
+            metadata: { type: 'listing_view', title: listing.title },
+          }).catch(() => {});
+        } catch (e) {}
+      }
+    }
+
     return ApiResponse.ok(res, 'Listing details retrieved.', { listing });
   });
 

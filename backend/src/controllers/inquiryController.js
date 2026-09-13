@@ -70,6 +70,18 @@ class InquiryController {
       console.error('Failed to notify vendor of new inquiry:', notifErr);
     }
 
+    // Deduct 0.10 credit from vendor for customer inquiry with 24h dedup protection
+    try {
+      const actionChargeService = require('../services/action-charge.service');
+      await actionChargeService.deductAction({
+        vendorId: targetVendorId.toString(),
+        customerId: req.user._id.toString(),
+        targetId: (listing?._id || reel?._id || inquiry._id).toString(),
+        actionType: 'inquiry',
+        metadata: { inquiry_id: inquiry._id.toString() },
+      });
+    } catch (e) {}
+
     return ApiResponse.created(res, 'Inquiry sent successfully to vendor.', { inquiry });
   });
 

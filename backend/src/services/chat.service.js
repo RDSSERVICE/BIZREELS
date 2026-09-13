@@ -109,6 +109,22 @@ class ChatService {
       // safe bypass
     }
 
+    // Deduct 0.10 credit from vendor for first customer chat message (24h dedup protection)
+    try {
+      const recipientUser = await User.findById(recipientId).select('current_role roles').lean();
+      const isVendorRecipient = recipientUser?.current_role === 'vendor' || recipientUser?.roles?.includes('vendor');
+      if (isVendorRecipient) {
+        const actionChargeService = require('./action-charge.service');
+        actionChargeService.deductAction({
+          vendorId: recipientId.toString(),
+          customerId: senderId.toString(),
+          targetId: conversation._id.toString(),
+          actionType: 'chat',
+          metadata: { conversationId: conversation._id.toString() },
+        }).catch(() => {});
+      }
+    } catch (e) {}
+
     return message;
   }
 

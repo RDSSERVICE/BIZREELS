@@ -34,6 +34,9 @@ const userSchema = new mongoose.Schema({
   rating_avg: { type: Number, default: 0 },
   rating_count: { type: Number, default: 0 },
   walletBalance: { type: Number, default: 0 },
+  wallet_credits: { type: Number, default: 0 },
+  free_reel_boosts: { type: Number, default: 0 },
+  whatsapp_phone_number_id: { type: String, sparse: true, unique: true, default: undefined },
   trust_score: { type: Number, default: null },
   city: { type: String, default: null },
   // Phase 4b

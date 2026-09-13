@@ -923,6 +923,22 @@ router.post('/me/track-interaction', requireAuth, catchAsync(async (req, res) =>
     }
   }
 
+  // Deduct 2.50 credits for WhatsApp lead with 24h dedup protection
+  if (type === 'whatsapp_contact' && targetUserId) {
+    try {
+      const actionChargeService = require('../services/action-charge.service');
+      await actionChargeService.deductAction({
+        vendorId: targetUserId,
+        customerId: uid,
+        targetId: listingId || 'whatsapp',
+        actionType: 'whatsapp',
+        metadata: { source: 'track_interaction', ...metadata },
+      });
+    } catch (err) {
+      console.error('Failed to deduct WhatsApp action charge:', err.message);
+    }
+  }
+
   res.json({ success: true, message: 'Interaction tracked' });
 }));
 

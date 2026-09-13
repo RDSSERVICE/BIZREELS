@@ -77,6 +77,10 @@ router.use('/seo', lazyLoad('./seo.routes'));
 router.use('/', lazyLoad('./seo.routes'));
 router.use('/identity', lazyLoad('./identity.routes'));
 router.use('/onboarding', lazyLoad('./onboarding.routes'));
+router.use('/calls', lazyLoad('./call.routes'));
+router.use('/webhooks/exotel', lazyLoad('./call.routes'));
+router.use('/whatsapp', lazyLoad('./whatsapp.routes'));
+router.use('/webhooks/whatsapp', lazyLoad('./whatsapp.routes'));
 
 // Referrals endpoint alias for backward compatibility (lazy loaded controller)
 router.get(['/users/me/referrals', '/users/me/referrals/'], authenticate, (req, res, next) => {

@@ -21,6 +21,7 @@ const walletSchema = new mongoose.Schema({
   lifetime_deposited_paise: { type: Number, default: 0 },
   lifetime_spent_paise: { type: Number, default: 0 },
   is_frozen: { type: Boolean, default: false },
+  free_reel_boosts: { type: Number, default: 0 },
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
 });

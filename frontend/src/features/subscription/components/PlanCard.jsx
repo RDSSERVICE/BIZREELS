@@ -12,27 +12,28 @@ export default function PlanCard({
   isSubscribing,
 }) {
   const { bi } = useLanguage();
-  const isPopular = plan.plan_type === 'premium' || plan.plan_type === 'standard' || plan.title.toLowerCase().includes('pro');
+  const hasCredits = Number(plan.wallet_credits || 0) > 0;
+  const badgeLabel = plan.badge_text || (isCurrent ? null : (plan.title.toLowerCase().includes('growth') || isPopular ? bi('Most Popular', 'सर्वाधिक लोकप्रिय') : plan.title.toLowerCase().includes('business') ? bi('Best Value', 'सर्वोत्तम मूल्य') : null));
   const addOnsCount = Array.isArray(plan.add_ons) ? plan.add_ons.filter((a) => a.is_active !== false).length : 0;
 
   return (
     <div
-      className={`rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 relative border ${
+      className={`rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 relative border-2 ${
         isCurrent
           ? 'bg-gradient-to-b from-amber-500/10 to-transparent border-[#d99a3d] ring-2 ring-[#d99a3d]/40 shadow-xl'
-          : isPopular
+          : badgeLabel
           ? 'bg-white border-[#241b15] shadow-lg hover:shadow-2xl hover:-translate-y-1'
           : 'bg-white border-[#e3dccb] shadow-xs hover:border-[#241b15] hover:shadow-md'
       }`}
     >
-      {/* Popular or Current Badge */}
+      {/* Popular, Best Value, or Current Badge */}
       {isCurrent ? (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white font-black text-[10px] uppercase px-3 py-0.5 rounded-full shadow-md tracking-wider">
           {bi('Current Active Plan', 'सक्रिय प्लान')}
         </div>
-      ) : isPopular ? (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#241b15] text-[#d99a3d] font-black text-[10px] uppercase px-3 py-0.5 rounded-full shadow-md tracking-wider">
-          {bi('Most Popular', 'सर्वाधिक लोकप्रिय')}
+      ) : badgeLabel ? (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#241b15] text-[#d99a3d] font-black text-[10px] uppercase px-3.5 py-0.5 rounded-full shadow-md tracking-wider border border-[#d99a3d]/30">
+          {badgeLabel}
         </div>
       ) : null}
 
@@ -55,26 +56,49 @@ export default function PlanCard({
           )}
         </div>
 
-        {/* Pricing */}
-        <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e3dccb] space-y-1">
+        {/* Pricing & Credits Overview */}
+        <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e3dccb] space-y-2">
           <div className="flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-[#1a1a1a] tracking-tight font-mono">
               ₹{Number(plan.price_inr || 0).toLocaleString('en-IN')}
             </span>
             <span className="text-xs font-bold text-slate-500">
-              /{plan.billing_cycle || 'month'}
+              /{hasCredits ? bi('recharge pack', 'रीचार्ज पैक') : (plan.billing_cycle || 'month')}
             </span>
           </div>
 
+          {/* Credits & Free Boosts Highlights */}
+          {hasCredits && (
+            <div className="flex flex-col gap-1.5 pt-1 border-t border-[#e3dccb]/70">
+              <div className="flex items-center justify-between bg-amber-100/70 border border-amber-300/80 px-2.5 py-1 rounded-lg">
+                <span className="text-[11px] font-black text-amber-900 flex items-center gap-1">
+                  <FiZap size={13} className="text-amber-600 fill-amber-500" />
+                  <span>{plan.wallet_credits} {bi('Platform Credits', 'प्लेटफ़ॉर्म क्रेडिट')}</span>
+                </span>
+                <span className="text-[10px] font-bold text-amber-800 bg-white/80 px-1.5 py-0.5 rounded">
+                  {bi('Included', 'शामिल')}
+                </span>
+              </div>
+
+              {Number(plan.free_reel_boosts || 0) > 0 && (
+                <div className="flex items-center justify-between bg-emerald-100/70 border border-emerald-300/80 px-2.5 py-1 rounded-lg">
+                  <span className="text-[11px] font-black text-emerald-900 flex items-center gap-1">
+                    <FiStar size={13} className="text-emerald-600 fill-emerald-500" />
+                    <span>{plan.free_reel_boosts} {bi('Free Reel Boost', 'मुफ़्त रील बूस्ट')}{plan.free_reel_boosts > 1 ? 's' : ''}</span>
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-white/80 px-1.5 py-0.5 rounded">
+                    {bi('Free', 'मुफ़्त')}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 text-[10.5px]">
-            <span className="text-slate-500 font-medium">
-              {plan.duration_days || 30} {bi('days validity', 'दिन की वैधता')}
+            <span className="text-emerald-700 font-extrabold flex items-center gap-1">
+              <span>✓</span>
+              <span>{hasCredits ? bi('Non-Expiring Balance', 'क्रेडिट कभी समाप्त नहीं होते') : `${plan.duration_days || 30} ${bi('days validity', 'दिन की वैधता')}`}</span>
             </span>
-            {plan.discount_percentage > 0 && (
-              <span className="font-black text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded text-[9.5px]">
-                {plan.discount_percentage}% OFF
-              </span>
-            )}
           </div>
         </div>
 
@@ -85,44 +109,17 @@ export default function PlanCard({
           </span>
 
           <div className="space-y-2 font-medium text-slate-700">
-            {plan.reels_limit !== undefined && (
-              <div className="flex items-center gap-2">
-                <FiCheck className="text-emerald-600 shrink-0" size={14} />
-                <span>
-                  {bi('Reels Uploads:', 'रील्स अपलोड:')}{' '}
-                  <strong className="text-[#1a1a1a]">{plan.reels_limit ?? bi('Unlimited', 'असीमित')}</strong>
-                </span>
-              </div>
-            )}
-
-            {plan.leads_limit !== undefined && (
-              <div className="flex items-center gap-2">
-                <FiCheck className="text-emerald-600 shrink-0" size={14} />
-                <span>
-                  {bi('Buyer Leads & Calls:', 'खरीदार लीड्स व कॉल्स:')}{' '}
-                  <strong className="text-[#1a1a1a]">{plan.leads_limit ?? bi('Unlimited', 'असीमित')}</strong>
-                </span>
-              </div>
-            )}
-
-            {plan.product_limit !== undefined && (
-              <div className="flex items-center gap-2">
-                <FiCheck className="text-emerald-600 shrink-0" size={14} />
-                <span>
-                  {bi('Catalog Listings:', 'कैटलॉग लिस्टिंग्स:')}{' '}
-                  <strong className="text-[#1a1a1a]">{plan.product_limit ?? bi('Unlimited', 'असीमित')}</strong>
-                </span>
-              </div>
-            )}
-
-            {Number(plan.ai_credits || 0) > 0 && (
-              <div className="flex items-center gap-2">
-                <FiCheck className="text-emerald-600 shrink-0" size={14} />
-                <span>
-                  {bi('AI Content Credits:', 'AI कंटेंट क्रेडिट्स:')}{' '}
-                  <strong className="text-amber-700">{plan.ai_credits} / mo</strong>
-                </span>
-              </div>
+            {hasCredits && (
+              <>
+                <div className="flex items-center gap-2">
+                  <FiCheck className="text-emerald-600 shrink-0" size={14} />
+                  <span>{bi('Calls, WhatsApp & Inquiries draw down from credits', 'कॉल, व्हाट्सएप और पूछताछ क्रेडिट से कटेंगे')}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FiCheck className="text-emerald-600 shrink-0" size={14} />
+                  <span>{bi('Accumulates with every additional recharge', 'हर नए रीचार्ज के साथ बैलेंस जुड़ता है')}</span>
+                </div>
+              </>
             )}
 
             {plan.verified_badge && (
@@ -139,10 +136,10 @@ export default function PlanCard({
               </div>
             )}
 
-            {plan.analytics_access && (
+            {plan.priority_ranking && (
               <div className="flex items-center gap-2">
                 <FiCheck className="text-emerald-600 shrink-0" size={14} />
-                <span>{bi('Advanced Analytics & Insights', 'उन्नत एनालिटिक्स व रिपोर्ट')}</span>
+                <span>{bi('Priority Local Search & Reel Ranking', 'लोकल सर्च व रील्स में प्राथमिकता')}</span>
               </div>
             )}
           </div>
@@ -151,30 +148,23 @@ export default function PlanCard({
 
       {/* Action CTA */}
       <div className="pt-5 mt-4 border-t border-[#f0ebe0]">
-        {isCurrent ? (
-          <button
-            type="button"
-            disabled
-            className="w-full py-2.5 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl font-black text-xs cursor-default flex items-center justify-center gap-1.5"
-          >
-            <FiCheck size={14} strokeWidth={3} />
-            <span>{bi('Active Plan', 'सक्रिय प्लान')}</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={isSubscribing}
-            onClick={() => onSelectPlan(plan)}
-            className={`w-full py-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md border ${
-              isPopular
-                ? 'bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] border-[#241b15]'
-                : 'bg-white hover:bg-[#241b15] hover:text-[#d99a3d] text-[#1a1a1a] border-[#241b15]'
-            }`}
-          >
-            <FiZap size={14} />
-            <span>{addOnsCount > 0 ? bi('Select Plan & Add-Ons', 'प्लान व ऐड-ऑन चुनें') : bi('Choose Plan', 'प्लान चुनें')}</span>
-          </button>
-        )}
+        <button
+          type="button"
+          disabled={isSubscribing}
+          onClick={() => onSelectPlan(plan)}
+          className={`w-full py-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md border-2 ${
+            badgeLabel || isCurrent
+              ? 'bg-[#241b15] hover:bg-[#342820] text-[#d99a3d] border-[#241b15]'
+              : 'bg-white hover:bg-[#241b15] hover:text-[#d99a3d] text-[#1a1a1a] border-[#241b15]'
+          }`}
+        >
+          <FiZap size={14} />
+          <span>
+            {hasCredits
+              ? bi(`Recharge Pack (+${plan.wallet_credits} Credits)`, `रीचार्ज करें (+${plan.wallet_credits} क्रेडिट)`)
+              : (addOnsCount > 0 ? bi('Select Plan & Add-Ons', 'प्लान व ऐड-ऑन चुनें') : bi('Choose Plan', 'प्लान चुनें'))}
+          </span>
+        </button>
       </div>
     </div>
   );

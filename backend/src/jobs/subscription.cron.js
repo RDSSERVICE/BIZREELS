@@ -17,10 +17,12 @@ const initSubscriptionCron = () => {
     try {
       const now = new Date();
 
-      // 1. Process expired subscriptions
+      // 1. Process expired subscriptions (vendor recharge plans do not expire by time)
       const expiredSubs = await UserSubscription.find({
         expiry_date: { $lt: now },
         status: 'active',
+        user_role: { $ne: 'vendor' },
+        billing_cycle: { $ne: 'recharge' },
         is_deleted: { $ne: true },
       }).lean();
 
@@ -98,6 +100,8 @@ const initSubscriptionCron = () => {
           $lte: new Date(`${sevenDaysISO}T23:59:59.999Z`),
         },
         status: 'active',
+        user_role: { $ne: 'vendor' },
+        billing_cycle: { $ne: 'recharge' },
         is_deleted: { $ne: true },
       }).lean();
 
@@ -126,6 +130,8 @@ const initSubscriptionCron = () => {
           $lte: new Date(`${oneDayISO}T23:59:59.999Z`),
         },
         status: 'active',
+        user_role: { $ne: 'vendor' },
+        billing_cycle: { $ne: 'recharge' },
         is_deleted: { $ne: true },
       }).lean();
 

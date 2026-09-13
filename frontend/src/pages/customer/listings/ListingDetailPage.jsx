@@ -513,7 +513,7 @@ export default function ListingDetailPage() {
     }
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     // 1. Check if vendor is verified
     if (!isVerified) {
       toast.error(
@@ -556,7 +556,19 @@ export default function ListingDetailPage() {
       return;
     }
 
-    // 3. Track interaction
+    // 3. Track interaction via click context API (generates tracked wa.me link)
+    try {
+      const { data: ctxRes } = await api.post('/v1/whatsapp/click', {
+        vendorId: vendorObj._id || vendorObj.id,
+        listingId: itemId,
+      });
+      if (ctxRes?.data?.wa_link) {
+        window.open(ctxRes.data.wa_link, '_blank');
+        return;
+      }
+    } catch {}
+
+    // Fallback: direct wa.me link
     try {
       api.post('/v1/users/me/track-interaction', {
         type: 'whatsapp_contact',

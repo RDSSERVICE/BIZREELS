@@ -515,6 +515,18 @@ class OrderController {
           });
           emitToUser(vendorIdStr, 'listing:updated', { id: listingId.toString() });
           emitToUser(vendorIdStr, 'order:new', { orderId: order._id });
+
+          // Deduct 5.00 credits for Order Request
+          try {
+            const actionChargeService = require('../services/action-charge.service');
+            actionChargeService.deductAction({
+              vendorId: vendorIdStr,
+              customerId: req.user._id.toString(),
+              targetId: (order?._id || listingId).toString(),
+              actionType: 'order',
+              metadata: { order_id: order?._id?.toString() },
+            }).catch(() => {});
+          } catch (e) {}
         }
         if (updatedListing && updatedListing.stock <= 0) {
           emitToRole('customer', 'listing:out_of_stock', { id: listingId.toString() });

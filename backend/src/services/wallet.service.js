@@ -71,6 +71,7 @@ class WalletService {
     return {
       credits: wallet.credits || 0,
       balance_inr_paise: wallet.balance_inr_paise || 0,
+      free_reel_boosts: wallet.free_reel_boosts || 0,
       is_frozen: wallet.is_frozen || false,
     };
   }
@@ -381,6 +382,131 @@ class WalletService {
     });
   }
 
+  // ─── Recharge Vendor Credit Plan (Starter, Growth, Business) ───
+  async rechargeCreditPlan({ userId, planId, paymentId = null, paymentMethod = 'razorpay' }) {
+    const { SubscriptionPlan } = require('../models/Admin');
+    const uid = userId.toString();
+
+    let planDoc = null;
+    if (mongoose.Types.ObjectId.isValid(planId)) {
+      planDoc = await SubscriptionPlan.findById(planId);
+    }
+    if (!planDoc) {
+      planDoc = await SubscriptionPlan.findOne({
+        title: { $regex: new RegExp(`^${planId}$`, 'i') },
+        is_deleted: { $ne: true },
+      });
+    }
+    if (!planDoc) {
+      throw ApiError.badRequest(`Invalid credit plan: "${planId}".`);
+    }
+
+    const creditsToAdd = Number(planDoc.wallet_credits || 0);
+    const freeBoostsToAdd = Number(planDoc.free_reel_boosts || 0);
+    const refId = paymentId || `rech_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+    // Get or create vendor wallet
+    const wallet = await this.getOrCreateWallet(uid);
+    const previousCredits = wallet.credits || 0;
+    const previousBoosts = wallet.free_reel_boosts || 0;
+    const updatedCredits = Number((previousCredits + creditsToAdd).toFixed(2));
+    const updatedBoosts = previousBoosts + freeBoostsToAdd;
+
+    // Accumulate credits and free boosts
+    await Wallet.updateOne(
+      { user_id: uid },
+      {
+        $inc: {
+          credits: creditsToAdd,
+          lifetime_earned_credits: creditsToAdd,
+          free_reel_boosts: freeBoostsToAdd,
+        },
+        $set: { updated_at: new Date().toISOString() },
+      }
+    );
+
+    // Sync User walletBalance and vendor profile subscription
+    const userUpdate = {
+      $inc: { walletBalance: creditsToAdd },
+      $set: {
+        'vendorProfile.subscription.plan': planDoc.title,
+        'vendorProfile.subscription.price': planDoc.price_inr,
+        'vendorProfile.subscription.purchasedAt': new Date(),
+      },
+    };
+    if (planDoc.verified_badge) {
+      userUpdate.$set.is_subscribed_verified = true;
+    }
+    await User.updateOne({ _id: uid }, userUpdate);
+
+    // Record transaction in ledger
+    const user = await User.findById(uid).select('name current_role').lean();
+    const txn = await WalletTransactionV2.create({
+      user_id: uid,
+      user_name: user?.name || 'Vendor',
+      user_role: 'vendor',
+      transaction_type: 'plan_recharge',
+      credit_debit: 'credit',
+      amount: creditsToAdd,
+      previous_balance: previousCredits,
+      updated_balance: updatedCredits,
+      payment_method: paymentMethod,
+      source: 'razorpay',
+      status: 'completed',
+      reference_id: refId,
+      admin_remarks: `Plan Recharge: ${planDoc.title} (+${creditsToAdd} Credits, +${freeBoostsToAdd} Free Reel Boosts)`,
+      meta: {
+        plan_id: planDoc._id.toString(),
+        plan_title: planDoc.title,
+        price_inr: planDoc.price_inr,
+        free_reel_boosts_added: freeBoostsToAdd,
+        payment_id: paymentId,
+      },
+    });
+
+    // Update or create UserSubscription record
+    const UserSubscription = require('../models/UserSubscription.model');
+    await UserSubscription.create({
+      user_id: uid,
+      user_name: user?.name || 'Vendor',
+      user_role: 'vendor',
+      plan_id: planDoc._id.toString(),
+      plan_name: planDoc.title,
+      billing_cycle: 'recharge',
+      start_date: new Date(),
+      expiry_date: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000), // Non-expiring (100 years placeholder)
+      status: 'active',
+      payment_id: paymentId,
+      paid_amount: planDoc.price_inr,
+      original_amount: planDoc.price_inr,
+      meta: {
+        wallet_credits_added: creditsToAdd,
+        free_reel_boosts_added: freeBoostsToAdd,
+      },
+    });
+
+    // Real-time events
+    try {
+      this._emitWalletUpdate(uid, updatedCredits, 'credit', creditsToAdd, `Recharged ${planDoc.title}`);
+      const { emitToUser } = require('../sockets');
+      emitToUser(uid, 'subscription:updated', {
+        plan: planDoc.title,
+        credits: updatedCredits,
+        free_reel_boosts: updatedBoosts,
+      });
+    } catch (e) {}
+
+    return {
+      success: true,
+      plan: planDoc.title,
+      creditsAdded: creditsToAdd,
+      freeBoostsAdded: freeBoostsToAdd,
+      walletBalance: updatedCredits,
+      freeReelBoosts: updatedBoosts,
+      transaction: txn,
+    };
+  }
+
   // ─── Purchase Plan (Subscription Deduction) ──────────────
   async purchasePlan({ userId, plan, selected_addons = [] }) {
     const { SubscriptionPlan } = require('../models/Admin');
@@ -424,16 +550,18 @@ class WalletService {
     const refId = `sub_${planDoc._id}_${Date.now()}`;
     const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
 
-    // Prevent duplicate subscription purchase if no add-ons
-    const activeSub = await UserSubscription.findOne({
-      user_id: uid,
-      user_role: targetRole,
-      status: 'active',
-      plan_id: planDoc._id.toString(),
-      is_deleted: { $ne: true }
-    });
-    if (activeSub && (!selected_addons || selected_addons.length === 0)) {
-      throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
+    // Prevent duplicate subscription purchase if no add-ons (non-vendor only)
+    if (targetRole !== 'vendor') {
+      const activeSub = await UserSubscription.findOne({
+        user_id: uid,
+        user_role: targetRole,
+        status: 'active',
+        plan_id: planDoc._id.toString(),
+        is_deleted: { $ne: true }
+      });
+      if (activeSub && (!selected_addons || selected_addons.length === 0)) {
+        throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
+      }
     }
 
     // Idempotency: prevent purchasing same plan within 1 minute
@@ -665,16 +793,18 @@ class WalletService {
     const uid = userId.toString();
     const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
 
-    // Prevent duplicate subscription purchase if no add-ons
-    const activeSub = await UserSubscription.findOne({
-      user_id: uid,
-      user_role: targetRole,
-      status: 'active',
-      plan_id: planDoc._id.toString(),
-      is_deleted: { $ne: true }
-    });
-    if (activeSub && (!selected_addons || selected_addons.length === 0)) {
-      throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
+    // For non-vendor plans, prevent duplicate active subscription
+    if (targetRole !== 'vendor') {
+      const activeSub = await UserSubscription.findOne({
+        user_id: uid,
+        user_role: targetRole,
+        status: 'active',
+        plan_id: planDoc._id.toString(),
+        is_deleted: { $ne: true }
+      });
+      if (activeSub && (!selected_addons || selected_addons.length === 0)) {
+        throw ApiError.badRequest(`You already have an active subscription for the "${planDoc.title}" plan.`);
+      }
     }
 
     const baseCost = planDoc.price_inr;
@@ -695,7 +825,7 @@ class WalletService {
     }
 
     const totalCost = baseCost + addonsTotal;
-    const durationDays = planDoc.duration_days || 30;
+    const durationDays = planDoc.duration_days || 365; // Non-expiring vendor credits
     const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
 
     const session = await mongoose.startSession();
@@ -718,12 +848,14 @@ class WalletService {
           source: 'subscription_direct',
           status: 'completed',
           reference_id: `sub_direct_${planDoc._id}_${Date.now()}`,
-          admin_remarks: `Subscribed to ${planDoc.title} ${validatedAddons.length > 0 ? `with ${validatedAddons.length} Add-on(s)` : ''} via Razorpay`,
+          admin_remarks: `Recharged ${planDoc.title} (${planDoc.wallet_credits || 0} credits) ${validatedAddons.length > 0 ? `with ${validatedAddons.length} Add-on(s)` : ''} via Razorpay`,
           meta: {
             plan_id: planDoc._id.toString(),
             plan_name: planDoc.title,
             duration_days: durationDays,
             base_plan_price: baseCost,
+            wallet_credits: planDoc.wallet_credits || 0,
+            free_reel_boosts: planDoc.free_reel_boosts || 0,
             addons_total: addonsTotal,
             selected_addons: validatedAddons,
             payment_id: paymentId || null,
@@ -733,12 +865,21 @@ class WalletService {
         }], { session });
         txn = txnArr[0];
 
-        // Deactivate existing active subscriptions for THIS role only
-        await UserSubscription.updateMany(
-          { user_id: uid, user_role: targetRole, status: 'active' },
-          { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'New plan purchased' } },
-          { session }
-        );
+        // For non-vendor plans, deactivate old active subscription
+        if (targetRole !== 'vendor') {
+          await UserSubscription.updateMany(
+            { user_id: uid, user_role: targetRole, status: 'active' },
+            { $set: { status: 'cancelled', cancelled_at: new Date(), cancelled_reason: 'New plan purchased' } },
+            { session }
+          );
+        } else {
+          // For vendors, mark previous purchases as 'completed_topup' to show continuous audit trail
+          await UserSubscription.updateMany(
+            { user_id: uid, user_role: 'vendor', status: 'active' },
+            { $set: { status: 'completed_topup', updated_at: new Date() } },
+            { session }
+          );
+        }
 
         // Create new subscription record with add-ons
         await UserSubscription.create([{
@@ -783,12 +924,38 @@ class WalletService {
           updateSet['vendorProfile.subscription'] = subData;
         }
 
+        // Credit Wallet credits and free reel boosts if plan includes them
+        if (targetRole === 'vendor' && (Number(planDoc.wallet_credits) > 0 || Number(planDoc.free_reel_boosts) > 0)) {
+          const creditsToAdd = Number(planDoc.wallet_credits || 0);
+          const freeBoostsToAdd = Number(planDoc.free_reel_boosts || 0);
+
+          await Wallet.updateOne(
+            { user_id: uid },
+            {
+              $inc: {
+                credits: creditsToAdd,
+                lifetime_earned_credits: creditsToAdd,
+                free_reel_boosts: freeBoostsToAdd,
+              },
+              $set: { updated_at: new Date().toISOString() },
+            },
+            { session }
+          );
+
+          updateSet['$inc'] = {
+            ...(updateSet['$inc'] || {}),
+            walletBalance: creditsToAdd,
+            wallet_credits: creditsToAdd,
+            free_reel_boosts: freeBoostsToAdd,
+          };
+        }
+
         // Apply bonus AI credits if add-ons include ai_credits
         const bonusAiCredits = validatedAddons
           .filter(a => a.quota_type === 'ai_credits' && Number(a.quota_value) > 0)
           .reduce((sum, a) => sum + Number(a.quota_value), 0);
         if (bonusAiCredits > 0) {
-          updateSet['$inc'] = { ai_credits: bonusAiCredits };
+          updateSet['$inc'] = { ...(updateSet['$inc'] || {}), ai_credits: bonusAiCredits };
         }
 
         await User.updateOne(
@@ -800,6 +967,8 @@ class WalletService {
 
       // Emit real-time events AFTER commit
       this._emitSubscriptionUpdate(uid);
+      const updatedWallet = await this.getBalance(uid);
+      this._emitWalletUpdate(uid, updatedWallet.credits, 'credit', Number(planDoc.wallet_credits || 0), `Recharged ${planDoc.title}`);
 
       logger.info(`Direct subscription purchase: ${planDoc.title} by user ${uid} (₹${cost} via Razorpay)`, { service: 'wallet' });
       return {

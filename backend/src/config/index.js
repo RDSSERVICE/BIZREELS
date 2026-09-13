@@ -74,6 +74,17 @@ const config = {
     },
   },
 
+  // ── Meta WhatsApp Business Cloud API ────────────────────
+  metaWhatsApp: {
+    appSecret: process.env.META_APP_SECRET || '',
+    verifyToken: process.env.META_WA_VERIFY_TOKEN || 'bizreels_whatsapp_verify_2026',
+    accessToken: process.env.META_WA_ACCESS_TOKEN || '',
+    apiVersion: process.env.META_WA_API_VERSION || 'v20.0',
+    phoneNumberId: process.env.META_WA_PHONE_NUMBER_ID || '',
+    wabaId: process.env.META_WA_WABA_ID || '',
+    webhookMode: process.env.META_WA_WEBHOOK_MODE || 'sandbox', // 'live' or 'sandbox'
+  },
+
   // ── Resend Email ─────────────────────────────────────────
   resend: {
     apiKey: process.env.RESEND_API_KEY || '',

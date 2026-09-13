@@ -228,22 +228,76 @@ class ReelController {
     return ApiResponse.ok(res, 'Reel removed from saved.', { user, active: false });
   });
 
+  // ── View Reel & Deduct View Credit (0.20 Credit) ────────
+  viewReel = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const Reel = require('../models/Reel');
+
+    const reel = await Reel.findById(id).select('userId vendor user_id viewsCount');
+    if (!reel) {
+      return ApiResponse.notFound(res, 'Reel not found.');
+    }
+
+    const vendorId = reel.vendor || reel.userId || reel.user_id;
+
+    // Increment reel view count
+    await Reel.updateOne({ _id: id }, { $inc: { viewsCount: 1 } });
+
+    // Deduct 0.20 credit if viewer is authenticated customer and vendor exists
+    if (vendorId && req.user?._id) {
+      try {
+        const actionChargeService = require('../services/action-charge.service');
+        await actionChargeService.deductAction({
+          vendorId: vendorId.toString(),
+          customerId: req.user._id.toString(),
+          targetId: id,
+          actionType: 'view',
+          metadata: { type: 'reel_view' },
+        });
+      } catch (err) {
+        console.error('Failed to deduct reel view credit:', err.message);
+      }
+    }
+
+    return ApiResponse.ok(res, 'View recorded successfully.', { viewsCount: (reel.viewsCount || 0) + 1 });
+  });
+
   // ── Boost Reel ───────────────────────────────────────────
   boostReel = asyncHandler(async (req, res) => {
     const { id } = req.params;
+    const actionChargeService = require('../services/action-charge.service');
+    const Reel = require('../models/Reel');
+
+    // Deduct boost (1 Free Boost if available, or 2.00 Credits)
+    const boostDeduction = await actionChargeService.deductReelBoost({
+      vendorId: req.user._id,
+      reelId: id,
+    });
+
     const body = req.body || {};
     const durationDays =
       body.durationDays ??
       body.duration_days ??
       body.days ??
-      body.duration ??
-      body.boostDurationDays ??
-      (body.plan ? (String(body.plan).includes('30') ? 30 : String(body.plan).includes('3') ? 3 : 7) : 7);
+      7;
 
-    const boostService = require('../services/boost.service');
+    const expiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+    await Reel.updateOne(
+      { _id: id },
+      {
+        $set: {
+          is_boosted: true,
+          boosted_until: expiresAt,
+          boost_status: 'active',
+        },
+      }
+    );
 
-    const result = await boostService.boostReelWithCredits(req.user._id, id, durationDays);
-    return ApiResponse.ok(res, 'Reel boosted successfully.', result);
+    return ApiResponse.ok(res, 'Reel boosted successfully.', {
+      ...boostDeduction,
+      durationDays,
+      boostedUntil: expiresAt,
+    });
   });
 
   // ── Get Saved Reels for Current User ──────────────────────

@@ -408,6 +408,20 @@ export default function SearchListingsPage() {
       `Hello ${vendorName}!\nI found your listing "${item.title}" on BizReels.\nLink: ${productLink}\nI would like to inquire about details/availability.`
     );
 
+    // Try click context API first (generates tracked wa.me link)
+    try {
+      const listingId = item._id || item.id;
+      const { data: ctxRes } = await api.post('/v1/whatsapp/click', {
+        vendorId: vendorObj._id || vendorObj.id,
+        listingId,
+      });
+      if (ctxRes?.data?.wa_link) {
+        window.open(ctxRes.data.wa_link, '_blank');
+        return;
+      }
+    } catch {}
+
+    // Fallback: direct wa.me link
     try {
       const listingId = item._id || item.id;
       const targetUserId = vendorObj._id || vendorObj.id;

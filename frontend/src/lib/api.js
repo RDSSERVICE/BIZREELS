@@ -362,6 +362,15 @@ export const dealApi = {
 export const whatsappApi = {
   linkFor: (vendorId, listingId) =>
     api.get(`/v1/utils/whatsapp-link`, { params: { vendor_id: vendorId, listing_id: listingId } }),
+  // WhatsApp Click Context (tracking + wa.me link generation)
+  click: (data) => api.post('/v1/whatsapp/click', data),
+  // Vendor CRM
+  vendorStatus: () => api.get('/v1/whatsapp/vendor/status'),
+  vendorConnect: (data) => api.post('/v1/whatsapp/vendor/connect', data),
+  embeddedSignupCallback: (data) => api.post('/v1/whatsapp/vendor/embedded-signup-callback', data),
+  vendorLeads: (params = {}) => api.get('/v1/whatsapp/vendor/leads', { params }),
+  // Sandbox simulation
+  simulateInbound: (data) => api.post('/v1/whatsapp/simulate-inbound', data),
 };
 
 // ---- Phase 4a ----
