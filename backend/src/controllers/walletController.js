@@ -245,37 +245,52 @@ class WalletController {
 
   // ── Get Credit Rate Schedule ────────────────────────────
   getCreditRates = asyncHandler(async (req, res) => {
-    const { AppSettings } = require('../models/Admin');
-    const cached = await cache.getCache('wallet:credit_rates');
-    if (cached) {
-      return ApiResponse.ok(res, 'Credit rate schedule loaded.', { rates: cached });
-    }
-
-    let rates = {
-      validLead: 5,
-      reelPost: 0,
-      reelBoost1Day: 25,
-      aiImage: 2,
-      productListing: 10,
-    };
-
-    try {
-      const setting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
-      if (setting && setting.value) {
-        rates = { ...rates, ...setting.value };
-      }
-    } catch (err) {}
-
     const rateItems = [
-      { action: 'Lead Contact Unlock', rate: `${rates.validLead || 5} Credits`, description: 'Unlock direct phone & WhatsApp contact of buyer lead', category: 'Leads' },
-      { action: 'Standard Reel Upload', rate: `${rates.reelPost || 0} Credits (Free)`, description: 'Publish product reel to local discovery feed', category: 'Reels' },
-      { action: 'Reel 24h Feature Boost', rate: `${rates.reelBoost1Day || 25} Credits`, description: 'Pin reel to top of local feeds for 24 hours with priority ranking', category: 'Boost' },
-      { action: 'AI Content Generation', rate: `${rates.aiImage || 2} Credits`, description: 'Generate AI reel script, caption & SEO hashtags', category: 'AI' },
-      { action: 'Catalog Product Boost', rate: `${rates.productListing || 10} Credits`, description: 'Highlight product listing in category search results for 7 days', category: 'Catalog' },
+      {
+        action: 'Verified WhatsApp Lead',
+        rate: '2.50 Credits',
+        description: 'Charged when a customer sends an inbound message to your connected Meta WhatsApp Business number (includes 24-hour deduplication protection)',
+        category: 'WhatsApp',
+        badge: 'ACTION LEAD',
+      },
+      {
+        action: 'Connected Exotel Voice Call',
+        rate: '2.50 Credits',
+        description: 'Charged ONLY when a phone call connects between buyer and vendor for >= 10 seconds via Exotel (0 if busy, missed, or failed)',
+        category: 'Telephony',
+        badge: 'ACTION LEAD',
+      },
+      {
+        action: 'Reel Feed Feature Boost',
+        rate: 'Free / 2.00 Credits',
+        description: 'Plan-included free boosts (Starter: 1, Growth: 3, Business: 5) are consumed first. Additional boosts cost 2.00 Credits per boost',
+        category: 'Promotion',
+        badge: 'BOOST',
+      },
+      {
+        action: 'Catalog Product & Service Listings',
+        rate: '0.00 Credits (FREE)',
+        description: 'Unlimited catalog products and service offerings showcased on your verified store profile with zero listing fees',
+        category: 'Catalog',
+        badge: 'FREE',
+      },
+      {
+        action: 'Standard 4K Video Reel Uploads',
+        rate: '0.00 Credits (FREE)',
+        description: 'Publish unlimited video reels to the local discovery feed with zero upload fees',
+        category: 'Reels',
+        badge: 'FREE',
+      },
+      {
+        action: 'Customer Orders & Sales Commission',
+        rate: '0% Always (FREE)',
+        description: 'Zero platform middleman commission on direct buyer orders, quote bids, or closed customer deals',
+        category: 'Orders',
+        badge: 'ZERO COMMISSION',
+      },
     ];
 
-    await cache.setCache('wallet:credit_rates', rateItems, 300);
-    return ApiResponse.ok(res, 'Credit rate schedule loaded.', { rates: rateItems });
+    return ApiResponse.ok(res, 'Official vendor credit rate schedule loaded.', { rates: rateItems });
   });
 }
 

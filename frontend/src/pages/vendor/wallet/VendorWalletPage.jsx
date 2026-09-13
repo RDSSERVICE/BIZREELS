@@ -12,7 +12,11 @@ import {
   FiZap, 
   FiShield, 
   FiInfo,
-  FiSearch
+  FiSearch,
+  FiPhoneCall,
+  FiClock,
+  FiAward,
+  FiExternalLink
 } from 'react-icons/fi';
 import { TbCurrencyRupee } from 'react-icons/tb';
 import toast from 'react-hot-toast';
@@ -42,15 +46,50 @@ const loadRazorpayScript = () => {
   });
 };
 
-// Credit Consumption Rate Schedule (7 Approved Commercial Rates)
+// Official Action Credit Consumption Rate Schedule (Strictly Aligned with /pricing)
 const DEFAULT_CREDIT_RATES = [
-  { action: 'Unique Reel / Product View', rate: '0.20 Credit', description: 'Charged when a customer views your product or reel (deduplicated once per 24 hours)', category: 'Views' },
-  { action: 'WhatsApp Contact Click', rate: '2.50 Credits', description: 'Charged when a buyer initiates a WhatsApp inquiry for your items (24h dedup)', category: 'Leads' },
-  { action: 'Connected Voice Call', rate: '2.50 Credits', description: 'Charged ONLY when a phone call successfully connects via Exotel (0 if busy/missed)', category: 'Telephony' },
-  { action: 'In-App First Chat Message', rate: '0.10 Credit', description: 'Charged when a buyer begins a conversation thread with your store (24h dedup)', category: 'Chat' },
-  { action: 'Product / Service Inquiry', rate: '0.10 Credit', description: 'Charged when a customer sends a formal enquiry form for your listing', category: 'Inquiries' },
-  { action: 'Customer Order Request', rate: '5.00 Credits', description: 'Charged when a buyer places a verified product or service order request', category: 'Orders' },
-  { action: 'Additional Reel Boost', rate: '2.00 Credits', description: 'Charged per reel boost after all plan-included free boosts are utilized (1 free boost consumed first)', category: 'Promotion' },
+  { 
+    action: 'Verified WhatsApp Lead', 
+    rate: '2.50 Credits', 
+    description: 'Charged when a customer sends an inbound message to your connected Meta WhatsApp Business number (includes 24-hour deduplication protection)', 
+    category: 'WhatsApp',
+    badge: 'ACTION LEAD'
+  },
+  { 
+    action: 'Connected Exotel Voice Call', 
+    rate: '2.50 Credits', 
+    description: 'Charged ONLY when a phone call connects between buyer and vendor for >= 10 seconds via Exotel (0 if busy, missed, or failed)', 
+    category: 'Telephony',
+    badge: 'ACTION LEAD'
+  },
+  { 
+    action: 'Reel Feed Feature Boost', 
+    rate: 'Free / 2.00 Credits', 
+    description: 'Plan-included free boosts (Starter: 1, Growth: 3, Business: 5) are consumed first. Additional boosts cost 2.00 Credits per boost', 
+    category: 'Promotion',
+    badge: 'BOOST'
+  },
+  { 
+    action: 'Catalog Product & Service Listings', 
+    rate: '0.00 Credits (FREE)', 
+    description: 'Unlimited catalog products and service offerings showcased on your verified store profile with zero listing fees', 
+    category: 'Catalog',
+    badge: 'FREE'
+  },
+  { 
+    action: 'Standard 4K Video Reel Uploads', 
+    rate: '0.00 Credits (FREE)', 
+    description: 'Publish unlimited video reels to the local discovery feed with zero upload fees', 
+    category: 'Reels',
+    badge: 'FREE'
+  },
+  { 
+    action: 'Customer Orders & Sales Commission', 
+    rate: '0% Always (FREE)', 
+    description: 'Zero platform middleman commission on direct buyer orders, quote bids, or closed customer deals', 
+    category: 'Orders',
+    badge: 'ZERO COMMISSION'
+  },
 ];
 
 export default function VendorWalletPage() {
@@ -706,50 +745,156 @@ export default function VendorWalletPage() {
 
       {/* CREDIT RATE SCHEDULE TAB CONTENT */}
       {activeTab === 'rates' && (
-        <div className="bg-white rounded-2xl p-5 sm:p-6 border-2 border-[#241b15] shadow-xs space-y-6">
-          <div className="border-b border-[#e3dccb] pb-4 space-y-1">
-            <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm sm:text-base uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
-              <FiZap className="text-[#d99a3d]" size={20} /> {bi('OFFICIAL VENDOR CREDIT RATE SCHEDULE', 'आधिकारिक क्रेडिट दर अनुसूची')}
-            </h3>
-            <p className="text-xs text-slate-600 font-medium">
-              {bi(
-                'Transparent credit cost deduction rules for product listings, reel boosts, AI tools & buyer lead unlocks.',
-                'उत्पाद लिस्टिंग, रील बूस्ट, एआई टूल्स और लीड अनलॉक के लिए स्पष्ट क्रेडिट कटौती दरें।'
-              )}
-            </p>
+        <div className="bg-white rounded-2xl p-5 sm:p-7 border-2 border-[#241b15] shadow-xs space-y-7 font-sans">
+          {/* Header & Subtitle */}
+          <div className="border-b border-[#e3dccb] pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm sm:text-base uppercase text-[#1a1a1a] tracking-wide flex items-center gap-2">
+                <FiZap className="text-[#d99a3d]" size={20} /> {bi('OFFICIAL VENDOR CREDIT RATE SCHEDULE', 'आधिकारिक विक्रेता क्रेडिट दर अनुसूची')}
+              </h3>
+              <p className="text-xs text-slate-600 font-medium">
+                {bi(
+                  'Transparent action credit deduction rates aligned with your BizReels Vendor Subscription Plan. Deducted strictly when customers take measurable outreach actions.',
+                  'आपकी BizReels विक्रेता सदस्यता योजना के अनुसार पारदर्शी क्रेडिट कटौती दरें। केवल वास्तविक ग्राहक संपर्क पर ही कटौती की जाती है।'
+                )}
+              </p>
+            </div>
+            <Link
+              to="/pricing"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#241b15] hover:bg-[#382b22] text-[#d99a3d] text-xs font-black uppercase tracking-wider transition shrink-0 no-underline shadow-xs"
+            >
+              <span>{bi('View Pricing Page', 'मूल्य निर्धारण पेज देखें')}</span>
+              <FiExternalLink size={14} />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {creditRates.map((item, idx) => (
-              <div 
-                key={idx} 
-                className="p-5 rounded-2xl bg-[#f8f4ec] border-2 border-[#241b15] space-y-3 hover:shadow-md transition"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-md bg-[#241b15] text-[#d99a3d] text-[10px] font-black uppercase tracking-wider">
-                    {item.category}
-                  </span>
-                  <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
-                    {item.rate}
-                  </span>
-                </div>
+          {/* Core Guarantees Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-black text-[#1a1a1a]">
+            <div className="p-3 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center gap-2">
+              <FiClock className="text-[#d99a3d] shrink-0" size={16} />
+              <span className="text-[11px] leading-tight">{bi('Non-Expiring Lifetime Credits', 'कभी समाप्त न होने वाले क्रेडिट')}</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center gap-2">
+              <FiShield className="text-emerald-600 shrink-0" size={16} />
+              <span className="text-[11px] leading-tight">{bi('0% Sales Commission', '0% बिक्री कमीशन')}</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center gap-2">
+              <FiZap className="text-blue-600 shrink-0" size={16} />
+              <span className="text-[11px] leading-tight">{bi('24h Deduplication Window', '24 घंटे डिडुप सुरक्षा')}</span>
+            </div>
+            <div className="p-3 rounded-xl bg-[#f8f4ec] border border-[#e3dccb] flex items-center gap-2">
+              <FiPhoneCall className="text-[#25D366] shrink-0" size={16} />
+              <span className="text-[11px] leading-tight">{bi('Free Clicks (Inbound Only)', 'क्लिक्स पूरी तरह मुफ़्त')}</span>
+            </div>
+          </div>
 
-                <div className="space-y-1">
-                  <h4 className="text-sm font-black text-[#1a1a1a]">{item.action}</h4>
-                  <p className="text-xs text-slate-600 font-medium leading-relaxed">{item.description}</p>
-                </div>
+          {/* Subscription Recharge Tiers Summary Banner */}
+          <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-[#1c1a17] via-[#28241e] to-[#1c1a17] text-white border-2 border-[#d99a3d]/40 shadow-md space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#3a3630] pb-3">
+              <div>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#d99a3d]/20 text-[#d99a3d] text-[10px] font-black uppercase tracking-widest border border-[#d99a3d]/30">
+                  {bi('RECHARGE & TOP-UP PLANS', 'रीचार्ज एवं टॉप-अप प्लान')}
+                </span>
+                <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-sm sm:text-base uppercase text-white mt-1">
+                  {bi('Standard Vendor Recharge Tiers', 'मानक विक्रेता रीचार्ज टियर्स')}
+                </h4>
               </div>
-            ))}
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-[#d99a3d] hover:bg-[#c48729] text-[#1c1a17] text-xs font-black uppercase tracking-wider transition cursor-pointer border-none shadow-xs"
+              >
+                {bi('Recharge Wallet Now', 'वॉलेट रीचार्ज करें')}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3.5 rounded-xl bg-[#221f1a] border border-[#3e3931] space-y-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{bi('Starter Pack', 'स्टार्टर पैक')}</span>
+                <div className="flex items-baseline gap-2">
+                  <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-lg text-white">₹499</span>
+                  <span className="text-xs font-black text-[#d99a3d]">599 {bi('Credits', 'क्रेडिट')}</span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">1 {bi('Free Reel Boost Included', 'मुफ़्त रील बूस्ट शामिल')}</p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#221f1a] border-2 border-[#d99a3d] space-y-1 relative">
+                <span className="absolute -top-2.5 right-3 px-2 py-0.5 bg-[#d99a3d] text-[#1c1a17] text-[9px] font-black uppercase tracking-widest rounded-full">
+                  {bi('MOST POPULAR', 'सर्वाधिक लोकप्रिय')}
+                </span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{bi('Growth Pack', 'ग्रोथ पैक')}</span>
+                <div className="flex items-baseline gap-2">
+                  <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-lg text-[#d99a3d]">₹1,199</span>
+                  <span className="text-xs font-black text-white">1,599 {bi('Credits', 'क्रेडिट')}</span>
+                </div>
+                <p className="text-[11px] text-slate-300 font-medium">3 {bi('Free Boosts + Gold Badge ✓', 'मुफ़्त बूस्ट + गोल्ड बैज ✓')}</p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#221f1a] border border-[#3e3931] space-y-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{bi('Business Pack', 'बिजनेस पैक')}</span>
+                <div className="flex items-baseline gap-2">
+                  <span style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-lg text-white">₹2,199</span>
+                  <span className="text-xs font-black text-[#d99a3d]">2,999 {bi('Credits', 'क्रेडिट')}</span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">5 {bi('Free Boosts + VIP Support', 'मुफ़्त बूस्ट + वीआईपी सपोर्ट')}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 font-bold flex items-center gap-3">
-            <FiInfo size={20} className="text-[#d99a3d] shrink-0" />
-            <span>
-              {bi(
-                'Need bulk promotional credits for high-volume catalog listings? Upgrade to a Growth Tier or contact vendor support.',
-                'अधिक रील प्रमोशन या कैटलॉग लिस्टिंग्स के लिए ग्रोथ प्लान में अपग्रेड करें।'
-              )}
-            </span>
+          {/* Detailed Commercial Action Rates Grid */}
+          <div className="space-y-3">
+            <h4 style={{ fontFamily: "'Archivo Black', sans-serif" }} className="text-xs uppercase text-slate-500 tracking-wider">
+              {bi('CURRENT ACTION DEDUCTION RATES', 'वर्तमान एक्शन कटौती दरें')}
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {creditRates.map((item, idx) => (
+                <div 
+                  key={idx} 
+                  className="p-5 rounded-2xl bg-[#f8f4ec] border-2 border-[#241b15] space-y-3 hover:shadow-md transition flex flex-col justify-between"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded-md bg-[#241b15] text-[#d99a3d] text-[10px] font-black uppercase tracking-wider">
+                      {item.category}
+                    </span>
+                    <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-md border border-emerald-300">
+                      {item.rate}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 my-auto">
+                    <h5 className="text-sm font-black text-[#1a1a1a]">{item.action}</h5>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">{item.description}</p>
+                  </div>
+
+                  {item.badge && (
+                    <div className="pt-2 border-t border-[#e3dccb]/70 flex items-center justify-between text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+                      <span>{bi('Action Type', 'प्रकार')}:</span>
+                      <span className="text-[#241b15] font-black">{item.badge}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Deduplication & Transparency Safeguards */}
+          <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-2">
+            <div className="flex items-center gap-2 font-black text-[#d99a3d]">
+              <FiInfo size={18} />
+              <span className="uppercase tracking-wide">{bi('Lead Protection & Deduplication Guarantee', 'लीड सुरक्षा एवं डिडुप गारंटी')}</span>
+            </div>
+            <ul className="list-disc list-inside space-y-1 text-slate-700 font-medium">
+              <li>
+                <strong>WhatsApp Leads (2.50 Cr):</strong> {bi('Clicking "Chat on WhatsApp" is 100% free for buyers and vendors. Credits are charged only when a genuine inbound message is received by your connected WhatsApp Business number.', 'व्हाट्सएप बटन दबाना पूरी तरह मुफ़्त है। क्रेडिट केवल तभी कटते हैं जब ग्राहक आपके व्हाट्सएप पर वास्तविक मैसेज भेजता है।')}
+              </li>
+              <li>
+                <strong>Exotel Calls (2.50 Cr):</strong> {bi('Voice calls are charged only upon successful connection lasting at least 10 seconds. Missed calls, busy signals, and unanswered dials cost 0 credits.', 'वॉयस कॉल तभी कटती है जब कॉल कम से कम 10 सेकंड तक कनेक्ट रहे। मिस्ड कॉल या व्यस्त होने पर शून्य शुल्क लगता है।')}
+              </li>
+              <li>
+                <strong>24-Hour Deduplication:</strong> {bi('If the same customer contacts you multiple times within 24 hours, you are never double-charged.', 'यदि एक ही ग्राहक 24 घंटे में दोबारा संपर्क करता है, तो कोई अतिरिक्त क्रेडिट नहीं कटता।')}
+              </li>
+            </ul>
           </div>
         </div>
       )}
