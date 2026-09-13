@@ -121,9 +121,25 @@ export default function PlansList({ onEdit, onCreateNew }) {
                     </td>
                     <td className="px-4 py-3">
                       <div className="space-y-0.5 text-[10px]">
-                        <div>Listings: <span className="font-bold">{plan.product_limit ?? plan.max_listings ?? 'Unlimited'}</span></div>
-                        <div>Leads: <span className="font-bold">{plan.leads_limit ?? 'Unlimited'}</span></div>
-                        <div>Reels: <span className="font-bold">{plan.reels_limit ?? 'Unlimited'}</span></div>
+                        {Number(plan.wallet_credits || 0) > 0 ? (
+                          <>
+                            <div className="text-amber-700 font-extrabold flex items-center gap-1">
+                              <span>⚡</span>
+                              <span>{plan.wallet_credits} Credits</span>
+                            </div>
+                            {Number(plan.free_reel_boosts || 0) > 0 && (
+                              <div className="text-emerald-700 font-bold">
+                                +{plan.free_reel_boosts} Boost{plan.free_reel_boosts > 1 ? 's' : ''}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div>Listings: <span className="font-bold">{plan.product_limit ?? plan.max_listings ?? 'Unlimited'}</span></div>
+                            <div>Leads: <span className="font-bold">{plan.leads_limit ?? 'Unlimited'}</span></div>
+                            <div>Reels: <span className="font-bold">{plan.reels_limit ?? 'Unlimited'}</span></div>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">

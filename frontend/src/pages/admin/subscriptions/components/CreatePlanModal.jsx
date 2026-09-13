@@ -18,10 +18,14 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
     description: '',
     plan_type: 'basic',
     user_type: 'vendor',
-    billing_cycle: 'monthly',
+    billing_cycle: 'recharge',
     price_inr: '',
+    wallet_credits: '0',
+    free_reel_boosts: '0',
+    badge_text: '',
     duration_days: '30',
     discount_percentage: '0',
+    features: '',
     // Limits
     product_limit: '',
     service_limit: '',
@@ -48,10 +52,16 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
         description: editingPlan.description || '',
         plan_type: editingPlan.plan_type || 'basic',
         user_type: editingPlan.user_type || editingPlan.target_role || 'vendor',
-        billing_cycle: editingPlan.billing_cycle || 'monthly',
+        billing_cycle: editingPlan.billing_cycle || (editingPlan.user_type === 'vendor' ? 'recharge' : 'monthly'),
         price_inr: editingPlan.price_inr || '',
+        wallet_credits: editingPlan.wallet_credits !== undefined && editingPlan.wallet_credits !== null ? String(editingPlan.wallet_credits) : '0',
+        free_reel_boosts: editingPlan.free_reel_boosts !== undefined && editingPlan.free_reel_boosts !== null ? String(editingPlan.free_reel_boosts) : '0',
+        badge_text: editingPlan.badge_text || '',
         duration_days: editingPlan.duration_days || '30',
         discount_percentage: editingPlan.discount_percentage || '0',
+        features: Array.isArray(editingPlan.features_list) && editingPlan.features_list.length > 0
+          ? editingPlan.features_list.join('\n')
+          : (editingPlan.features || ''),
         product_limit: editingPlan.product_limit ?? '',
         service_limit: editingPlan.service_limit ?? '',
         reels_limit: editingPlan.reels_limit ?? '',
@@ -69,10 +79,14 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
         description: '',
         plan_type: 'basic',
         user_type: 'vendor',
-        billing_cycle: 'monthly',
+        billing_cycle: 'recharge',
         price_inr: '',
+        wallet_credits: '0',
+        free_reel_boosts: '0',
+        badge_text: '',
         duration_days: '30',
         discount_percentage: '0',
+        features: '',
         product_limit: '',
         service_limit: '',
         reels_limit: '',
@@ -96,11 +110,20 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
     if (!form.title) return toast.error('Plan title is required');
     if (form.price_inr === '' || parseFloat(form.price_inr) < 0) return toast.error('Valid price is required');
 
+    const rawFeaturesList = form.features
+      ? form.features.split('\n').map((line) => line.trim()).filter(Boolean)
+      : [];
+
     const formattedData = {
       ...form,
       price_inr: parseFloat(form.price_inr),
+      wallet_credits: parseFloat(form.wallet_credits || 0),
+      free_reel_boosts: parseInt(form.free_reel_boosts || 0, 10),
+      badge_text: form.badge_text?.trim() || null,
       duration_days: parseInt(form.duration_days || 30, 10),
       discount_percentage: parseFloat(form.discount_percentage || 0),
+      features: rawFeaturesList.join(', '),
+      features_list: rawFeaturesList,
       product_limit: form.product_limit === '' ? null : parseInt(form.product_limit, 10),
       service_limit: form.service_limit === '' ? null : parseInt(form.service_limit, 10),
       reels_limit: form.reels_limit === '' ? null : parseInt(form.reels_limit, 10),
@@ -214,17 +237,19 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
 
                 <div>
                   <label className="block mb-1 text-text-tertiary font-bold uppercase tracking-wider text-[10px]">
-                    Billing Cycle
+                    Billing Cycle / Mode
                   </label>
                   <select
                     value={form.billing_cycle}
                     onChange={(e) => handleChange('billing_cycle', e.target.value)}
                     className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none focus:border-brand-purple"
                   >
+                    <option value="recharge">Recharge Pack (Non-Expiring Credits)</option>
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly (3 Months)</option>
                     <option value="half_yearly">Half Yearly (6 Months)</option>
                     <option value="yearly">Yearly (12 Months)</option>
+                    <option value="one_time">One-Time Fee</option>
                   </select>
                 </div>
               </div>
@@ -245,16 +270,57 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block mb-1 text-text-tertiary font-bold uppercase tracking-wider text-[10px]">
-                    Base Price (₹) *
+                    Price (₹ INR) *
                   </label>
                   <input
                     type="number"
                     min="0"
                     required
-                    placeholder="999"
+                    placeholder="499"
                     value={form.price_inr}
                     onChange={(e) => handleChange('price_inr', e.target.value)}
                     className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none focus:border-brand-purple font-black text-brand-purple"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-text-tertiary font-bold uppercase tracking-wider text-[10px]">
+                    Wallet Credits (Included)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="599"
+                    value={form.wallet_credits}
+                    onChange={(e) => handleChange('wallet_credits', e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none font-bold text-amber-600"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-text-tertiary font-bold uppercase tracking-wider text-[10px]">
+                    Free Reel Boosts
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="1"
+                    value={form.free_reel_boosts}
+                    onChange={(e) => handleChange('free_reel_boosts', e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none font-bold text-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block mb-1 text-text-tertiary font-bold uppercase tracking-wider text-[10px]">
+                    Badge Text (e.g. Most Popular)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Most Popular"
+                    value={form.badge_text}
+                    onChange={(e) => handleChange('badge_text', e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none"
                   />
                 </div>
                 <div>
@@ -282,6 +348,19 @@ export default function CreatePlanModal({ isOpen, onClose, editingPlan }) {
                     className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-text-tertiary font-bold uppercase tracking-wider text-[10px]">
+                  Feature Bullet Points (1 per line)
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="599 Wallet Credits included&#10;1 Free Reel Boost included&#10;Non-Expiring credits"
+                  value={form.features}
+                  onChange={(e) => handleChange('features', e.target.value)}
+                  className="w-full px-3 py-2 bg-surface border border-border rounded-xl focus:outline-none focus:border-brand-purple resize-none font-mono text-[11px]"
+                />
               </div>
             </div>
           )}
