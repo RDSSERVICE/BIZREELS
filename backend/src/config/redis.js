@@ -18,7 +18,13 @@ class MemoryOtpStore {
   }
 
   async set(key, value, mode, durationSeconds) {
-    const expiresAt = Date.now() + (durationSeconds || 300) * 1000;
+    let ttlSec = 300;
+    if (typeof mode === 'number') {
+      ttlSec = mode;
+    } else if (durationSeconds && typeof durationSeconds === 'number') {
+      ttlSec = durationSeconds;
+    }
+    const expiresAt = Date.now() + ttlSec * 1000;
     this.store.set(key, { value, expiresAt });
     return 'OK';
   }
@@ -33,10 +39,24 @@ class MemoryOtpStore {
     const remainingMs = item.expiresAt - Date.now();
     return Math.max(0, Math.floor(remainingMs / 1000));
   }
+
+  async incr(key) {
+    const item = this.store.get(key);
+    let val = 0;
+    let expiresAt = Date.now() + 86400 * 30 * 1000;
+    if (item && Date.now() <= item.expiresAt) {
+      val = parseInt(item.value, 10) || 0;
+      expiresAt = item.expiresAt;
+    }
+    val += 1;
+    this.store.set(key, { value: String(val), expiresAt });
+    return val;
+  }
 }
 
 let redisClient;
 let isRedisConnected = false;
+let isQuotaExceeded = false;
 
 if (config.redis.enabled && process.env.NODE_ENV !== 'test') {
   try {
@@ -44,8 +64,7 @@ if (config.redis.enabled && process.env.NODE_ENV !== 'test') {
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       retryStrategy(times) {
-        if (times > 1) {
-          logger.info('Redis connection could not be established. Safely falling back to MemoryOtpStore.');
+        if (times > 1 || isQuotaExceeded) {
           return null;
         }
         return 100;
@@ -57,7 +76,7 @@ if (config.redis.enabled && process.env.NODE_ENV !== 'test') {
     const isSecure = config.redis.tls || (config.redis.url && config.redis.url.startsWith('rediss://'));
     if (isSecure) {
       redisOptions.tls = {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
       };
     }
 
@@ -83,10 +102,16 @@ if (config.redis.enabled && process.env.NODE_ENV !== 'test') {
     });
 
     redisClient.on('error', (err) => {
-      if (isRedisConnected) {
-        logger.info(`Redis connection lost (${err.message}). Safely falling back to MemoryOtpStore.`, { service: 'redis' });
+      if (err.message && err.message.includes('max requests limit exceeded')) {
+        isQuotaExceeded = true;
+        isRedisConnected = false;
+        logger.warn('[Redis] Upstash Redis request limit exceeded (500k quota reached). Permanently routing to MemoryOtpStore.', { service: 'redis' });
+      } else {
+        if (isRedisConnected) {
+          logger.info(`Redis connection lost (${err.message}). Safely falling back to MemoryOtpStore.`, { service: 'redis' });
+        }
+        isRedisConnected = false;
       }
-      isRedisConnected = false;
     });
   } catch (err) {
     logger.info(`Redis initialization failed: ${err.message}. Using in-memory store.`, { service: 'redis' });
@@ -97,11 +122,99 @@ if (config.redis.enabled && process.env.NODE_ENV !== 'test') {
 
 const memoryStore = new MemoryOtpStore();
 
+/**
+ * Resilient Store Wrapper:
+ * Intercepts calls to Redis; if Redis throws any error (such as Upstash request quota exceeded),
+ * it immediately catches the error, trips the circuit breaker, and delegates to MemoryOtpStore without failing the HTTP request.
+ */
+const resilientStore = {
+  async get(key) {
+    if (isQuotaExceeded || !isRedisConnected || !redisClient || redisClient.status !== 'ready') {
+      return memoryStore.get(key);
+    }
+    try {
+      return await redisClient.get(key);
+    } catch (err) {
+      if (err.message && err.message.includes('max requests limit exceeded')) {
+        isQuotaExceeded = true;
+        isRedisConnected = false;
+        logger.warn('[Redis] Upstash quota exceeded during GET command. Switched to MemoryOtpStore.', { service: 'redis' });
+      }
+      return memoryStore.get(key);
+    }
+  },
+
+  async set(key, value, mode, durationSeconds) {
+    if (isQuotaExceeded || !isRedisConnected || !redisClient || redisClient.status !== 'ready') {
+      return memoryStore.set(key, value, mode, durationSeconds);
+    }
+    try {
+      if (mode && durationSeconds) {
+        return await redisClient.set(key, value, mode, durationSeconds);
+      }
+      return await redisClient.set(key, value);
+    } catch (err) {
+      if (err.message && err.message.includes('max requests limit exceeded')) {
+        isQuotaExceeded = true;
+        isRedisConnected = false;
+        logger.warn('[Redis] Upstash quota exceeded during SET command. Switched to MemoryOtpStore.', { service: 'redis' });
+      }
+      return memoryStore.set(key, value, mode, durationSeconds);
+    }
+  },
+
+  async del(key) {
+    if (isQuotaExceeded || !isRedisConnected || !redisClient || redisClient.status !== 'ready') {
+      return memoryStore.del(key);
+    }
+    try {
+      return await redisClient.del(key);
+    } catch (err) {
+      if (err.message && err.message.includes('max requests limit exceeded')) {
+        isQuotaExceeded = true;
+        isRedisConnected = false;
+      }
+      return memoryStore.del(key);
+    }
+  },
+
+  async ttl(key) {
+    if (isQuotaExceeded || !isRedisConnected || !redisClient || redisClient.status !== 'ready') {
+      return memoryStore.ttl(key);
+    }
+    try {
+      return await redisClient.ttl(key);
+    } catch (err) {
+      if (err.message && err.message.includes('max requests limit exceeded')) {
+        isQuotaExceeded = true;
+        isRedisConnected = false;
+      }
+      return memoryStore.ttl(key);
+    }
+  },
+
+  async incr(key) {
+    if (isQuotaExceeded || !isRedisConnected || !redisClient || redisClient.status !== 'ready') {
+      return memoryStore.incr(key);
+    }
+    try {
+      return await redisClient.incr(key);
+    } catch (err) {
+      if (err.message && err.message.includes('max requests limit exceeded')) {
+        isQuotaExceeded = true;
+        isRedisConnected = false;
+      }
+      return memoryStore.incr(key);
+    }
+  },
+};
+
 const getStore = () => {
-  return (isRedisConnected && redisClient && redisClient.status === 'ready') ? redisClient : memoryStore;
+  return resilientStore;
 };
 
 module.exports = {
   redisClient,
   getStore,
+  MemoryOtpStore,
 };
