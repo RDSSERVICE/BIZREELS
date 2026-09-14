@@ -450,24 +450,31 @@ class RequirementService {
       throw ApiError.badRequest('You have already submitted a quotation for this requirement.');
     }
 
-    // ── Credit Deduction: Charge vendor for bid submission ──
-    const BID_CREDIT_COST = 5; // Default cost, can be made configurable via settings
-    let creditCost = BID_CREDIT_COST;
+    // ── Bidding System (Section 11): Final Bid = MIN(Price * 0.002, 20 Credits) ──
+    const quotedPriceNum = Math.max(0, parseFloat(price) || Number(requirement.budget || requirement.budget_max || 0));
+    let bidMultiplier = 0.002;
+    let bidCapCredits = 20.00;
     try {
-      const settingsService = require('./settings.service');
-      const snap = settingsService.getIntegrationSync('bid_settings');
-      if (snap && snap.bid_credit_cost) {
-        creditCost = parseInt(snap.bid_credit_cost, 10) || BID_CREDIT_COST;
+      const { AppSettings } = require('../models/Admin');
+      const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+      if (rateSetting?.value) {
+        if (rateSetting.value.bidMultiplier !== undefined) bidMultiplier = Number(rateSetting.value.bidMultiplier);
+        if (rateSetting.value.bidCapCredits !== undefined) bidCapCredits = Number(rateSetting.value.bidCapCredits);
       }
     } catch { /* use default */ }
+
+    const calculatedCost = Math.min(
+      Math.max(0.10, Number((quotedPriceNum * bidMultiplier).toFixed(2))),
+      bidCapCredits
+    );
+    const creditCost = calculatedCost;
 
     // Check vendor wallet balance
     const walletService = require('./wallet.service');
     const balance = await walletService.getBalance(vendorId);
     if (balance.credits < creditCost) {
       throw ApiError.badRequest(
-        `Insufficient credits. You need ${creditCost} credits to submit a bid. ` +
-        `Your current balance is ${balance.credits} credits. Please recharge your wallet.`
+        `Insufficient credits to submit bid. Needed: ${creditCost.toFixed(2)} Credits (₹${quotedPriceNum.toLocaleString('en-IN')} × ${(bidMultiplier * 100).toFixed(1)}%, max ${bidCapCredits} Credits), Available: ${balance.credits.toFixed(2)} Credits. Please recharge your wallet.`
       );
     }
     if (balance.is_frozen) {
@@ -475,15 +482,21 @@ class RequirementService {
     }
 
     // Deduct credits atomically
-    const referenceId = `bid_${requirementId}_${vendorId}`;
+    const referenceId = `bid_${requirementId}_${vendorId}_${Date.now()}`;
     await walletService.debit({
       userId: vendorId,
       amount: creditCost,
       transactionType: 'bid_fee',
       referenceId,
-      reason: `Bid submission fee for requirement: "${requirement.title}"`,
+      reason: `Bid proposal fee on "${requirement.title}" (Quoted ₹${quotedPriceNum.toLocaleString('en-IN')}, Fee: -${creditCost.toFixed(2)} Credits)`,
       source: 'system',
-      meta: { requirementId, requirementTitle: requirement.title },
+      meta: {
+        requirementId,
+        requirementTitle: requirement.title,
+        quotedPrice: quotedPriceNum,
+        creditCost,
+        formula: `MIN(Price * ${bidMultiplier}, ${bidCapCredits} Credits)`
+      },
     });
 
     const Quote = require('../models/Quote');

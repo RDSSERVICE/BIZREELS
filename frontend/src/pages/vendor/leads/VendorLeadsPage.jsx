@@ -83,9 +83,9 @@ export default function VendorLeadsPage() {
   const [submitQuote, { isLoading: isSubmittingQuote }] = useSubmitQuoteMutation();
 
   // Vendor Wallet credits check
-  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { skip: !proposalReq });
+  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery();
   const vendorWallet = walletData?.data || walletData || {};
-  const currentCredits = vendorWallet.credits !== undefined ? vendorWallet.credits : (vendorWallet.walletBalance || 0);
+  const currentCredits = Number(vendorWallet.credits !== undefined ? vendorWallet.credits : (vendorWallet.walletBalance || 0));
 
   // Local state for ignored/saved requirements
   const [ignoredIds, setIgnoredIds] = useState(() => {
@@ -292,15 +292,24 @@ export default function VendorLeadsPage() {
       return;
     }
 
-    if (currentCredits < 5) {
-      toast.error('Insufficient credits! Please recharge your wallet.');
+    const priceNum = Number(quotePrice);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      toast.error('Please enter a valid quotation price');
+      return;
+    }
+
+    // Bidding System Formula (Section 11): MIN(Price * 0.002, 20 Credits)
+    const bidFee = Math.min(Math.max(0.1, Number((priceNum * 0.002).toFixed(2))), 20);
+
+    if (currentCredits < bidFee) {
+      toast.error(`Insufficient credits! You need ${bidFee.toFixed(2)} credits to submit this proposal. Your balance: ${currentCredits.toFixed(2)} credits.`);
       return;
     }
 
     try {
       const payload = {
         requirementId: proposalReq._id || proposalReq.id,
-        price: Number(quotePrice),
+        price: priceNum,
         estimatedDelivery: new Date(quoteDelivery).toISOString(),
         notes: quoteNotes
       };
@@ -388,11 +397,13 @@ export default function VendorLeadsPage() {
             sortBy={sortBy}
             setSortBy={setSortBy}
             currentUserId={user?._id || user?.id}
+            currentCredits={currentCredits}
             savedIds={savedIds}
             onViewDetail={(req) => setDetailReq(req)}
             onOpenProposal={handleOpenProposalModal}
             onToggleSave={handleSaveRequirement}
             onMarkNotInterested={handleMarkNotInterested}
+            onRefresh={refetchReqs}
           />
         )}
       </div>
@@ -424,6 +435,7 @@ export default function VendorLeadsPage() {
         detailReq={detailReq}
         displayReq={displayReq}
         currentUserId={user?._id || user?.id}
+        currentCredits={currentCredits}
         onOpenProposal={handleOpenProposalModal}
       />
     </div>

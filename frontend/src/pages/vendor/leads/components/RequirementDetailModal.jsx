@@ -1,8 +1,13 @@
 import React from 'react';
-import { FiCheck } from 'react-icons/fi';
-import AdminModal from '../../../../features/admin/components/AdminModal';
-import AdminStatusBadge from '../../../../features/admin/components/AdminStatusBadge';
+import {
+  FiCheck, FiX, FiMapPin, FiCalendar, FiClock,
+  FiZap, FiPackage, FiTool, FiUser, FiInfo,
+  FiExternalLink, FiAlertCircle
+} from 'react-icons/fi';
 import { resolveMediaUrl } from '../../../../lib/api';
+import { useLanguage } from '../../../../context/LanguageContext';
+import { calculateBidCreditCost } from './SubmitProposalModal';
+import { useNavigate } from 'react-router-dom';
 
 export default function RequirementDetailModal({
   isOpen,
@@ -10,117 +15,207 @@ export default function RequirementDetailModal({
   detailReq,
   displayReq,
   currentUserId,
+  currentCredits = 0,
   onOpenProposal
 }) {
+  const { bi } = useLanguage();
+  const navigate = useNavigate();
+
   const req = displayReq || detailReq;
 
-  if (!req) return null;
+  if (!isOpen || !req) return null;
 
+  const isService = req.type === 'service' || req.requirementType === 'service';
   const hasResponded = req.vendorsResponded && req.vendorsResponded.some(
     vId => (vId._id || vId).toString() === currentUserId?.toString()
   );
 
+  const budget = Number(req.budget || req.budget_max || req.budget_min || 0);
+  const estimatedBidCost = calculateBidCreditCost(budget);
+  const hasEnoughCredits = currentCredits >= estimatedBidCost;
+
+  const isRemote = req.location?.area === 'Remote' || (req.location?.city === 'Online' && req.location?.state === 'Remote');
+  const locationText = isRemote
+    ? 'Remote (Online)'
+    : `${req.location?.city || 'Local'}${req.location?.state ? `, ${req.location?.state}` : ''}`;
+
   return (
-    <AdminModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Requirement Lead Detail"
-    >
-      <div className="space-y-4 text-xs">
-        <div className="bg-surface-secondary p-4 rounded-xl space-y-2 border border-border">
-          <div className="flex justify-between items-start">
-            <h4 className="font-bold text-sm text-text-primary">{req.title}</h4>
-            <AdminStatusBadge status={req.status || 'Pending'} />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">
+      <div className="bg-white text-[#1a1a1a] border border-[#e3dccb] shadow-2xl rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-2xl w-full space-y-4 relative max-h-[94vh] overflow-y-auto">
+        
+        {/* Header */}
+        <div className="flex items-start justify-between border-b border-[#e3dccb] pb-3.5 bg-[#f8f4ec] -mx-5 sm:-mx-6 -mt-5 sm:-mt-6 px-5 sm:px-6 py-4 rounded-t-3xl gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                isService
+                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                  : 'bg-amber-100 text-amber-900 border border-amber-200'
+              }`}>
+                {isService ? <FiTool size={11} /> : <FiPackage size={11} />}
+                {isService ? bi('Service Requirement', 'सेवा आवश्यकता') : bi('Product Requirement', 'उत्पाद आवश्यकता')}
+              </span>
+              <span className="text-[10px] font-extrabold text-slate-700 uppercase bg-white border border-[#e3dccb] px-2.5 py-0.5 rounded-full">
+                {req.category} {req.subcategory ? `• ${req.subcategory}` : ''}
+              </span>
+              <span className="text-[10px] font-bold text-amber-950 bg-amber-200 border border-amber-300 px-2 py-0.5 rounded-full">
+                {req.status || 'Active'}
+              </span>
+            </div>
+            <h3 className="text-sm sm:text-base font-black text-[#1a1a1a] leading-snug">
+              {req.title}
+            </h3>
           </div>
-          <p className="text-text-secondary leading-relaxed mt-2 whitespace-pre-wrap">{req.description}</p>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 sm:p-2 rounded-xl bg-white hover:bg-[#ede5d8] text-[#1a1a1a] transition border border-[#e3dccb] cursor-pointer shadow-2xs shrink-0"
+          >
+            <FiX size={16} />
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div className="p-3 bg-surface border border-border rounded-xl">
-            <span className="text-text-tertiary block mb-0.5">Budget Allocation</span>
-            <strong className="text-brand-purple text-sm">
-              {req.budget_min || req.budget_max ? (
-                `₹${(req.budget_min || 0).toLocaleString('en-IN')} - ₹${(req.budget_max || 0).toLocaleString('en-IN')}`
-              ) : (
-                `₹${(req.budget || 0).toLocaleString('en-IN')}`
-              )}
-            </strong>
+        {/* ═══ Budget & Bidding Highlight Card ═══ */}
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 rounded-2xl p-4 border border-amber-300 shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                {bi('Target Customer Budget', 'ग्राहक का बजट')}
+              </span>
+              <span className="text-base sm:text-lg font-black text-emerald-800 bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300 inline-block mt-0.5">
+                {req.budget_min || req.budget_max ? (
+                  `₹${(req.budget_min || 0).toLocaleString('en-IN')} - ₹${(req.budget_max || 0).toLocaleString('en-IN')}`
+                ) : (
+                  `₹${budget.toLocaleString('en-IN')}`
+                )}
+              </span>
+            </div>
+
+            {/* Estimated Bidding Fee Pill */}
+            <div className="sm:text-right bg-white/90 p-2.5 rounded-xl border border-amber-200 space-y-0.5">
+              <span className="text-[10px] font-bold text-amber-900 block flex items-center sm:justify-end gap-1">
+                <FiZap size={12} className="text-amber-600 fill-amber-500" />
+                {bi('Section 11 Proposal Fee:', 'प्रस्ताव बिडिंग शुल्क:')}
+              </span>
+              <span className="font-black text-xs sm:text-sm text-amber-950">
+                ~{estimatedBidCost.toFixed(2)} Credits
+              </span>
+              <span className="text-[9px] text-slate-500 block">
+                MIN(Price × 0.002, 20 Cr)
+              </span>
+            </div>
           </div>
-          <div className="p-3 bg-surface border border-border rounded-xl">
-            <span className="text-text-tertiary block mb-0.5">
-              {req.type === 'service' || req.requirementType === 'service' ? 'Service Scope' : 'Quantity Requested'}
+
+          {/* Credits status check */}
+          <div className="pt-2 border-t border-amber-200 flex items-center justify-between text-xs">
+            <span className="text-slate-600">
+              {bi('Your Available Credits:', 'आपका उपलब्ध क्रेडिट:')}{' '}
+              <strong className={hasEnoughCredits ? 'text-emerald-700' : 'text-rose-600'}>
+                {currentCredits.toFixed(2)} Credits
+              </strong>
             </span>
-            <strong className="text-text-primary text-sm">
-              {req.quantity || 1} {req.type === 'service' || req.requirementType === 'service' ? 'deliverables/days' : 'units'}
-            </strong>
-          </div>
-          <div className="p-3 bg-surface border border-border rounded-xl">
-            <span className="text-text-tertiary block mb-0.5">
-              {req.type === 'service' || req.requirementType === 'service' ? 'Service Location' : 'Delivery Target Location'}
-            </span>
-            <strong className="text-text-primary text-sm">
-              {req.location?.area === 'Remote' ? 'Remote (Online)' : `${req.location?.city || 'Local'}, ${req.location?.state || 'Punjab'}`}
-            </strong>
-          </div>
-          <div className="p-3 bg-surface border border-border rounded-xl">
-            <span className="text-text-tertiary block mb-0.5">Category & Type</span>
-            <strong className="text-text-primary text-sm capitalize">{req.type || 'product'} — {req.category}</strong>
+            {!hasEnoughCredits && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  navigate('/vendor/wallet?tab=plans');
+                }}
+                className="text-[11px] font-black text-amber-900 underline hover:text-black transition"
+              >
+                {bi('Recharge Wallet Now', 'वॉलेट रीचार्ज करें')}
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Extended Details */}
-        {(req.detailedSpecifications || req.address || req.expectedDeliveryDate || req.productCondition || req.serviceModel) && (
-          <div className="p-4 bg-surface border border-border rounded-xl space-y-2.5">
-            <h5 className="font-bold text-brand-navy">Detailed Requirements</h5>
+        {/* ═══ Key Parameters Grid ═══ */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+          <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl space-y-0.5">
+            <span className="text-[10px] text-slate-500 font-bold uppercase block">
+              {isService ? bi('Scope / Deliverables', 'सेवा दायरा') : bi('Quantity Requested', 'मात्रा')}
+            </span>
+            <strong className="text-sm font-extrabold text-[#1a1a1a]">
+              {req.quantity || 1} {isService ? 'deliverables' : 'units'}
+            </strong>
+          </div>
+
+          <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl space-y-0.5">
+            <span className="text-[10px] text-slate-500 font-bold uppercase block flex items-center gap-1">
+              <FiMapPin size={11} className="text-amber-700" />
+              {bi('Target Location', 'स्थान')}
+            </span>
+            <strong className="text-sm font-extrabold text-[#1a1a1a] truncate block">
+              {locationText}
+            </strong>
+          </div>
+
+          <div className="p-3 bg-[#f8f4ec] border border-[#e3dccb] rounded-xl space-y-0.5 col-span-2 sm:col-span-1">
+            <span className="text-[10px] text-slate-500 font-bold uppercase block flex items-center gap-1">
+              <FiCalendar size={11} className="text-slate-500" />
+              {bi('Expected Date', 'अपेक्षित तिथि')}
+            </span>
+            <strong className="text-sm font-extrabold text-[#1a1a1a]">
+              {req.expectedDeliveryDate
+                ? new Date(req.expectedDeliveryDate).toLocaleDateString('en-IN')
+                : bi('Flexible', 'लचीली')}
+            </strong>
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="p-4 bg-[#f8f4ec] rounded-xl border border-[#e3dccb] space-y-1.5 text-xs">
+          <h5 className="font-extrabold text-xs text-[#1a1a1a] uppercase tracking-wider">
+            {bi('Requirement Overview', 'आवश्यकता विवरण')}
+          </h5>
+          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
+            {req.description}
+          </p>
+        </div>
+
+        {/* Detailed Specifications */}
+        {(req.detailedSpecifications || req.address || req.productCondition || req.serviceModel) && (
+          <div className="p-4 bg-white border border-[#e3dccb] rounded-xl space-y-2 text-xs">
+            <h5 className="font-extrabold text-xs text-[#1a1a1a] uppercase tracking-wider">
+              {bi('Detailed Specifications', 'विस्तृत विनिर्देश')}
+            </h5>
             {req.detailedSpecifications && (
-              <div>
-                <span className="text-text-tertiary block mb-0.5">Specifications:</span>
-                <p className="text-text-secondary leading-relaxed bg-surface-secondary p-2.5 rounded-lg whitespace-pre-wrap font-mono">{req.detailedSpecifications}</p>
+              <div className="bg-[#f8f4ec] p-3 rounded-lg border border-[#e3dccb]/70 font-mono text-[11px] text-slate-800 whitespace-pre-wrap">
+                {req.detailedSpecifications}
               </div>
             )}
             {req.address && (
-              <div>
-                <span className="text-text-tertiary">Venue Address:</span>{' '}
-                <strong className="text-text-primary">{req.address}</strong>
-              </div>
-            )}
-            {req.expectedDeliveryDate && (
-              <div className="flex gap-4 text-text-primary">
-                <div>
-                  <span className="text-text-tertiary">Fulfillment Date:</span>{' '}
-                  <strong>{new Date(req.expectedDeliveryDate).toLocaleDateString('en-IN')}</strong>
-                </div>
-                {req.expectedDeliveryTime && (
-                  <div>
-                    <span className="text-text-tertiary">Preferred Time:</span>{' '}
-                    <strong>{req.expectedDeliveryTime}</strong>
-                  </div>
-                )}
+              <div className="flex gap-2">
+                <span className="text-slate-500 font-medium">{bi('Address / Site:', 'साइट पता:')}</span>
+                <strong className="text-[#1a1a1a]">{req.address}</strong>
               </div>
             )}
             {req.productCondition && (
-              <div>
-                <span className="text-text-tertiary">Condition Preference:</span>{' '}
-                <strong className="capitalize">{req.productCondition === 'other' ? req.customProductCondition || 'Other' : req.productCondition}</strong>
+              <div className="flex gap-2">
+                <span className="text-slate-500 font-medium">{bi('Condition Preference:', 'स्थिति वरीयता:')}</span>
+                <strong className="capitalize text-[#1a1a1a]">{req.productCondition}</strong>
               </div>
             )}
             {req.serviceModel && (
-              <div>
-                <span className="text-text-tertiary">Service Model:</span>{' '}
-                <strong className="capitalize">{req.serviceModel === 'other' ? req.customServiceModel || 'Other' : req.serviceModel}</strong>
+              <div className="flex gap-2">
+                <span className="text-slate-500 font-medium">{bi('Service Model:', 'सेवा मॉडल:')}</span>
+                <strong className="capitalize text-[#1a1a1a]">{req.serviceModel}</strong>
               </div>
             )}
           </div>
         )}
 
-        {/* Media Attachments for Vendor */}
+        {/* Media Attachments */}
         {((req.photos && req.photos.length > 0) || req.video) && (
-          <div className="p-4 bg-surface border border-border rounded-xl space-y-3">
-            <h5 className="font-bold text-brand-navy">Requirement Media & Attachments</h5>
+          <div className="p-4 bg-white border border-[#e3dccb] rounded-xl space-y-2.5 text-xs">
+            <h5 className="font-extrabold text-xs text-[#1a1a1a] uppercase tracking-wider">
+              {bi('Media Attachments', 'संलग्न मीडिया')}
+            </h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {req.photos && req.photos.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Photos</span>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-500 font-bold block">Photos ({req.photos.length})</span>
                   <div className="grid grid-cols-3 gap-2">
                     {req.photos.map((url, idx) => (
                       <a
@@ -128,9 +223,13 @@ export default function RequirementDetailModal({
                         href={resolveMediaUrl(url)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="aspect-square rounded-lg overflow-hidden border border-border hover:border-brand-purple transition bg-surface flex items-center justify-center"
+                        className="aspect-square rounded-lg overflow-hidden border border-[#e3dccb] hover:border-amber-400 transition bg-[#f8f4ec] flex items-center justify-center group"
                       >
-                        <img src={resolveMediaUrl(url)} alt={`Attachment ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img
+                          src={resolveMediaUrl(url)}
+                          alt={`Attachment ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition"
+                        />
                       </a>
                     ))}
                   </div>
@@ -138,13 +237,13 @@ export default function RequirementDetailModal({
               )}
 
               {req.video && (
-                <div className="space-y-1.5">
-                  <span className="text-[10px] text-text-tertiary font-bold uppercase tracking-wider block">Reference Video</span>
-                  <div className="rounded-lg overflow-hidden border border-border bg-surface-tertiary">
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-500 font-bold block">Reference Video</span>
+                  <div className="rounded-lg overflow-hidden border border-[#e3dccb] bg-black">
                     <video
                       src={resolveMediaUrl(req.video)}
                       controls
-                      className="max-h-[120px] w-full object-contain"
+                      className="max-h-[140px] w-full object-contain"
                     />
                   </div>
                 </div>
@@ -153,46 +252,59 @@ export default function RequirementDetailModal({
           </div>
         )}
 
-        <div className="bg-brand-purple/5 p-3 sm:p-4 rounded-xl border border-brand-purple/10 space-y-1.5 sm:space-y-1">
-          <h5 className="font-bold text-brand-navy">Customer Context Details</h5>
-          <div className="flex flex-col sm:flex-row justify-between gap-0.5 sm:gap-0">
-            <span className="text-text-secondary">Posted By:</span>
-            <strong className="text-text-primary">{req.customer?.name || 'Client Buyer'}</strong>
+        {/* Customer Context */}
+        <div className="bg-[#f8f4ec] p-3.5 rounded-xl border border-[#e3dccb] text-xs space-y-1.5">
+          <div className="flex items-center gap-1.5 font-extrabold text-[#1a1a1a]">
+            <FiUser size={13} className="text-amber-800" />
+            <span>{bi('Buyer Context Details', 'खरीदार संदर्भ')}</span>
           </div>
-          <div className="flex flex-col sm:flex-row justify-between gap-0.5 sm:gap-0">
-            <span className="text-text-secondary">Phone Details:</span>
-            <strong className="text-text-primary">{req.customer?.phone || 'Hidden until bid accepted'}</strong>
-          </div>
-          <div className="flex flex-col sm:flex-row justify-between gap-0.5 sm:gap-0">
-            <span className="text-text-secondary">Email Reference:</span>
-            <strong className="text-text-primary">{req.customer?.email || 'N/A'}</strong>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 text-[11px]">
+            <div>
+              <span className="text-slate-500">{bi('Buyer Name:', 'नाम:')}</span>{' '}
+              <strong className="text-[#1a1a1a]">{req.customer?.name || 'Verified Customer'}</strong>
+            </div>
+            <div>
+              <span className="text-slate-500">{bi('Contact Info:', 'संपर्क:')}</span>{' '}
+              <span className="text-slate-700 italic">
+                {bi('Unlocked after proposal acceptance', 'प्रस्ताव स्वीकार होने पर दिखाई देगा')}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-border pt-3">
+        {/* Modal Footer Actions */}
+        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#e3dccb]">
           <button
+            type="button"
             onClick={onClose}
-            className="px-4 py-2 glass border border-border rounded-xl text-text-secondary font-bold"
+            className="px-4 py-2 bg-white border border-[#e3dccb] text-slate-700 hover:text-black hover:bg-[#ede5d8] rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs"
           >
-            Close View
+            {bi('Close', 'बंद करें')}
           </button>
+
           {hasResponded ? (
-            <span className="px-5 py-2 bg-emerald-500/10 text-emerald-600 font-bold rounded-xl border border-emerald-500/20 flex items-center gap-1">
-              <FiCheck size={14} /> Proposal Sent
+            <span className="px-4 py-2 bg-emerald-100 text-emerald-800 font-extrabold text-xs rounded-xl border border-emerald-300 flex items-center gap-1.5 shadow-2xs">
+              <FiCheck size={14} />
+              <span>{bi('Proposal Already Submitted', 'प्रस्ताव पहले ही भेजा जा चुका है')}</span>
             </span>
           ) : (
             <button
+              type="button"
               onClick={() => {
                 onClose();
                 onOpenProposal(req);
               }}
-              className="px-5 py-2 gradient-brand text-white font-bold rounded-xl shadow-premium"
+              className="px-4 py-2 bg-gradient-to-r from-amber-500 via-amber-500 to-amber-600 hover:shadow-amber-500/30 text-white font-extrabold text-xs rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer border border-amber-400 hover:scale-[1.01]"
             >
-              Respond with Proposal
+              <FiZap size={14} className="fill-white" />
+              <span>
+                {bi('Submit Proposal', 'प्रस्ताव बिड करें')} (~{estimatedBidCost.toFixed(1)} Cr)
+              </span>
             </button>
           )}
         </div>
+
       </div>
-    </AdminModal>
+    </div>
   );
 }

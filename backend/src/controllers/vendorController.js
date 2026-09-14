@@ -303,6 +303,8 @@ class VendorController {
         aiVideo30s: 15,
         reelBoost1Day: 2,
         reelBoostAdditional: 2,
+        bidRateMultiplier: 0.002,
+        bidCapCredits: 20,
         validLead: 1,
       };
       try {
@@ -312,6 +314,8 @@ class VendorController {
           const boostRate = Number(creditRates.reelBoost1Day ?? creditRates.reelBoostAdditional ?? 2.00);
           creditRates.reelBoost1Day = boostRate;
           creditRates.reelBoostAdditional = boostRate;
+          creditRates.bidRateMultiplier = Number(creditRates.bidRateMultiplier || 0.002);
+          creditRates.bidCapCredits = Number(creditRates.bidCapCredits || 20);
         } else {
           creditRates = defaultRates;
         }
