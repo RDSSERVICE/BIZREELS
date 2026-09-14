@@ -28,7 +28,17 @@ router.post('/payout', authenticate, walletController.requestPayout);
 // GET /api/v1/wallet/vendor — Vendor wallet balance
 router.get('/vendor', authenticate, roleMiddleware('vendor'), asyncHandler(async (req, res) => {
   const balance = await walletService.getRoleBalance(req.user._id, 'vendor');
-  return ApiResponse.ok(res, 'Vendor wallet loaded.', balance);
+  const mainWallet = await walletService.getBalance(req.user._id);
+  const credits = balance?.balance ?? mainWallet?.credits ?? 0;
+  return ApiResponse.ok(res, 'Vendor wallet loaded.', {
+    ...balance,
+    credits,
+    walletBalance: credits,
+    balance: credits,
+    free_reel_boosts: mainWallet?.free_reel_boosts || 0,
+    freeReelBoosts: mainWallet?.free_reel_boosts || 0,
+    balance_inr_paise: mainWallet?.balance_inr_paise || 0,
+  });
 }));
 
 // GET /api/v1/wallet/creator — Creator wallet balance

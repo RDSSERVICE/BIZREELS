@@ -83,9 +83,18 @@ export default function VendorLeadsPage() {
   const [submitQuote, { isLoading: isSubmittingQuote }] = useSubmitQuoteMutation();
 
   // Vendor Wallet credits check
-  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery();
+  const { data: walletData, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+  });
   const vendorWallet = walletData?.data || walletData || {};
-  const currentCredits = Number(vendorWallet.credits !== undefined ? vendorWallet.credits : (vendorWallet.walletBalance || 0));
+  const currentCredits = Number(
+    vendorWallet.credits ??
+    vendorWallet.balance ??
+    vendorWallet.walletBalance ??
+    user?.walletBalance ??
+    0
+  );
 
   // Local state for ignored/saved requirements
   const [ignoredIds, setIgnoredIds] = useState(() => {

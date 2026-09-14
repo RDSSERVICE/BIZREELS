@@ -4,8 +4,9 @@ import {
   FiCheck, FiChevronRight, FiChevronLeft, FiShoppingBag, FiCoffee, FiTool,
   FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiFolder,
   FiSearch, FiX, FiFilter, FiCheckSquare, FiSquare, FiArrowLeft, FiArrowRight,
-  FiSparkles, FiCheckCircle
+  FiCheckCircle
 } from 'react-icons/fi';
+import { HiSparkles as FiSparkles } from 'react-icons/hi';
 import { FaCouch, FaLaptop, FaCut, FaGraduationCap, FaUtensils, FaTools, FaCar, FaFilm } from 'react-icons/fa';
 import { api } from '../../lib/api';
 

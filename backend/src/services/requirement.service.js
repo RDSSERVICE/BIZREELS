@@ -471,12 +471,24 @@ class RequirementService {
 
     // Check vendor wallet balance
     const walletService = require('./wallet.service');
-    const balance = await walletService.getBalance(vendorId);
-    if (balance.credits < creditCost) {
+    let availableCredits = 0;
+    try {
+      const roleBal = await walletService.getRoleBalance(vendorId, 'vendor');
+      if (roleBal && roleBal.balance !== undefined && Number(roleBal.balance) > 0) {
+        availableCredits = Number(roleBal.balance);
+      }
+    } catch { /* fallback */ }
+    if (!availableCredits) {
+      const mainBal = await walletService.getBalance(vendorId);
+      availableCredits = Number(mainBal.credits || 0);
+    }
+
+    if (availableCredits < creditCost) {
       throw ApiError.badRequest(
-        `Insufficient credits to submit bid. Needed: ${creditCost.toFixed(2)} Credits (₹${quotedPriceNum.toLocaleString('en-IN')} × ${(bidMultiplier * 100).toFixed(1)}%, max ${bidCapCredits} Credits), Available: ${balance.credits.toFixed(2)} Credits. Please recharge your wallet.`
+        `Insufficient credits to submit bid. Needed: ${creditCost.toFixed(2)} Credits (₹${quotedPriceNum.toLocaleString('en-IN')} × ${(bidMultiplier * 100).toFixed(1)}%, max ${bidCapCredits} Credits), Available: ${availableCredits.toFixed(2)} Credits. Please recharge your wallet.`
       );
     }
+    const balance = await walletService.getBalance(vendorId);
     if (balance.is_frozen) {
       throw ApiError.badRequest('Your wallet is frozen. Please contact support to submit bids.');
     }
