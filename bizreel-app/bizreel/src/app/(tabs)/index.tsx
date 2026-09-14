@@ -29,6 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandColors, FontSize, FontWeight } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { flattenReels, usePrefetchNextReelsPage, useReelsFeed } from '@/features/reels/queries';
+import { useCart } from '@/features/cart/queries';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { ReelItem } from '@/features/reels/reel-item';
 import type { Reel } from '@/features/reels/types';
@@ -49,6 +50,8 @@ export default function ReelsFeedScreen() {
   const flatListRef = useRef<FlatList<Reel>>(null);
 
   const { data: unreadNotifsCount = 0 } = useUnreadNotificationCount(activeRole);
+  const { data: cart } = useCart();
+  const cartTotalItems = cart?.total_items || 0;
 
   // Full screen height so reel fills 100% of the screen
   const reelHeight = SCREEN_HEIGHT;
@@ -297,10 +300,15 @@ export default function ReelsFeedScreen() {
           </Pressable>
 
           <Pressable
-            style={styles.headerBtn}
+            style={[styles.headerBtn, cartTotalItems > 0 && styles.headerBtnActive]}
             onPress={() => router.push('/cart')}
             accessibilityLabel="Shopping Cart">
-            <Ionicons name="cart" size={18} color="#fff" />
+            <Ionicons name="cart-outline" size={18} color={cartTotalItems > 0 ? YELLOW : '#fff'} />
+            {cartTotalItems > 0 && (
+              <View style={styles.cartBadge}>
+                <Text style={styles.cartBadgeText}>{cartTotalItems > 99 ? '99+' : cartTotalItems}</Text>
+              </View>
+            )}
           </Pressable>
 
           <Pressable
@@ -645,6 +653,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(217, 154, 61, 0.4)',
   },
+  headerBtnActive: {
+    borderColor: YELLOW,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+  },
   searchOverlay: {
     position: 'absolute',
     left: 16,
@@ -907,4 +919,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   notifBadgeText: { color: '#fff', fontSize: 8, fontWeight: '900' },
+  cartBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    backgroundColor: YELLOW,
+    paddingHorizontal: 4,
+    height: 15,
+    minWidth: 15,
+    borderRadius: 7.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#0F0F12',
+  },
+  cartBadgeText: { color: '#0F0F12', fontSize: 8, fontWeight: '900' },
 });

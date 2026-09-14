@@ -201,10 +201,10 @@ export default function HomeScreen() {
                     style={styles.cartIconBtn}
                     onPress={() => router.push('/cart')}
                     accessibilityLabel="Cart">
-                    <Ionicons name="cart" size={20} color="#fff" />
+                    <Ionicons name="cart-outline" size={20} color="#0F172A" />
                     {cartItemCount > 0 && (
                       <View style={styles.cartBadge}>
-                        <Text style={styles.cartBadgeText}>{cartItemCount}</Text>
+                        <Text style={styles.cartBadgeText}>{cartItemCount > 99 ? '99+' : cartItemCount}</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -954,18 +954,20 @@ const styles = StyleSheet.create({
   },
   cartBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    backgroundColor: YELLOW,
-    minWidth: 16,
-    height: 16,
-    borderRadius: Radius.full,
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    paddingHorizontal: 3,
   },
   cartBadgeText: {
-    color: TEXT_DARK,
+    color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '900',
   },
