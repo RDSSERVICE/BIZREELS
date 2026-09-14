@@ -66,6 +66,8 @@ export default function ReelsFeedScreen() {
   const [sortFilter, setSortFilter] = useState('trending');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
+  const activeFilterCount = (reelTypeFilter !== 'all' ? 1 : 0) + (durationFilter !== 'all' ? 1 : 0) + (sortFilter !== 'trending' ? 1 : 0);
+
   useEffect(() => {
     (async () => {
       try {
@@ -420,27 +422,54 @@ export default function ReelsFeedScreen() {
         />
       )}
 
-      {/* ── REELS FEED FILTER MODAL ── */}
+      {/* ── REELS FEED FILTER BOTTOM SHEET MODAL ── */}
       <Modal
         visible={filterModalOpen}
         animationType="slide"
         transparent
+        statusBarTranslucent
         onRequestClose={() => setFilterModalOpen(false)}>
         <View style={styles.modalOverlay}>
           <Pressable style={styles.modalBackdrop} onPress={() => setFilterModalOpen(false)} />
+          
           <View style={styles.modalContent}>
+            {/* Sheet Handle */}
+            <View style={styles.sheetHandleBox}>
+              <View style={styles.sheetHandle} />
+            </View>
+
+            {/* Header */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>FILTER REELS & FEED</Text>
-              <TouchableOpacity onPress={() => setFilterModalOpen(false)} style={styles.closeBtn}>
-                <Ionicons name="close" size={16} color="#fff" />
+              <View style={styles.headerLeft}>
+                <View style={styles.headerIconBox}>
+                  <Ionicons name="options-outline" size={20} color={GOLD} />
+                </View>
+                <View style={styles.headerTitleGroup}>
+                  <Text style={styles.modalTitle}>Filter Reels & Feed</Text>
+                  <Text style={styles.modalSubtitle}>
+                    {activeFilterCount > 0
+                      ? `${activeFilterCount} active filter${activeFilterCount > 1 ? 's' : ''}`
+                      : 'Tune your video feed preferences'}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setFilterModalOpen(false)}
+                style={styles.closeBtn}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={18} color="#A1998E" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
-              <View style={{ gap: 16, paddingVertical: 8 }}>
+            <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 20, paddingVertical: 12 }}>
                 {/* 1. REEL TYPE */}
                 <View style={styles.filterGroup}>
-                  <Text style={styles.filterSectionTitle}>🎬 REEL CONTENT TYPE</Text>
+                  <View style={styles.filterGroupHeader}>
+                    <Ionicons name="film-outline" size={14} color={GOLD} />
+                    <Text style={styles.filterSectionTitle}>REEL CONTENT TYPE</Text>
+                  </View>
                   <View style={styles.chipsWrap}>
                     {[
                       { id: 'all', label: 'All Types' },
@@ -467,7 +496,10 @@ export default function ReelsFeedScreen() {
 
                 {/* 2. DURATION */}
                 <View style={styles.filterGroup}>
-                  <Text style={styles.filterSectionTitle}>⏱️ VIDEO DURATION</Text>
+                  <View style={styles.filterGroupHeader}>
+                    <Ionicons name="time-outline" size={14} color={GOLD} />
+                    <Text style={styles.filterSectionTitle}>VIDEO DURATION</Text>
+                  </View>
                   <View style={styles.chipsWrap}>
                     {[
                       { id: 'all', label: 'All Durations' },
@@ -491,7 +523,10 @@ export default function ReelsFeedScreen() {
 
                 {/* 3. SORTING */}
                 <View style={styles.filterGroup}>
-                  <Text style={styles.filterSectionTitle}>🔥 POPULARITY & SORT</Text>
+                  <View style={styles.filterGroupHeader}>
+                    <Ionicons name="flame-outline" size={14} color={GOLD} />
+                    <Text style={styles.filterSectionTitle}>POPULARITY & SORT</Text>
+                  </View>
                   <View style={styles.chipsWrap}>
                     {[
                       { id: 'trending', label: '🔥 Trending' },
@@ -515,6 +550,7 @@ export default function ReelsFeedScreen() {
               </View>
             </ScrollView>
 
+            {/* Footer */}
             <View style={styles.filterModalFooter}>
               <TouchableOpacity
                 style={styles.resetModalBtn}
@@ -524,11 +560,11 @@ export default function ReelsFeedScreen() {
                   setSortFilter('trending');
                   setFilterModalOpen(false);
                 }}>
-                <Text style={styles.resetModalBtnText}>RESET ALL</Text>
+                <Text style={styles.resetModalBtnText}>Reset All</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.applyModalBtn} onPress={() => setFilterModalOpen(false)}>
-                <Text style={styles.applyModalBtnText}>APPLY FILTERS</Text>
+                <Text style={styles.applyModalBtnText}>Apply Filters</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -538,10 +574,12 @@ export default function ReelsFeedScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
+const GOLD = '#D99A3D';
+const YELLOW = GOLD;
 const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const SHEET_BG = '#161311';
+const BORDER = 'rgba(255, 255, 255, 0.1)';
+const TEXT_MUTED = '#A1998E';
 
 const styles = StyleSheet.create({
   container: {
@@ -573,13 +611,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: GOLD,
     paddingHorizontal: 24,
     paddingVertical: 10,
+    borderRadius: 8,
     marginTop: 8,
   },
   retryText: {
-    color: BLACK,
+    color: '#161311',
     fontWeight: '900',
     fontSize: FontSize.base,
   },
@@ -599,32 +638,39 @@ const styles = StyleSheet.create({
   headerBtn: {
     width: 38,
     height: 38,
-    borderRadius: 0,
+    borderRadius: 12,
     backgroundColor: 'rgba(24, 24, 28, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: 'rgba(217, 154, 61, 0.4)',
   },
   searchOverlay: {
     position: 'absolute',
     left: 16,
     right: 16,
     zIndex: 200,
-    backgroundColor: 'rgba(24, 24, 28, 0.95)',
+    backgroundColor: 'rgba(22, 19, 17, 0.96)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: YELLOW,
-    padding: 8,
+    borderColor: 'rgba(217, 154, 61, 0.4)',
+    padding: 10,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
   },
   searchBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 10,
-    height: 40,
+    paddingHorizontal: 12,
+    height: 42,
   },
   searchIcon: { marginRight: 8 },
   searchInput: {
@@ -641,23 +687,24 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   tagChip: {
-    backgroundColor: BLACK,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   tagChipActive: {
-    backgroundColor: YELLOW,
-    borderColor: YELLOW,
+    backgroundColor: GOLD,
+    borderColor: GOLD,
   },
   tagChipText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: TEXT_MUTED,
     fontSize: 10,
     fontWeight: '700',
   },
   tagChipTextActive: {
-    color: BLACK,
+    color: '#161311',
     fontWeight: '900',
   },
   activeSearchPill: {
@@ -667,12 +714,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: YELLOW,
-    paddingHorizontal: 12,
+    backgroundColor: GOLD,
+    borderRadius: 20,
+    paddingHorizontal: 14,
     paddingVertical: 6,
+    shadowColor: GOLD,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   activeSearchPillText: {
-    color: BLACK,
+    color: '#161311',
     fontSize: 11,
     fontWeight: '900',
     maxWidth: 200,
@@ -682,75 +735,166 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.75)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'flex-end',
   },
   modalBackdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContent: {
-    backgroundColor: DARK_CARD,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderWidth: 1,
-    borderColor: BORDER,
-    padding: 16,
-    gap: 12,
+    backgroundColor: SHEET_BG,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(217, 154, 61, 0.25)',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    maxHeight: '85%',
+  },
+  sheetHandleBox: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: BORDER,
-    paddingBottom: 10,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    paddingBottom: 14,
+    marginBottom: 4,
   },
-  modalTitle: { color: '#fff', fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
-  closeBtn: {
-    width: 28,
-    height: 28,
-    backgroundColor: BLACK,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(217, 154, 61, 0.12)',
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: 'rgba(217, 154, 61, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterGroup: { gap: 8 },
-  filterSectionTitle: { color: YELLOW, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
-  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  presetChip: {
-    backgroundColor: BLACK,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  headerTitleGroup: {
+    gap: 2,
   },
-  presetChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  presetChipText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' },
-  presetChipTextActive: { color: BLACK, fontWeight: '900' },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  modalSubtitle: {
+    color: TEXT_MUTED,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterGroup: {
+    gap: 10,
+  },
+  filterGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterSectionTitle: {
+    color: GOLD,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  presetChip: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  presetChipActive: {
+    backgroundColor: GOLD,
+    borderColor: GOLD,
+    shadowColor: GOLD,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  presetChipText: {
+    color: TEXT_MUTED,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  presetChipTextActive: {
+    color: '#161311',
+    fontWeight: '900',
+  },
   filterModalFooter: {
     flexDirection: 'row',
-    gap: 8,
-    paddingTop: 10,
+    gap: 12,
+    paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: BORDER,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 8,
   },
   resetModalBtn: {
     flex: 1,
-    backgroundColor: BLACK,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: BORDER,
-    paddingVertical: 10,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 14,
+    height: 48,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  resetModalBtnText: { color: '#fff', fontSize: 11, fontWeight: '900' },
+  resetModalBtnText: {
+    color: '#D4CEC5',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   applyModalBtn: {
     flex: 2,
-    backgroundColor: YELLOW,
-    paddingVertical: 10,
+    backgroundColor: GOLD,
+    borderRadius: 14,
+    height: 48,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: GOLD,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  applyModalBtnText: { color: BLACK, fontSize: 11, fontWeight: '900' },
+  applyModalBtnText: {
+    color: '#161311',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
   notifBadge: {
     position: 'absolute',
     top: -2,
