@@ -25,12 +25,12 @@ import { api } from '@/lib/api';
 
 const GOLD = '#F59E0B';
 const AMBER_LIGHT = '#FBBF24';
-const BLACK = '#0D0D11';
-const DARK_CARD = '#16161D';
-const DARK_SURFACE = '#1E1E26';
-const BORDER = '#2A2A36';
-const BORDER_GOLD = '#D99A3D';
-const TEXT_MUTED = 'rgba(255,255,255,0.55)';
+const BLACK = '#0F172A';
+const DARK_CARD = '#1E293B';
+const DARK_SURFACE = '#334155';
+const BORDER = '#334155';
+const BORDER_GOLD = '#F59E0B';
+const TEXT_MUTED = '#94A3B8';
 
 interface CategoryTreeItem {
   id?: string;
