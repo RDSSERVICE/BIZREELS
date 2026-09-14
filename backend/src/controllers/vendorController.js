@@ -335,8 +335,6 @@ class VendorController {
       const defaultRates = {
         productListing: 1,
         reelPost: 1,
-        aiImage: 2,
-        aiVideo30s: 15,
         reelBoost1Day: 2,
         reelBoostAdditional: 2,
         bidRateMultiplier: 0.002,
@@ -347,6 +345,9 @@ class VendorController {
         const rateSetting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
         if (rateSetting && rateSetting.value) {
           creditRates = { ...defaultRates, ...rateSetting.value };
+          delete creditRates.aiImage;
+          delete creditRates.aiVideo30s;
+          delete creditRates.aiVideo;
           const boostRate = Number(creditRates.reelBoost1Day ?? creditRates.reelBoostAdditional ?? 2.00);
           creditRates.reelBoost1Day = boostRate;
           creditRates.reelBoostAdditional = boostRate;

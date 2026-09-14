@@ -35,6 +35,7 @@ router.get('/vendor', authenticate, roleMiddleware('vendor'), asyncHandler(async
     req.user?.walletBalance ?? 0,
     req.user?.wallet_credits ?? 0
   );
+  const withdrawableInr = (mainWallet?.balance_inr_paise || 0) / 100;
   return ApiResponse.ok(res, 'Vendor wallet loaded.', {
     ...balance,
     credits,
@@ -43,6 +44,20 @@ router.get('/vendor', authenticate, roleMiddleware('vendor'), asyncHandler(async
     free_reel_boosts: mainWallet?.free_reel_boosts || req.user?.free_reel_boosts || 0,
     freeReelBoosts: mainWallet?.free_reel_boosts || req.user?.free_reel_boosts || 0,
     balance_inr_paise: mainWallet?.balance_inr_paise || 0,
+    earnings_inr: withdrawableInr,
+    platformCredits: {
+      available: credits,
+      free_reel_boosts: mainWallet?.free_reel_boosts || req.user?.free_reel_boosts || 0,
+      currency: 'CREDITS',
+      conversionRate: '1 Credit = ₹1 INR',
+    },
+    merchantRevenue: {
+      withdrawable_inr: withdrawableInr,
+      balance_inr_paise: mainWallet?.balance_inr_paise || 0,
+      pending_escrow_inr: 0,
+      currency: 'INR',
+    },
+    bankAccount: req.user?.vendorProfile?.bankDetails || null,
   });
 }));
 

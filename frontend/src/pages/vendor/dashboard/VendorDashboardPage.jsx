@@ -173,8 +173,8 @@ export default function VendorDashboardPage() {
             </div>
             <p className="text-xs text-slate-500 mt-1">
               {bi(
-                'Use credits for product listings, publishing reels, AI features, boosting, and unlocking lead contacts.',
-                'उत्पाद लिस्टिंग, रील प्रकाशन, एआई सुविधाओं, बूस्टिंग और लीड संपर्क अनलॉक करने के लिए क्रेडिट का उपयोग करें।'
+                'Use credits for product listings, publishing reels, promotional boosting, and unlocking customer lead contacts.',
+                'उत्पाद लिस्टिंग, रील प्रकाशन, बूस्टिंग और ग्राहक लीड संपर्क अनलॉक करने के लिए क्रेडिट का उपयोग करें।'
               )}
             </p>
           </div>

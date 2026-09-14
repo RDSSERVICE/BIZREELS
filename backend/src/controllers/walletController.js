@@ -215,6 +215,7 @@ class WalletController {
       amount,
     });
     return ApiResponse.ok(res, 'Payout withdrawal request submitted successfully.', {
+      withdrawable_inr: result.withdrawable_inr,
       walletBalance: result.wallet.credits,
       transaction: result.transaction,
     });
