@@ -43,7 +43,7 @@ class VendorController {
       leadsCount,
       recentLeadsCount,
       prevLeadsCount,
-      wallet,
+      walletInfo,
       referralInfo,
       orderSalesAgg,
       currentOrderSalesAgg,
@@ -72,7 +72,11 @@ class VendorController {
       Inquiry.countDocuments({ vendor: vendorMatch, createdAt: { $gte: thirtyDaysAgo } }),
       Inquiry.countDocuments({ vendor: vendorMatch, createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } }),
       
-      walletService.getOrCreateWallet(userId),
+      Promise.all([
+        walletService.getOrCreateWallet(userId).catch(() => null),
+        walletService.getRoleWallet(userId, 'vendor').catch(() => null),
+        walletService.getRoleBalance(userId, 'vendor').catch(() => null),
+      ]),
       referralService.getVendorDashboard(userId).catch(() => null),
       
       Order.aggregate([
@@ -240,11 +244,43 @@ class VendorController {
     const totalViews = reels.reduce((sum, r) => sum + (r.views || 0), 0);
     const followers = req.user.followersCount || (req.user.followers ? req.user.followers.length : 0);
 
-    const availableCredits = wallet ? (wallet.credits || 0) : 0;
-    const freeReelBoosts = wallet ? (wallet.free_reel_boosts ?? req.user.free_reel_boosts ?? 0) : (req.user.free_reel_boosts ?? 0);
-    const depositedCredits = wallet ? (wallet.lifetime_deposited_paise ? Math.floor(wallet.lifetime_deposited_paise / 100) : 0) : 0;
-    const earnedCredits = wallet ? (wallet.lifetime_earned_credits || 0) : 0;
-    const usedCreditHistory = wallet ? (wallet.lifetime_spent_credits || 0) : 0;
+    const [mainWallet, isoWallet, roleBalance] = Array.isArray(walletInfo) ? walletInfo : [];
+    const availableCredits = Math.max(
+      roleBalance?.balance ?? 0,
+      isoWallet?.balance ?? 0,
+      mainWallet?.credits ?? 0,
+      req.user.walletBalance ?? 0,
+      req.user.wallet_credits ?? 0
+    );
+    const freeReelBoosts = mainWallet ? (mainWallet.free_reel_boosts ?? req.user.free_reel_boosts ?? 0) : (req.user.free_reel_boosts ?? 0);
+    const depositedCredits = Math.max(
+      mainWallet?.lifetime_deposited_paise ? Math.floor(mainWallet.lifetime_deposited_paise / 100) : 0,
+      isoWallet?.lifetime_earned ?? 0,
+      mainWallet?.lifetime_earned_credits ?? 0,
+      availableCredits
+    );
+    const earnedCredits = Math.max(
+      mainWallet?.lifetime_earned_credits ?? 0,
+      isoWallet?.lifetime_earned ?? 0
+    );
+    const usedCreditHistory = Math.max(
+      mainWallet?.lifetime_spent_credits ?? 0,
+      isoWallet?.lifetime_spent ?? 0
+    );
+
+    // Keep all balance stores synchronized in background
+    if (isoWallet && (isoWallet.balance || 0) < availableCredits) {
+      const IsolatedWallet = require('../models/IsolatedWallet.model');
+      IsolatedWallet.updateOne({ _id: isoWallet._id }, { $set: { balance: availableCredits } }).catch(() => {});
+    }
+    if (mainWallet && (mainWallet.credits || 0) < availableCredits) {
+      const { Wallet } = require('../models/Phase4');
+      Wallet.updateOne({ _id: mainWallet._id }, { $set: { credits: availableCredits } }).catch(() => {});
+    }
+    if (req.user && (req.user.walletBalance || 0) < availableCredits) {
+      const User = require('../models/User');
+      User.updateOne({ _id: userId }, { $set: { walletBalance: availableCredits, wallet_credits: availableCredits } }).catch(() => {});
+    }
 
     // View counts from ReelView model to determine historical views trend accurately
     let recentViews = 0;

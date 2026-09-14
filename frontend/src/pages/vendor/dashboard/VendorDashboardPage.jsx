@@ -15,29 +15,32 @@ import {
   useGetVendorLeadsQuery,
   useGetVendorReelsQuery,
   useGetVendorSubscriptionQuery,
+  useGetVendorWalletQuery,
 } from '../../../features/vendor/vendorApi';
 import { getSocket } from '../../../lib/socket';
 import { useLanguage } from '../../../context/LanguageContext';
 
 export default function VendorDashboardPage() {
   const { bi, t } = useLanguage();
-  const { data: dashboardRes, isLoading, refetch: refetchDashboard } = useGetVendorDashboardQuery(undefined, { pollingInterval: 300000 });
+  const { data: dashboardRes, isLoading, refetch: refetchDashboard } = useGetVendorDashboardQuery(undefined, { pollingInterval: 60000 });
+  const { data: walletRes, refetch: refetchWallet } = useGetVendorWalletQuery(undefined, { pollingInterval: 30000 });
   const { data: leadsRes, refetch: refetchLeads } = useGetVendorLeadsQuery(undefined, { pollingInterval: 300000 });
   const { data: reelsRes, refetch: refetchReels } = useGetVendorReelsQuery(undefined, { pollingInterval: 300000 });
   const { data: subscriptionRes } = useGetVendorSubscriptionQuery(undefined, { pollingInterval: 300000 });
 
-  // Socket.IO real-time update listeners for dashboard metrics
+  // Socket.IO real-time update listeners for dashboard metrics & wallet
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
     const handleRefetchAll = () => {
       if (typeof refetchDashboard === 'function') refetchDashboard();
+      if (typeof refetchWallet === 'function') refetchWallet();
       if (typeof refetchLeads === 'function') refetchLeads();
       if (typeof refetchReels === 'function') refetchReels();
     };
 
-    // Events that affect vendor metrics (leads, listings, follows, proposals, orders)
+    // Events that affect vendor metrics (leads, listings, follows, proposals, orders, wallet)
     socket.on('requirement:assigned', handleRefetchAll);
     socket.on('vendor_notification:sent', handleRefetchAll);
     socket.on('requirement:updated', handleRefetchAll);
@@ -58,6 +61,11 @@ export default function VendorDashboardPage() {
     
     socket.on('deal:updated', handleRefetchAll);
     socket.on('order:updated', handleRefetchAll);
+
+    // Instant wallet & credit update listeners
+    socket.on('wallet:updated', handleRefetchAll);
+    socket.on('payment:success', handleRefetchAll);
+    socket.on('transaction:new', handleRefetchAll);
 
     return () => {
       socket.off('requirement:assigned', handleRefetchAll);
@@ -80,12 +88,16 @@ export default function VendorDashboardPage() {
       
       socket.off('deal:updated', handleRefetchAll);
       socket.off('order:updated', handleRefetchAll);
+
+      socket.off('wallet:updated', handleRefetchAll);
+      socket.off('payment:success', handleRefetchAll);
+      socket.off('transaction:new', handleRefetchAll);
     };
-  }, [refetchDashboard, refetchLeads, refetchReels]);
+  }, [refetchDashboard, refetchWallet, refetchLeads, refetchReels]);
 
   // Safe unwrap: handles both old double-nested (data.data) and new flat (data) response shapes
-  const rawData = dashboardRes?.data;
-  const metrics = (rawData?.totalProducts !== undefined ? rawData : rawData?.data) || {};
+  const rawData = dashboardRes?.data ?? dashboardRes;
+  const metrics = (rawData?.credits ? rawData : (rawData?.data?.credits ? rawData.data : (rawData?.data || rawData))) || {};
   const leads = Array.isArray(leadsRes?.data) ? leadsRes.data : Array.isArray(leadsRes) ? leadsRes : [];
   const reelsList = Array.isArray(reelsRes?.data) ? reelsRes.data : Array.isArray(reelsRes?.reels) ? reelsRes.reels : Array.isArray(reelsRes) ? reelsRes : [];
   const activeFeatures = subscriptionRes?.features || [];
@@ -93,7 +105,19 @@ export default function VendorDashboardPage() {
   const realTimeReelsCount = Math.max(metrics.totalReels || 0, reelsList.length);
   const realTimeViewsCount = Math.max(metrics.totalViews || 0, reelsList.reduce((sum, r) => sum + (r.views || 0), 0));
 
-  const credits = metrics.credits || { available: 0, deposited: 0, earned: 0, used: 0 };
+  // Authoritative live credits resolution
+  const walletData = walletRes?.data ?? walletRes;
+  const liveCredits = walletData?.credits ?? walletData?.balance;
+  const availableCredits = liveCredits !== undefined && liveCredits !== null
+    ? liveCredits
+    : (metrics.credits?.available ?? metrics.walletBalance ?? 0);
+
+  const credits = {
+    available: availableCredits,
+    deposited: metrics.credits?.deposited ?? availableCredits,
+    earned: metrics.credits?.earned ?? metrics.credits?.available ?? availableCredits,
+    used: metrics.credits?.used ?? 0,
+  };
 
   const stats = [
     { label: bi('Total Products', 'कुल उत्पाद (Total Products)'), value: metrics.totalProducts ?? metrics.activeListings ?? 0, icon: FiPackage, color: 'purple', trend: metrics.trends?.totalProducts ?? 0 },

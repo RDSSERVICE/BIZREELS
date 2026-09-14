@@ -29,14 +29,19 @@ router.post('/payout', authenticate, walletController.requestPayout);
 router.get('/vendor', authenticate, roleMiddleware('vendor'), asyncHandler(async (req, res) => {
   const balance = await walletService.getRoleBalance(req.user._id, 'vendor');
   const mainWallet = await walletService.getBalance(req.user._id);
-  const credits = balance?.balance ?? mainWallet?.credits ?? 0;
+  const credits = Math.max(
+    balance?.balance ?? 0,
+    mainWallet?.credits ?? 0,
+    req.user?.walletBalance ?? 0,
+    req.user?.wallet_credits ?? 0
+  );
   return ApiResponse.ok(res, 'Vendor wallet loaded.', {
     ...balance,
     credits,
     walletBalance: credits,
     balance: credits,
-    free_reel_boosts: mainWallet?.free_reel_boosts || 0,
-    freeReelBoosts: mainWallet?.free_reel_boosts || 0,
+    free_reel_boosts: mainWallet?.free_reel_boosts || req.user?.free_reel_boosts || 0,
+    freeReelBoosts: mainWallet?.free_reel_boosts || req.user?.free_reel_boosts || 0,
     balance_inr_paise: mainWallet?.balance_inr_paise || 0,
   });
 }));

@@ -202,7 +202,13 @@ export default function VendorWalletPage() {
 
   const balance = vendorCredits;
   const rawTx = txData?.data || txData || [];
-  const transactions = Array.isArray(rawTx) ? rawTx : rawTx.transactions || [];
+  const transactions = Array.isArray(rawTx)
+    ? rawTx
+    : Array.isArray(rawTx.items)
+    ? rawTx.items
+    : Array.isArray(rawTx.transactions)
+    ? rawTx.transactions
+    : [];
 
   const isTxCredit = (t) => {
     const typeStr = (t?.type || t?.credit_debit || '').toLowerCase();
@@ -313,9 +319,18 @@ export default function VendorWalletPage() {
       render: (val, row) => {
         const desc = val || row?.description || row?.admin_remarks || row?.meta?.plan_name || row?.title || row?.type || 'Transaction';
         const refId = row?.reference_id || row?.referenceId || row?.paymentId || row?.payment_id;
+        const txType = row?.transaction_type || row?.type;
+        const badgeLabel = txType ? txType.replace(/_/g, ' ').toUpperCase() : null;
         return (
-          <div className="flex flex-col font-sans">
-            <span className="font-extrabold text-xs text-[#1a1a1a]">{desc}</span>
+          <div className="flex flex-col font-sans gap-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="font-extrabold text-xs text-[#1a1a1a]">{desc}</span>
+              {badgeLabel && badgeLabel !== 'TRANSACTION' && badgeLabel !== 'DEBIT' && badgeLabel !== 'CREDIT' && (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-[#f8f4ec] text-slate-700 border border-[#e3dccb] uppercase tracking-wider">
+                  {badgeLabel}
+                </span>
+              )}
+            </div>
             {refId && <span className="text-[10px] text-slate-400 font-mono">ID: {refId}</span>}
           </div>
         );
@@ -339,14 +354,19 @@ export default function VendorWalletPage() {
     },
     {
       key: 'amount',
-      label: bi('Amount (INR)', 'राशि (रुपये)'),
+      label: bi('Credits / Amount', 'क्रेडिट्स / राशि'),
       render: (val, row) => {
         const amt = typeof val === 'number' ? val : (typeof row?.amount === 'number' ? row.amount : 0);
         const isCredit = isTxCredit(row);
         return (
-          <span className={`font-black text-xs font-mono ${isCredit ? 'text-emerald-700' : 'text-rose-700'}`}>
-            {isCredit ? '+' : '-'}₹{Math.abs(amt).toLocaleString('en-IN')}
-          </span>
+          <div className="flex flex-col font-sans">
+            <span className={`font-black text-xs font-mono ${isCredit ? 'text-emerald-700' : 'text-rose-700'}`}>
+              {isCredit ? '+' : '-'}{Math.abs(amt).toLocaleString('en-IN')} Credits
+            </span>
+            <span className="text-[9.5px] text-slate-400 font-bold">
+              ₹{Math.abs(amt).toLocaleString('en-IN')} (1 Cr = ₹1)
+            </span>
+          </div>
         );
       },
     },
