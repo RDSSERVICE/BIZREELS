@@ -213,7 +213,19 @@ const vendorApi = apiSlice.injectEndpoints({
     }),
     getCreditRates: builder.query({
       query: () => '/wallet/credit-rates',
-      transformResponse: (res) => res?.data?.rates || res?.rates || [],
+      transformResponse: (res) => {
+        const data = res?.data || res || {};
+        const rates = data.rates || (Array.isArray(data) ? data : []);
+        return {
+          rates,
+          rawRates: data.rawRates || {},
+          boostRate: Number(data.boostRate ?? 2.00),
+          whatsappRate: Number(data.whatsappRate ?? 2.50),
+          callRate: Number(data.callRate ?? 2.50),
+          bidMultiplier: Number(data.bidMultiplier ?? data.rawRates?.bidMultiplier ?? 0.002),
+          bidCapCredits: Number(data.bidCapCredits ?? data.rawRates?.bidCapCredits ?? 20),
+        };
+      },
       providesTags: ['CreditRates'],
     }),
     rechargeWallet: builder.mutation({

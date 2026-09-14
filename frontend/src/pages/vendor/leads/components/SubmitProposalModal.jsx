@@ -6,7 +6,6 @@ import {
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../../../context/LanguageContext';
-import { calculateBidCreditCost } from '../../../../utils/bidding';
 
 export default function SubmitProposalModal({
   isOpen,
@@ -14,6 +13,9 @@ export default function SubmitProposalModal({
   proposalReq,
   displayProposalReq,
   currentCredits = 0,
+  calculateBidCreditCost,
+  bidMultiplier = 0.002,
+  bidCapCredits = 20,
   onSubmit,
   isSubmitting = false,
 }) {
@@ -43,10 +45,19 @@ export default function SubmitProposalModal({
     }
   }, [isOpen, req]);
 
-  // Section 11 Dynamic Bid Calculation: MIN(Price * 0.002, 20 Credits)
+  // Dynamic Bid Calculation Formula driven by Admin Settings
+  const computeBidCost = (p) => {
+    if (typeof calculateBidCreditCost === 'function') {
+      return calculateBidCreditCost(p);
+    }
+    const price = Math.max(0, parseFloat(p) || 0);
+    if (price <= 0) return 0;
+    return Math.min(Math.max(0.10, Number((price * bidMultiplier).toFixed(2))), bidCapCredits);
+  };
+
   const quotedPriceNum = Number(quotePrice) || 0;
-  const bidCreditCost = useMemo(() => calculateBidCreditCost(quotedPriceNum), [quotedPriceNum]);
-  const isCapped = quotedPriceNum * 0.002 > 20;
+  const bidCreditCost = useMemo(() => computeBidCost(quotedPriceNum), [quotedPriceNum, bidMultiplier, bidCapCredits, calculateBidCreditCost]);
+  const isCapped = (quotedPriceNum * bidMultiplier) >= bidCapCredits;
 
   const hasEnoughCredits = currentCredits >= bidCreditCost;
   const remainingAfterBid = Math.max(0, Number((currentCredits - bidCreditCost).toFixed(2)));
@@ -81,6 +92,8 @@ export default function SubmitProposalModal({
     d.setDate(d.getDate() + days);
     setQuoteDelivery(d.toISOString().split('T')[0]);
   };
+
+  const formulaPercentLabel = `${(bidMultiplier * 100).toFixed(1).replace(/\.0$/, '')}%`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in font-sans">
@@ -156,27 +169,27 @@ export default function SubmitProposalModal({
               {bi('Bidding Credit Calculator', 'बिडिंग क्रेडिट कैलकुलेटर')}
             </span>
             <span className="text-[10px] font-bold text-amber-900 bg-white border border-amber-300 px-2 py-0.5 rounded-full">
-              MIN(Price × 0.002, 20 Cr)
+              MIN(Price × {bidMultiplier}, {bidCapCredits} Cr)
             </span>
           </div>
 
-          {/* Pricing Chips Reference Table from PDF */}
+          {/* Pricing Chips Reference Table dynamically computed */}
           <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
             <div className="bg-white/80 p-1.5 rounded-xl border border-amber-200">
               <span className="text-slate-500 block">₹1,000</span>
-              <strong className="font-extrabold text-amber-900">2 Cr</strong>
+              <strong className="font-extrabold text-amber-900">{computeBidCost(1000).toFixed(1)} Cr</strong>
             </div>
             <div className="bg-white/80 p-1.5 rounded-xl border border-amber-200">
               <span className="text-slate-500 block">₹5,000</span>
-              <strong className="font-extrabold text-amber-900">10 Cr</strong>
+              <strong className="font-extrabold text-amber-900">{computeBidCost(5000).toFixed(1)} Cr</strong>
             </div>
             <div className="bg-white/80 p-1.5 rounded-xl border border-amber-200">
               <span className="text-slate-500 block">₹10,000</span>
-              <strong className="font-extrabold text-amber-900">20 Cr</strong>
+              <strong className="font-extrabold text-amber-900">{computeBidCost(10000).toFixed(1)} Cr</strong>
             </div>
             <div className="bg-white/80 p-1.5 rounded-xl border border-amber-200">
-              <span className="text-slate-500 block">₹20,000+</span>
-              <strong className="font-extrabold text-emerald-800">20 Cr Max</strong>
+              <span className="text-slate-500 block">Capped Max</span>
+              <strong className="font-extrabold text-emerald-800">{bidCapCredits} Cr Max</strong>
             </div>
           </div>
 
@@ -194,7 +207,7 @@ export default function SubmitProposalModal({
                 {bi('Required Bid Fee:', 'प्रस्ताव बिड शुल्क:')}
                 {isCapped && (
                   <span className="text-[9px] font-black text-amber-900 bg-amber-100 px-1.5 py-0.2 rounded">
-                    CAPPED AT 20
+                    CAPPED AT {bidCapCredits}
                   </span>
                 )}
               </span>

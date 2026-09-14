@@ -11,6 +11,7 @@ import { useAuth } from '../../../context/AuthContext';
 import {
   useGetVendorLeadsQuery,
   useGetVendorWalletQuery,
+  useGetCreditRatesQuery,
   useReplyToLeadMutation,
   useCloseLeadMutation,
   useDeleteLeadMutation
@@ -78,6 +79,20 @@ export default function VendorLeadsPage() {
     { pollingInterval: 300000 }
   );
 
+  // Dynamic Bidding Configuration from Admin AppSettings
+  const { data: creditRatesData } = useGetCreditRatesQuery();
+  const bidMultiplier = Number(creditRatesData?.bidMultiplier ?? 0.002);
+  const bidCapCredits = Number(creditRatesData?.bidCapCredits ?? 20);
+
+  // Dynamic Bid Calculation Formula driven by Admin Settings
+  const calculateBidCreditCost = (price) => {
+    const p = Math.max(0, parseFloat(price) || 0);
+    if (p <= 0) return 0;
+    const rawCost = Number((p * bidMultiplier).toFixed(2));
+    const finalCost = Math.min(Math.max(0.10, rawCost), bidCapCredits);
+    return Number(finalCost.toFixed(2));
+  };
+
   // Proposal modal states
   const [proposalReq, setProposalReq] = useState(null);
   const [submitQuote, { isLoading: isSubmittingQuote }] = useSubmitQuoteMutation();
@@ -95,6 +110,15 @@ export default function VendorLeadsPage() {
     user?.walletBalance ??
     0
   );
+
+  // Local state for tracking proposals submitted in this session (so cards update immediately)
+  const [respondedReqIds, setRespondedReqIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('vendor_responded_req_ids') || '[]');
+    } catch {
+      return [];
+    }
+  });
 
   // Local state for ignored/saved requirements
   const [ignoredIds, setIgnoredIds] = useState(() => {
@@ -307,17 +331,19 @@ export default function VendorLeadsPage() {
       return;
     }
 
-    // Bidding System Formula (Section 11): MIN(Price * 0.002, 20 Credits)
-    const bidFee = Math.min(Math.max(0.1, Number((priceNum * 0.002).toFixed(2))), 20);
+    // Dynamic Bidding System Formula driven by Admin AppSettings: MIN(Price * bidMultiplier, bidCapCredits)
+    const bidFee = calculateBidCreditCost(priceNum);
 
     if (currentCredits < bidFee) {
       toast.error(`Insufficient credits! You need ${bidFee.toFixed(2)} credits to submit this proposal. Your balance: ${currentCredits.toFixed(2)} credits.`);
       return;
     }
 
+    const reqId = proposalReq._id || proposalReq.id;
+
     try {
       const payload = {
-        requirementId: proposalReq._id || proposalReq.id,
+        requirementId: reqId,
         price: priceNum,
         estimatedDelivery: new Date(quoteDelivery).toISOString(),
         notes: quoteNotes
@@ -327,12 +353,20 @@ export default function VendorLeadsPage() {
       }
 
       await submitQuote(payload).unwrap();
-      toast.success('Proposal submitted successfully! Buyer notified.');
+      toast.success('Proposal submitted successfully! Credits deducted & buyer notified.');
+
+      // Mark requirement as responded immediately in local state
+      const updatedResponded = Array.from(new Set([...respondedReqIds, reqId.toString()]));
+      setRespondedReqIds(updatedResponded);
+      try {
+        localStorage.setItem('vendor_responded_req_ids', JSON.stringify(updatedResponded));
+      } catch (_) {}
+
       setProposalReq(null);
-      refetchReqs();
+      if (typeof refetchReqs === 'function') refetchReqs();
       if (typeof refetchWallet === 'function') refetchWallet();
     } catch (err) {
-      toast.error(err?.data?.message || 'Failed to submit proposal');
+      toast.error(err?.data?.message || err?.message || 'Failed to submit proposal');
     }
   };
 
@@ -408,6 +442,10 @@ export default function VendorLeadsPage() {
             currentUserId={user?._id || user?.id}
             currentCredits={currentCredits}
             savedIds={savedIds}
+            respondedReqIds={respondedReqIds}
+            calculateBidCreditCost={calculateBidCreditCost}
+            bidMultiplier={bidMultiplier}
+            bidCapCredits={bidCapCredits}
             onViewDetail={(req) => setDetailReq(req)}
             onOpenProposal={handleOpenProposalModal}
             onToggleSave={handleSaveRequirement}
@@ -433,6 +471,9 @@ export default function VendorLeadsPage() {
         proposalReq={proposalReq}
         displayProposalReq={displayProposalReq}
         currentCredits={currentCredits}
+        calculateBidCreditCost={calculateBidCreditCost}
+        bidMultiplier={bidMultiplier}
+        bidCapCredits={bidCapCredits}
         onSubmit={handleSubmitProposal}
         isSubmitting={isSubmittingQuote}
       />
@@ -445,6 +486,10 @@ export default function VendorLeadsPage() {
         displayReq={displayReq}
         currentUserId={user?._id || user?.id}
         currentCredits={currentCredits}
+        respondedReqIds={respondedReqIds}
+        calculateBidCreditCost={calculateBidCreditCost}
+        bidMultiplier={bidMultiplier}
+        bidCapCredits={bidCapCredits}
         onOpenProposal={handleOpenProposalModal}
       />
     </div>

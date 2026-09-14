@@ -249,12 +249,16 @@ class WalletController {
     let boostRate = 2.00;
     let whatsappRate = 2.50;
     let callRate = 2.50;
+    let bidMultiplier = 0.002;
+    let bidCapCredits = 20;
     let rawRates = {
       whatsapp: 2.50,
       callConnected: 2.50,
       reelBoost1Day: 2.00,
       reelBoostAdditional: 2.00,
       uniqueView: 0.20,
+      bidMultiplier: 0.002,
+      bidCapCredits: 20,
     };
     try {
       const setting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
@@ -262,7 +266,9 @@ class WalletController {
         boostRate = Number(setting.value.reelBoost1Day ?? setting.value.reelBoostAdditional ?? 2.00);
         whatsappRate = Number(setting.value.whatsapp ?? 2.50);
         callRate = Number(setting.value.callConnected ?? 2.50);
-        rawRates = { ...rawRates, ...setting.value, reelBoost1Day: boostRate, reelBoostAdditional: boostRate };
+        bidMultiplier = Number(setting.value.bidMultiplier ?? 0.002);
+        bidCapCredits = Number(setting.value.bidCapCredits ?? 20);
+        rawRates = { ...rawRates, ...setting.value, reelBoost1Day: boostRate, reelBoostAdditional: boostRate, bidMultiplier, bidCapCredits };
       }
     } catch (e) {}
 
@@ -318,6 +324,8 @@ class WalletController {
       boostRate,
       whatsappRate,
       callRate,
+      bidMultiplier,
+      bidCapCredits,
     });
   });
 }

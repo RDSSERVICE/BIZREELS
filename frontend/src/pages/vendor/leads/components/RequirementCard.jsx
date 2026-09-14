@@ -5,12 +5,15 @@ import {
   FiChevronDown, FiChevronUp
 } from 'react-icons/fi';
 import { useLanguage } from '../../../../context/LanguageContext';
-import { calculateBidCreditCost } from '../../../../utils/bidding';
 
 export default function RequirementCard({
   requirement,
   currentUserId,
   isSaved,
+  respondedReqIds = [],
+  calculateBidCreditCost,
+  bidMultiplier = 0.002,
+  bidCapCredits = 20,
   onViewDetail,
   onOpenProposal,
   onToggleSave,
@@ -28,12 +31,14 @@ export default function RequirementCard({
 
   const isService = requirement.type === 'service' || requirement.requirementType === 'service';
 
-  const hasResponded = requirement.vendorsResponded && requirement.vendorsResponded.some(
+  const hasResponded = (requirement.vendorsResponded && requirement.vendorsResponded.some(
     vId => (vId._id || vId).toString() === currentUserId?.toString()
-  );
+  )) || (respondedReqIds && respondedReqIds.includes(reqId?.toString()));
 
   const budget = Number(requirement.budget || requirement.budget_max || requirement.budget_min || 0);
-  const estimatedBidCost = calculateBidCreditCost(budget);
+  const estimatedBidCost = typeof calculateBidCreditCost === 'function'
+    ? calculateBidCreditCost(budget)
+    : Math.min(Math.max(0.10, Number((budget * bidMultiplier).toFixed(2))), bidCapCredits);
 
   const renderCountdown = (expiryDate) => {
     if (!expiryDate) return bi('Flexible Timeline', 'लचीली समयसीमा');

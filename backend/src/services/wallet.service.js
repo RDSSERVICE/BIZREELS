@@ -241,7 +241,17 @@ class WalletService {
         const wallet = await this.getOrCreateWallet(uid, session);
         if (wallet.is_frozen) throw ApiError.badRequest('Wallet is frozen.');
 
-        const previousBalance = wallet.credits || 0;
+        let previousBalance = wallet.credits || 0;
+        try {
+          const IsolatedWallet = require('../models/IsolatedWallet.model');
+          const isoWallet = await IsolatedWallet.findOne({ userId: uid, role: 'vendor' }).session(session);
+          if (isoWallet && (isoWallet.balance || 0) > previousBalance) {
+            previousBalance = isoWallet.balance;
+            wallet.credits = previousBalance;
+            await Wallet.updateOne({ user_id: uid }, { $set: { credits: previousBalance } }, { session });
+          }
+        } catch (_) {}
+
         if (parseFloat(amount) > previousBalance) {
           throw ApiError.badRequest(`Insufficient balance. Available: ${previousBalance}, Required: ${amount}`);
         }
@@ -346,7 +356,9 @@ class WalletService {
           meta,
         }], { session });
         txn = txnArr[0];
-      });
+      await cache.deleteCache(`wallet:role:${uid}:vendor`);
+      await cache.deleteCache(`wallet:role:${uid}:creator`);
+      await cache.deleteCache(`wallet:balance:${uid}`);
 
       // Emit real-time events AFTER commit
       this._emitWalletUpdate(uid, updatedBalance, 'debit', parseFloat(amount), reason);

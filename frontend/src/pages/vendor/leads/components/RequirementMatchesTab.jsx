@@ -17,6 +17,10 @@ export default function RequirementMatchesTab({
   currentUserId,
   currentCredits = 0,
   savedIds = [],
+  respondedReqIds = [],
+  calculateBidCreditCost,
+  bidMultiplier = 0.002,
+  bidCapCredits = 20,
   onViewDetail,
   onOpenProposal,
   onToggleSave,
@@ -155,7 +159,7 @@ export default function RequirementMatchesTab({
                 {bi('Section 11 Bidding System:', 'सेक्शन 11 बिडिंग सिस्टम:')}
               </span>
               <span className="font-mono text-[11px] font-bold text-amber-900 bg-white/90 px-2 py-0.5 rounded-md border border-amber-300">
-                Final Bid = MIN(Price × 0.002, 20 Credits)
+                Final Bid = MIN(Price × {bidMultiplier}, {bidCapCredits} Credits)
               </span>
             </div>
             <button
@@ -173,26 +177,32 @@ export default function RequirementMatchesTab({
             <div className="pt-2 border-t border-amber-200/80 space-y-2 animate-fade-in text-[11px]">
               <p className="text-slate-700 leading-relaxed">
                 {bi(
-                  'Vendors pay a transparent success-based credit fee only when submitting a quote proposal. No monthly subscription lock-in. Credits are deducted from your common non-expiring wallet.',
-                  'कोटेशन सबमिट करते समय ही क्रेडिट कटते हैं। कोई मासिक लॉक-इन नहीं है। क्रेडिट आपके लाइफटाइम वॉलेट से काटे जाते हैं।'
+                  `Vendors pay a transparent success-based credit fee (${(bidMultiplier * 100).toFixed(1)}% of quote, capped at ${bidCapCredits} credits max) only when submitting a proposal. No monthly lock-in.`,
+                  `कोटेशन सबमिट करते समय ही क्रेडिट कटते हैं (${(bidMultiplier * 100).toFixed(1)}% दर, अधिकतम ${bidCapCredits} क्रेडिट)। कोई मासिक लॉक-इन नहीं है।`
                 )}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center font-sans">
                 <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
                   <span className="text-slate-500 text-[10px] block">₹1,000 Quotation</span>
-                  <strong className="text-amber-950 font-black">2.00 Credits</strong>
+                  <strong className="text-amber-950 font-black">
+                    {typeof calculateBidCreditCost === 'function' ? calculateBidCreditCost(1000).toFixed(2) : (1000 * bidMultiplier).toFixed(2)} Credits
+                  </strong>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
                   <span className="text-slate-500 text-[10px] block">₹5,000 Quotation</span>
-                  <strong className="text-amber-950 font-black">10.00 Credits</strong>
+                  <strong className="text-amber-950 font-black">
+                    {typeof calculateBidCreditCost === 'function' ? calculateBidCreditCost(5000).toFixed(2) : (5000 * bidMultiplier).toFixed(2)} Credits
+                  </strong>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
                   <span className="text-slate-500 text-[10px] block">₹10,000 Quotation</span>
-                  <strong className="text-amber-950 font-black">20.00 Credits</strong>
+                  <strong className="text-amber-950 font-black">
+                    {typeof calculateBidCreditCost === 'function' ? calculateBidCreditCost(10000).toFixed(2) : (10000 * bidMultiplier).toFixed(2)} Credits
+                  </strong>
                 </div>
                 <div className="bg-white p-2 rounded-lg border border-amber-200 shadow-2xs">
-                  <span className="text-slate-500 text-[10px] block">₹20,000+ Quotation</span>
-                  <strong className="text-emerald-800 font-black">20.00 Cr (Capped Max)</strong>
+                  <span className="text-slate-500 text-[10px] block">Capped Max Quotation</span>
+                  <strong className="text-emerald-800 font-black">{bidCapCredits.toFixed(2)} Cr (Capped Max)</strong>
                 </div>
               </div>
             </div>
@@ -412,6 +422,10 @@ export default function RequirementMatchesTab({
                   requirement={m}
                   currentUserId={currentUserId}
                   isSaved={isSaved}
+                  respondedReqIds={respondedReqIds}
+                  calculateBidCreditCost={calculateBidCreditCost}
+                  bidMultiplier={bidMultiplier}
+                  bidCapCredits={bidCapCredits}
                   onViewDetail={onViewDetail}
                   onOpenProposal={onOpenProposal}
                   onToggleSave={onToggleSave}

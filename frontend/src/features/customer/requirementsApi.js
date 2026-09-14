@@ -81,6 +81,9 @@ const requirementsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { requirementId }) => [
         { type: 'Quotes', id: requirementId },
         { type: 'Requirements', id: 'LIST' },
+        { type: 'Requirements', id: requirementId },
+        'Wallet',
+        'VendorDashboard',
       ],
     }),
 

@@ -1965,4 +1965,50 @@ router.delete('/contact-submissions/:id', requireAuth, requireAdmin, catchAsync(
   res.json({ success: true, message: 'Submission deleted' });
 }));
 
+// ── Credit Consumption Rates & Bidding Configuration ───────────────
+router.get('/credit-rates', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  let setting = await AppSettings.findOne({ key: 'credit_rates' }).lean();
+  const defaultRates = {
+    whatsapp: 2.50,
+    callConnected: 2.50,
+    reelBoost1Day: 2.00,
+    reelBoostAdditional: 2.00,
+    uniqueView: 0.20,
+    bidMultiplier: 0.002,
+    bidCapCredits: 20,
+    productListing: 0,
+    reelPost: 0,
+    aiImage: 2,
+    aiVideo30s: 15,
+    validLead: 1,
+  };
+  const rates = setting && setting.value ? { ...defaultRates, ...setting.value } : defaultRates;
+  res.json({ success: true, data: rates });
+}));
+
+router.post('/credit-rates', requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const { AppSettings } = require('../models/Admin');
+  const cache = require('../utils/cache');
+  const rates = req.body.rates || req.body;
+  if (!rates || typeof rates !== 'object') {
+    throw ApiError.badRequest('Invalid rates payload');
+  }
+
+  const updated = await AppSettings.findOneAndUpdate(
+    { key: 'credit_rates' },
+    { $set: { value: rates, updated_at: new Date() } },
+    { upsert: true, returnDocument: 'after' }
+  );
+
+  await cache.deleteCache('wallet:credit_rates');
+  try {
+    const { emitToAdmin, io } = require('../sockets');
+    emitToAdmin('admin:update', { tags: ['CreditRates', 'AppSettings'] });
+    if (io) io.emit('credit_rates:updated', rates);
+  } catch (_) {}
+
+  res.json({ success: true, message: 'Credit rates updated successfully', data: updated.value });
+}));
+
 module.exports = router;

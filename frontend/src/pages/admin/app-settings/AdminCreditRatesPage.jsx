@@ -19,6 +19,8 @@ export default function AdminCreditRatesPage() {
       aiVideo30s: FiCpu,
       reelBoost1Day: FiZap,
       validLead: FiInbox,
+      bidMultiplier: FiSliders,
+      bidCapCredits: FiZap,
     };
     return icons[key] || FiZap;
   };
@@ -31,11 +33,15 @@ export default function AdminCreditRatesPage() {
       aiVideo30s: 'Credits charged to generate a short AI marketing/promotional video.',
       reelBoost1Day: 'Credits per day to highlight and pin a reel in local search & feeds.',
       validLead: 'Credits charged to unlock lead details / direct chat inquiries.',
+      bidMultiplier: 'Bidding System rate multiplier (e.g. 0.002 = 0.2% of vendor quoted price).',
+      bidCapCredits: 'Maximum cap on proposal bidding fee in credits (e.g. 20 Credits maximum).',
     };
     return descs[key] || 'Credits consumed for this action.';
   };
 
   const formatLabel = (key) => {
+    if (key === 'bidMultiplier') return 'Bidding Rate Multiplier (0.002 = 0.2%)';
+    if (key === 'bidCapCredits') return 'Bidding Fee Cap (Credits)';
     return key
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (str) => str.toUpperCase());
@@ -56,12 +62,14 @@ export default function AdminCreditRatesPage() {
       console.error('Failed to load credit rates:', err);
       toast.error('Failed to load current rates from database');
       setForm({
-        productListing: 1,
-        reelPost: 1,
+        productListing: 0,
+        reelPost: 0,
         aiImage: 2,
         aiVideo30s: 15,
         reelBoost1Day: 2,
         validLead: 1,
+        bidMultiplier: 0.002,
+        bidCapCredits: 20,
       });
     } finally {
       if (!silent) setLoading(false);

@@ -6,7 +6,6 @@ import {
 } from 'react-icons/fi';
 import { resolveMediaUrl } from '../../../../lib/api';
 import { useLanguage } from '../../../../context/LanguageContext';
-import { calculateBidCreditCost } from '../../../../utils/bidding';
 import { useNavigate } from 'react-router-dom';
 
 export default function RequirementDetailModal({
@@ -16,6 +15,10 @@ export default function RequirementDetailModal({
   displayReq,
   currentUserId,
   currentCredits = 0,
+  respondedReqIds = [],
+  calculateBidCreditCost,
+  bidMultiplier = 0.002,
+  bidCapCredits = 20,
   onOpenProposal
 }) {
   const { bi } = useLanguage();
@@ -25,13 +28,16 @@ export default function RequirementDetailModal({
 
   if (!isOpen || !req) return null;
 
+  const reqId = req._id || req.id;
   const isService = req.type === 'service' || req.requirementType === 'service';
-  const hasResponded = req.vendorsResponded && req.vendorsResponded.some(
+  const hasResponded = (req.vendorsResponded && req.vendorsResponded.some(
     vId => (vId._id || vId).toString() === currentUserId?.toString()
-  );
+  )) || (respondedReqIds && respondedReqIds.includes(reqId?.toString()));
 
   const budget = Number(req.budget || req.budget_max || req.budget_min || 0);
-  const estimatedBidCost = calculateBidCreditCost(budget);
+  const estimatedBidCost = typeof calculateBidCreditCost === 'function'
+    ? calculateBidCreditCost(budget)
+    : Math.min(Math.max(0.10, Number((budget * bidMultiplier).toFixed(2))), bidCapCredits);
   const hasEnoughCredits = currentCredits >= estimatedBidCost;
 
   const isRemote = req.location?.area === 'Remote' || (req.location?.city === 'Online' && req.location?.state === 'Remote');
