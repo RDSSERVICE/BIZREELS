@@ -266,7 +266,16 @@ const Settings = () => {
   };
 
   const handleThemeToggle = () => {
-    toast.success('Light theme is the active design system.');
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      toast.success('Dark theme activated.');
+    } else {
+      document.documentElement.classList.remove('dark');
+      toast.success('Light theme activated.');
+    }
   };
 
   // Submit Profile update

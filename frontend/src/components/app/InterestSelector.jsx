@@ -3,58 +3,89 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { 
   FiCheck, FiChevronRight, FiChevronLeft, FiShoppingBag, FiCoffee, FiTool,
   FiTruck, FiShoppingCart, FiHeart, FiHome, FiBookOpen, FiFolder,
-  FiSearch, FiX, FiFilter, FiCheckSquare, FiSquare, FiArrowLeft, FiArrowRight
+  FiSearch, FiX, FiFilter, FiCheckSquare, FiSquare, FiArrowLeft, FiArrowRight,
+  FiSparkles, FiCheckCircle
 } from 'react-icons/fi';
-import { FaCouch, FaLaptop } from 'react-icons/fa';
+import { FaCouch, FaLaptop, FaCut, FaGraduationCap, FaUtensils, FaTools, FaCar, FaFilm } from 'react-icons/fa';
 import { api } from '../../lib/api';
+
+const DEFAULT_CATEGORIES = [
+  {
+    name: 'Electronics & Tech',
+    icon: FaLaptop,
+    subs: ['Mobile Phones', 'Laptops & Computers', 'TV & Audio', 'Home Appliances', 'Cameras & Accessories'],
+  },
+  {
+    name: 'Fashion & Apparel',
+    icon: FiShoppingBag,
+    subs: ['Men Clothing', 'Women Clothing', 'Kids Wear', 'Footwear', 'Jewelry & Watches'],
+  },
+  {
+    name: 'AI & Technology Services',
+    icon: FiSparkles,
+    subs: ['AI Video Generation & Editing', 'AI Content Writing & Copywriting', 'AI Graphic Design & Logos', 'AI Chatbot & Automation Setup', 'AI Voiceover & Audio'],
+  },
+  {
+    name: 'Home & Furniture',
+    icon: FaCouch,
+    subs: ['Living Room Furniture', 'Bedroom Furniture', 'Kitchen & Dining', 'Home Decor', 'Bedding & Furnishings'],
+  },
+  {
+    name: 'Vehicles & Automotive',
+    icon: FaCar,
+    subs: ['Cars', 'Bikes & Scooters', 'Commercial Vehicles', 'Auto Parts & Accessories'],
+  },
+  {
+    name: 'Beauty & Salon',
+    icon: FaCut,
+    subs: ['Men Salon & Grooming', 'Women Beauty & Makeup', 'Bridal Packages', 'Spa & Wellness'],
+  },
+  {
+    name: 'IT, Design & Marketing',
+    icon: FaLaptop,
+    subs: ['Website & App Development', 'Graphic & Logo Design', 'Social Media & Digital Marketing', 'Reels & Video Content Shoot'],
+  },
+  {
+    name: 'Real Estate & Property',
+    icon: FiHome,
+    subs: ['Property for Rent', 'Property for Sale', 'PG & Shared Hostels', 'Commercial Spaces'],
+  },
+  {
+    name: 'Food & Grocery',
+    icon: FaUtensils,
+    subs: ['Restaurants & Cafes', 'Fresh Grocery', 'Bakery & Sweets', 'Packaged Foods'],
+  },
+  {
+    name: 'Repair & Maintenance',
+    icon: FaTools,
+    subs: ['AC & Appliance Repair', 'Plumbing Services', 'Electrical Repair', 'Carpentry', 'Painting & Cleaning'],
+  },
+  {
+    name: 'Events & Wedding Services',
+    icon: FaFilm,
+    subs: ['Catering & Food Counter', 'Event Photography & Videography', 'Decoration & Stage Setup', 'DJ & Sound System'],
+  },
+  {
+    name: 'Education & Coaching',
+    icon: FaGraduationCap,
+    subs: ['School & College Tuitions', 'Competitive Exam Coaching', 'Language & Skill Courses', 'Music & Arts'],
+  },
+];
 
 const getCategoryIcon = (categoryName) => {
   const name = (categoryName || '').toLowerCase();
 
-  const nameMap = {
-    'electronic': FaLaptop,
-    'it': FaLaptop,
-    'computer': FaLaptop,
-    'tech': FaLaptop,
-    'fashion': FiShoppingBag,
-    'apparel': FiShoppingBag,
-    'wear': FiShoppingBag,
-    'clothing': FiShoppingBag,
-    'restaurant': FiCoffee,
-    'food': FiCoffee,
-    'beverage': FiCoffee,
-    'service': FiTool,
-    'repair': FiTool,
-    'furniture': FaCouch,
-    'decor': FaCouch,
-    'automobile': FiTruck,
-    'car': FiTruck,
-    'vehicle': FiTruck,
-    'bike': FiTruck,
-    'grocery': FiShoppingCart,
-    'essential': FiShoppingCart,
-    'healthcare': FiHeart,
-    'beauty': FiHeart,
-    'salon': FiHeart,
-    'fitness': FiHeart,
-    'health': FiHeart,
-    'real estate': FiHome,
-    'construction': FiHome,
-    'property': FiHome,
-    'home': FiHome,
-    'clean': FiHome,
-    'cleaning': FiHome,
-    'housekeeping': FiHome,
-    'maid': FiHome,
-    'education': FiBookOpen,
-    'coaching': FiBookOpen,
-  };
-
-  for (const key of Object.keys(nameMap)) {
-    if (name.includes(key)) {
-      return nameMap[key];
-    }
-  }
+  if (name.includes('ai') || name.includes('sparkle') || name.includes('generator')) return FiSparkles;
+  if (name.includes('electronic') || name.includes('it') || name.includes('computer') || name.includes('tech') || name.includes('laptop')) return FaLaptop;
+  if (name.includes('fashion') || name.includes('apparel') || name.includes('wear') || name.includes('cloth')) return FiShoppingBag;
+  if (name.includes('restaurant') || name.includes('food') || name.includes('cafe') || name.includes('grocery')) return FaUtensils;
+  if (name.includes('service') || name.includes('repair') || name.includes('plumb') || name.includes('construct')) return FaTools;
+  if (name.includes('furniture') || name.includes('decor') || name.includes('living')) return FaCouch;
+  if (name.includes('automobile') || name.includes('car') || name.includes('vehicle') || name.includes('bike')) return FaCar;
+  if (name.includes('beauty') || name.includes('salon') || name.includes('spa') || name.includes('makeup')) return FaCut;
+  if (name.includes('real estate') || name.includes('property') || name.includes('home') || name.includes('rent')) return FiHome;
+  if (name.includes('education') || name.includes('coaching') || name.includes('school') || name.includes('tuition')) return FaGraduationCap;
+  if (name.includes('event') || name.includes('wedding') || name.includes('film') || name.includes('shoot')) return FaFilm;
 
   return FiFolder;
 };
@@ -74,7 +105,7 @@ export default function InterestSelector({
   theme = 'settings', // 'settings' | 'onboarding'
   itemsPerPage = 12
 }) {
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'selected'
@@ -86,8 +117,8 @@ export default function InterestSelector({
     const loadCategories = async () => {
       try {
         const res = await api.get('/v1/categories?tree=true');
-        const items = res.data?.items || [];
-        if (items.length > 0) {
+        const items = res.data?.items || res.data?.data || [];
+        if (Array.isArray(items) && items.length > 0) {
           const formatted = items
             .filter(c => !c.parent_id && c.is_active !== false)
             .map(c => ({
@@ -96,10 +127,12 @@ export default function InterestSelector({
               dbId: c._id,
               subs: (c.children || []).map(sub => sub.name),
             }));
-          setCategories(formatted);
+          if (formatted.length > 0) {
+            setCategories(formatted);
+          }
         }
       } catch (err) {
-        console.error('Failed to load categories in InterestSelector:', err);
+        console.warn('Using default category catalog in InterestSelector:', err);
       }
     };
     loadCategories();
@@ -130,6 +163,20 @@ export default function InterestSelector({
       } else {
         setSelected(prev => [...prev, { category, subcategory }]);
       }
+    }
+  };
+
+  const toggleSelectAllSubcategories = (cat) => {
+    const allSubsSelected = (cat.subs || []).length > 0 && cat.subs.every(sub => isSelected(cat.name, sub));
+    if (allSubsSelected) {
+      setSelected(prev => prev.filter(s => s.category !== cat.name));
+    } else {
+      const otherCategories = selected.filter(s => s.category !== cat.name);
+      const newItems = [
+        { category: cat.name, subcategory: null },
+        ...(cat.subs || []).map(sub => ({ category: cat.name, subcategory: sub }))
+      ];
+      setSelected([...otherCategories, ...newItems]);
     }
   };
 
@@ -168,12 +215,10 @@ export default function InterestSelector({
     });
   }, [categories, searchQuery, filterMode, selected]);
 
-  // Reset to Page 1 whenever search query or filter mode changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterMode]);
 
-  // Pagination calculations (12 categories per page)
   const totalItems = filteredCategories.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -201,12 +246,11 @@ export default function InterestSelector({
   };
 
   const isCategoryExpanded = (catName) => {
-    if (searchQuery.trim().length > 0) return true; // Auto-expand matching when searching
+    if (searchQuery.trim().length > 0) return true;
     if (expandedCategory === '__ALL__') return true;
     return expandedCategory === catName;
   };
 
-  // Helper to generate page numbers with ellipses
   const getPageNumbers = () => {
     const pages = [];
     if (totalPages <= 7) {
@@ -236,7 +280,7 @@ export default function InterestSelector({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search categories & subcategories (e.g. Fashion, Electronics, Food, Fitness)..."
+                placeholder="Search categories & subcategories (e.g. AI, Fashion, Electronics, Food, Services)..."
                 className="w-full pl-10 pr-9 py-2.5 bg-white border border-slate-200 focus:border-[#d99a3d] focus:ring-1 focus:ring-[#d99a3d] rounded-xl text-xs font-bold text-[#1a1a1a] placeholder-slate-400 outline-hidden transition shadow-2xs"
               />
               {searchQuery && (
@@ -307,7 +351,7 @@ export default function InterestSelector({
               {searchQuery && <span> matching "<strong className="text-[#241b15]">{searchQuery}</strong>"</span>}
             </span>
             <span className="text-[#241b15] font-black">
-              {selected.length} / 5 Minimum Selected (Page {currentPage} of {totalPages})
+              {selected.length} Choice{selected.length !== 1 ? 's' : ''} Selected
             </span>
           </div>
         </div>
@@ -340,14 +384,15 @@ export default function InterestSelector({
             const count = categorySelectedCount(cat.name);
             const isCatSelected = selected.some(s => s.category === cat.name && !s.subcategory);
             const isAnySubSelected = count > 0;
-            const categoryIcon = cat.icon;
+            const categoryIcon = cat.icon || getCategoryIcon(cat.name);
+            const allSubsSelected = (cat.subs || []).length > 0 && cat.subs.every(sub => isSelected(cat.name, sub));
 
             return (
               <div
                 key={cat.name}
                 className={`rounded-xl border transition-all duration-200 overflow-hidden ${
                   isCatSelected || isAnySubSelected
-                    ? 'border-[#241b15] bg-[#f8f4ec] shadow-xs'
+                    ? 'border-[#241b15] bg-[#f8f4ec] shadow-xs ring-1 ring-[#d99a3d]/40'
                     : 'border-slate-200 hover:border-[#d99a3d]/60 bg-white shadow-2xs'
                 }`}
               >
@@ -376,11 +421,9 @@ export default function InterestSelector({
                       <h4 className="text-xs font-black text-[#1a1a1a] uppercase tracking-wide">
                         {cat.name}
                       </h4>
-                      {count > 0 && (
-                        <span className="text-[9.5px] font-black text-[#d99a3d] bg-[#241b15] px-1.5 py-0.2 rounded mt-0.5 inline-block">
-                          {count} selected
-                        </span>
-                      )}
+                      <p className="text-[10px] text-slate-500 font-medium">
+                        {(cat.subs || []).length} subcategories
+                      </p>
                     </div>
                   </div>
 
@@ -419,35 +462,53 @@ export default function InterestSelector({
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="overflow-hidden bg-white/70 border-t border-slate-100"
+                      className="overflow-hidden bg-white/80 border-t border-slate-100"
                     >
-                      <div className="p-3.5 flex flex-wrap gap-1.5">
-                        {cat.subs.map((sub) => {
-                          const subSelected = isSelected(cat.name, sub);
-                          const query = searchQuery.trim().toLowerCase();
-                          const isSubQueryMatch = query && sub.toLowerCase().includes(query);
+                      <div className="p-3.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider">
+                            Subcategories:
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSelectAllSubcategories(cat);
+                            }}
+                            className="text-[10px] font-black text-[#d99a3d] hover:text-[#241b15] transition cursor-pointer"
+                          >
+                            {allSubsSelected ? 'Deselect All' : 'Select All'}
+                          </button>
+                        </div>
 
-                          return (
-                            <button
-                              key={sub}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleSelection(cat.name, sub);
-                              }}
-                              className={`px-3 py-1.5 rounded-lg text-[10.5px] font-black transition cursor-pointer border flex items-center gap-1 shadow-2xs ${
-                                subSelected
-                                  ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
-                                  : isSubQueryMatch
-                                  ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border-[#d99a3d] ring-1 ring-[#d99a3d]'
-                                  : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                              }`}
-                            >
-                              {subSelected && <FiCheck size={10} className="text-[#d99a3d]" />}
-                              <span>{sub}</span>
-                            </button>
-                          );
-                        })}
+                        <div className="flex flex-wrap gap-1.5">
+                          {cat.subs.map((sub) => {
+                            const subSelected = isSelected(cat.name, sub);
+                            const query = searchQuery.trim().toLowerCase();
+                            const isSubQueryMatch = query && sub.toLowerCase().includes(query);
+
+                            return (
+                              <button
+                                key={sub}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSelection(cat.name, sub);
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-[10.5px] font-black transition cursor-pointer border flex items-center gap-1 shadow-2xs ${
+                                  subSelected
+                                    ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15]'
+                                    : isSubQueryMatch
+                                    ? 'bg-[#d99a3d]/20 text-[#1a1a1a] border-[#d99a3d] ring-1 ring-[#d99a3d]'
+                                    : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {subSelected && <FiCheck size={10} className="text-[#d99a3d]" />}
+                                <span>{sub}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -458,7 +519,7 @@ export default function InterestSelector({
         </div>
       )}
 
-      {/* ── 4. PRODUCTION-GRADE PAGINATION MENU (PREV/NEXT ARROWS & PAGE NUMBERS) ── */}
+      {/* ── PAGINATION MENU ── */}
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 bg-white p-4 rounded-xl shadow-2xs">
           <div className="text-xs text-slate-600 font-medium">
@@ -466,7 +527,6 @@ export default function InterestSelector({
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Previous Arrow Button */}
             <button
               type="button"
               onClick={() => handlePageChange(currentPage - 1)}
@@ -477,7 +537,6 @@ export default function InterestSelector({
               <span className="hidden sm:inline">Prev</span>
             </button>
 
-            {/* Page Number Buttons */}
             <div className="flex items-center gap-1">
               {getPageNumbers().map((p, idx) => {
                 if (p === '...') {
@@ -505,7 +564,6 @@ export default function InterestSelector({
               })}
             </div>
 
-            {/* Next Arrow Button */}
             <button
               type="button"
               onClick={() => handlePageChange(currentPage + 1)}

@@ -269,3 +269,18 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ── Dark Mode Overrides ─────────────────────────────────── */
+.dark {
+  --color-surface: #0F172A;
+  --color-surface-secondary: #1E293B;
+  --color-surface-tertiary: #334155;
+  --color-border: #334155;
+  --color-border-light: #1E293B;
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-tertiary: #64748B;
+  --color-text-inverse: #0F172A;
+  color-scheme: dark;
+}
+

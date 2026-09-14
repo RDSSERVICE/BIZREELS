@@ -51,14 +51,14 @@ export const Colors = {
     placeholder: '#8C857B',
   },
   dark: {
-    text: '#1E1B18',
-    textSecondary: '#6E675F',
-    background: '#F6F4EE',
-    backgroundElement: '#FBF9F5',
-    backgroundSelected: '#F0EDE4',
-    border: '#E5E0D4',
-    inputBackground: '#F0EDE4',
-    placeholder: '#8C857B',
+    text: '#F8FAFC',
+    textSecondary: '#94A3B8',
+    background: '#0F172A',
+    backgroundElement: '#1E293B',
+    backgroundSelected: '#334155',
+    border: '#334155',
+    inputBackground: '#1E293B',
+    placeholder: '#64748B',
   },
 } as const;
 
