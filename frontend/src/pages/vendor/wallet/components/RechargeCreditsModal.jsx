@@ -105,6 +105,8 @@ export default function RechargeCreditsModal({
       // 1. Create Razorpay order via backend
       const res = await api.post('/v1/subscription/purchase-razorpay', {
         plan_id: currentPlan.id || currentPlan._id,
+        plan_title: currentPlan.title,
+        title: currentPlan.title,
       });
 
       const orderData = res?.data?.data;
