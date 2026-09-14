@@ -8,11 +8,6 @@ import { FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import VendorReelsScreen from '../vendor/reels/index';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
-
 import CreatorDashboardScreen from '../creator/dashboard';
 
 export default function StudioTabScreen() {
