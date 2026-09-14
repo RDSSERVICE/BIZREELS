@@ -6,17 +6,7 @@ import {
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../../../context/LanguageContext';
-
-/**
- * Calculates bid credit cost based on Section 11 of the requirements specification:
- * Final Bid = MIN(Quoted Price * 0.002, 20 Credits)
- * Minimum fee is 0.10 Credits.
- */
-export const calculateBidCreditCost = (price) => {
-  const num = Number(price);
-  if (!num || isNaN(num) || num <= 0) return 0.10;
-  return Math.min(Math.max(0.10, Number((num * 0.002).toFixed(2))), 20);
-};
+import { calculateBidCreditCost } from '../../../../utils/bidding';
 
 export default function SubmitProposalModal({
   isOpen,

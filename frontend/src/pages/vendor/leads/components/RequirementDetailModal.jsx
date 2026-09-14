@@ -6,7 +6,7 @@ import {
 } from 'react-icons/fi';
 import { resolveMediaUrl } from '../../../../lib/api';
 import { useLanguage } from '../../../../context/LanguageContext';
-import { calculateBidCreditCost } from './SubmitProposalModal';
+import { calculateBidCreditCost } from '../../../../utils/bidding';
 import { useNavigate } from 'react-router-dom';
 
 export default function RequirementDetailModal({

@@ -5,7 +5,7 @@ import {
   FiChevronDown, FiChevronUp
 } from 'react-icons/fi';
 import { useLanguage } from '../../../../context/LanguageContext';
-import { calculateBidCreditCost } from './SubmitProposalModal';
+import { calculateBidCreditCost } from '../../../../utils/bidding';
 
 export default function RequirementCard({
   requirement,
