@@ -363,12 +363,20 @@ class WalletSubscriptionService {
 
         const updateSet = {};
         if (targetRole === 'creator') {
-          updateSet['creatorProfile.subscription'] = subData;
-          updateSet['creatorProfile.is_subscribed_verified'] = true;
+          if (!user?.creatorProfile) {
+            updateSet['creatorProfile'] = { subscription: subData, is_subscribed_verified: true };
+          } else {
+            updateSet['creatorProfile.subscription'] = subData;
+            updateSet['creatorProfile.is_subscribed_verified'] = true;
+          }
         } else {
           updateSet['is_subscribed_verified'] = true;
           updateSet['subscription'] = subData;
-          updateSet['vendorProfile.subscription'] = subData;
+          if (!user?.vendorProfile) {
+            updateSet['vendorProfile'] = { subscription: subData };
+          } else {
+            updateSet['vendorProfile.subscription'] = subData;
+          }
         }
 
         // Apply bonus AI credits if add-ons include ai_credits
@@ -462,29 +470,38 @@ class WalletSubscriptionService {
 
     try {
       await session.withTransaction(async () => {
-        // Create transaction record
+        // Fetch current wallet state before mutation
+        const currentWallet = await walletCoreService.getOrCreateWallet(uid, session);
+        const previousCredits = currentWallet.credits || 0;
+        const creditsToAdd = targetRole === 'vendor' ? Number(planDoc.wallet_credits || 0) : 0;
+        const freeBoostsToAdd = targetRole === 'vendor' ? Number(planDoc.free_reel_boosts || 0) : 0;
+        const updatedCredits = previousCredits + creditsToAdd;
+
+        const isVendorPlan = targetRole === 'vendor';
         const user = await User.findById(userId).select('name current_role roles').session(session).lean();
+
+        // Create wallet transaction record (For vendor: CREDIT with plan's wallet_credits)
         const txnArr = await WalletTransactionV2.create([{
           user_id: uid,
-          user_name: user?.name || 'Unknown',
+          user_name: user?.name || 'Vendor',
           user_role: targetRole,
-          transaction_type: 'subscription_purchase',
-          credit_debit: 'debit',
-          amount: totalCost,
-          previous_balance: 0,
-          updated_balance: 0,
+          transaction_type: isVendorPlan ? 'subscription_purchase' : 'subscription_purchase',
+          credit_debit: isVendorPlan ? 'credit' : 'debit',
+          amount: isVendorPlan ? creditsToAdd : totalCost,
+          previous_balance: isVendorPlan ? previousCredits : 0,
+          updated_balance: isVendorPlan ? updatedCredits : 0,
           payment_method: 'razorpay',
           source: 'subscription_direct',
           status: 'completed',
-          reference_id: `sub_direct_${planDoc._id}_${Date.now()}`,
-          admin_remarks: `Recharged ${planDoc.title} (${planDoc.wallet_credits || 0} credits) ${validatedAddons.length > 0 ? `with ${validatedAddons.length} Add-on(s)` : ''} via Razorpay`,
+          reference_id: razorpayPaymentId || `sub_direct_${planDoc._id}_${Date.now()}`,
+          admin_remarks: isVendorPlan ? `${planDoc.title} Plan Purchase` : `Subscribed to ${planDoc.title} via Razorpay`,
           meta: {
             plan_id: planDoc._id.toString(),
             plan_name: planDoc.title,
             duration_days: durationDays,
             base_plan_price: baseCost,
-            wallet_credits: planDoc.wallet_credits || 0,
-            free_reel_boosts: planDoc.free_reel_boosts || 0,
+            wallet_credits: creditsToAdd,
+            free_reel_boosts: freeBoostsToAdd,
             addons_total: addonsTotal,
             selected_addons: validatedAddons,
             payment_id: paymentId || null,
@@ -545,19 +562,24 @@ class WalletSubscriptionService {
 
         const updateSet = {};
         if (targetRole === 'creator') {
-          updateSet['creatorProfile.subscription'] = subData;
-          updateSet['creatorProfile.is_subscribed_verified'] = true;
+          if (!user?.creatorProfile) {
+            updateSet['creatorProfile'] = { subscription: subData, is_subscribed_verified: true };
+          } else {
+            updateSet['creatorProfile.subscription'] = subData;
+            updateSet['creatorProfile.is_subscribed_verified'] = true;
+          }
         } else {
           updateSet['is_subscribed_verified'] = true;
           updateSet['subscription'] = subData;
-          updateSet['vendorProfile.subscription'] = subData;
+          if (!user?.vendorProfile) {
+            updateSet['vendorProfile'] = { subscription: subData };
+          } else {
+            updateSet['vendorProfile.subscription'] = subData;
+          }
         }
 
         // Credit Wallet credits and free reel boosts if plan includes them
-        if (targetRole === 'vendor' && (Number(planDoc.wallet_credits) > 0 || Number(planDoc.free_reel_boosts) > 0)) {
-          const creditsToAdd = Number(planDoc.wallet_credits || 0);
-          const freeBoostsToAdd = Number(planDoc.free_reel_boosts || 0);
-
+        if (isVendorPlan && (creditsToAdd > 0 || freeBoostsToAdd > 0)) {
           await Wallet.updateOne(
             { user_id: uid },
             {
@@ -577,6 +599,50 @@ class WalletSubscriptionService {
             wallet_credits: creditsToAdd,
             free_reel_boosts: freeBoostsToAdd,
           };
+
+          // Sync vendor isolated wallet & ledger
+          try {
+            let isoWallet = await IsolatedWallet.findOne({ userId: uid, role: 'vendor' }).session(session);
+            const prevIsoBal = isoWallet?.balance || previousCredits;
+            const updatedIsoBal = prevIsoBal + creditsToAdd;
+
+            if (!isoWallet) {
+              const createdIso = await IsolatedWallet.create([{
+                userId: uid,
+                role: 'vendor',
+                balance: updatedIsoBal,
+                currency: 'INR',
+                lifetime_earned: updatedIsoBal,
+                lifetime_spent: 0,
+                is_frozen: false,
+                status: 'active',
+              }], { session });
+              isoWallet = createdIso[0];
+            } else {
+              await IsolatedWallet.updateOne(
+                { userId: uid, role: 'vendor' },
+                { $inc: { balance: creditsToAdd, lifetime_earned: creditsToAdd } },
+                { session }
+              );
+            }
+
+            await IsolatedTransaction.create([{
+              userId: uid,
+              role: 'vendor',
+              walletId: isoWallet._id,
+              type: 'recharge',
+              amount: creditsToAdd,
+              previous_balance: prevIsoBal,
+              updated_balance: updatedIsoBal,
+              paymentId: razorpayPaymentId || null,
+              gateway: 'razorpay',
+              description: `${planDoc.title} Plan Purchase`,
+              reference_id: razorpayPaymentId ? `iso_${razorpayPaymentId}` : `iso_sub_${Date.now()}`,
+              status: 'success',
+            }], { session });
+          } catch (isoErr) {
+            logger.warn('Failed to sync isolated wallet in purchasePlanDirect', { error: isoErr.message });
+          }
         }
 
         // Apply bonus AI credits if add-ons include ai_credits

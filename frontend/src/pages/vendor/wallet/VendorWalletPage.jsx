@@ -19,7 +19,7 @@ import MerchantRevenueCard from './components/MerchantRevenueCard';
 import RechargeCreditsModal from './components/RechargeCreditsModal';
 import WithdrawRevenueModal from './components/WithdrawRevenueModal';
 import WalletStatSummary from './components/WalletStatSummary';
-import TopupPacksSection from './components/TopupPacksSection';
+import VendorSubscriptionPlansSection from './components/VendorSubscriptionPlansSection';
 import WalletLedgerTab from './components/WalletLedgerTab';
 import CallHistoryTab from './components/CallHistoryTab';
 import CreditRatesTab from './components/CreditRatesTab';
@@ -47,13 +47,12 @@ export default function VendorWalletPage() {
     pollingInterval: 30000,
   });
 
-  const { data: topupPacksData } = useGetTopupPacksQuery();
   const { data: creditRatesData } = useGetCreditRatesQuery();
 
   // Navigation & Modal States
   const [activeTab, setActiveTab] = useState('wallet'); // 'wallet' | 'calls' | 'whatsapp' | 'rates'
   const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
-  const [rechargeInitialAmount, setRechargeInitialAmount] = useState('1000');
+  const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState(null);
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
 
   // Telephony Calls State
@@ -143,7 +142,6 @@ export default function VendorWalletPage() {
     .filter((t) => !isTxCredit(t))
     .reduce((acc, t) => acc + Math.abs(t.amount || 0), 0);
 
-  const topupPacks = Array.isArray(topupPacksData) ? topupPacksData : topupPacksData?.data || [];
   const creditRates = Array.isArray(creditRatesData)
     ? creditRatesData
     : creditRatesData?.rates || [];
@@ -230,7 +228,7 @@ export default function VendorWalletPage() {
           credits={vendorCredits}
           freeReelBoosts={freeReelBoosts}
           onOpenRecharge={() => {
-            setRechargeInitialAmount('1000');
+            setSelectedPlanForCheckout(null);
             setIsRechargeModalOpen(true);
           }}
           onViewRates={() => setActiveTab('rates')}
@@ -253,10 +251,9 @@ export default function VendorWalletPage() {
             totalDebits={totalDebits}
           />
 
-          <TopupPacksSection
-            topupPacks={topupPacks}
-            onSelectPack={(amt) => {
-              setRechargeInitialAmount(amt);
+          <VendorSubscriptionPlansSection
+            onSelectPlan={(plan) => {
+              setSelectedPlanForCheckout(plan);
               setIsRechargeModalOpen(true);
             }}
           />
@@ -283,11 +280,14 @@ export default function VendorWalletPage() {
       {/* TAB CONTENT: CREDIT RATE SCHEDULE */}
       {activeTab === 'rates' && <CreditRatesTab creditRates={creditRates} />}
 
-      {/* RECHARGE CREDITS MODAL */}
+      {/* RECHARGE CREDITS MODAL (SUBSCRIPTION PLAN CHECKOUT) */}
       <RechargeCreditsModal
         isOpen={isRechargeModalOpen}
-        initialAmount={rechargeInitialAmount}
-        onClose={() => setIsRechargeModalOpen(false)}
+        initialPlan={selectedPlanForCheckout}
+        onClose={() => {
+          setIsRechargeModalOpen(false);
+          setSelectedPlanForCheckout(null);
+        }}
         onSuccess={() => {
           refetchWallet();
           refetchTx();

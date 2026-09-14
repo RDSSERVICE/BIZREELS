@@ -71,7 +71,7 @@ export default function PlatformCreditsCard({
           className="flex-1 py-3 px-4 bg-[#d99a3d] text-[#1a1a1a] hover:bg-[#eab35b] text-xs font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer border-none"
         >
           <FiZap size={16} className="fill-current" />
-          <span>{bi('RECHARGE CREDITS', 'क्रेडिट रीचार्ज करें')}</span>
+          <span>{bi('GET CREDITS / PLANS', 'क्रेडिट्स / प्लान चुनें')}</span>
         </button>
 
         <button

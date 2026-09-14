@@ -123,19 +123,26 @@ router.post('/subscription/purchase-razorpay', authenticate, async (req, res, ne
       return res.status(400).json({ success: false, message: `Plan not found: "${plan_id}"` });
     }
 
-    // Prevent duplicate subscription purchase if no add-ons and already on same plan
-    const UserSubscription = require('../models/UserSubscription.model');
-    const activeSub = await UserSubscription.findOne({
-      user_id: req.user._id.toString(),
-      status: 'active',
-      is_deleted: { $ne: true }
-    });
+    const targetRole = planDoc.target_role || (planDoc.role === 'creator' || String(planDoc.title).toLowerCase().includes('creator') ? 'creator' : 'vendor');
 
-    if (activeSub && activeSub.plan_id === planDoc._id.toString() && (!selected_addons || selected_addons.length === 0)) {
-      return res.status(400).json({
-        success: false,
-        message: `You already have an active subscription for the "${planDoc.title}" plan.`
+    // Only prevent duplicate subscription purchase for non-vendors (creators)
+    // For vendors, purchasing a plan is the recharge model where credits accumulate indefinitely
+    if (targetRole !== 'vendor') {
+      const UserSubscription = require('../models/UserSubscription.model');
+      const activeSub = await UserSubscription.findOne({
+        user_id: req.user._id.toString(),
+        user_role: targetRole,
+        status: 'active',
+        plan_id: planDoc._id.toString(),
+        is_deleted: { $ne: true }
       });
+
+      if (activeSub && (!selected_addons || selected_addons.length === 0)) {
+        return res.status(400).json({
+          success: false,
+          message: `You already have an active subscription for the "${planDoc.title}" plan.`
+        });
+      }
     }
 
     // Validate and calculate add-ons total
@@ -220,11 +227,23 @@ router.get('/vendor/analytics/timeseries', authenticate, (req, res, next) => {
 router.get('/vendor/analytics/boost-roi', authenticate, (req, res, next) => {
   require('../controllers/vendorController').getAnalyticsBoostRoi(req, res, next);
 });
-router.post('/vendor/analytics/simulate', authenticate, (req, res, next) => {
-  require('../controllers/vendorController').simulateAnalyticsData(req, res, next);
-});
-router.get('/vendor/analytics', authenticate, (req, res, next) => {
-  require('../controllers/vendorController').getAnalytics(req, res, next);
+router.post('/vendor/wallet/verify', authenticate, async (req, res, next) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ success: false, message: 'Missing Razorpay verification tokens' });
+    }
+    const paymentService = require('../services/payment.service');
+    const result = await paymentService.verifyAndCapture(
+      req.user._id.toString(),
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
+    );
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.use('/vendors', lazyLoad('./vendor.routes'));

@@ -150,9 +150,71 @@ class WalletController {
     return ApiResponse.ok(res, 'Active subscription plans loaded.', { items: mapped });
   });
 
-  // ── Recharge Wallet ─────────────────────────────────────
+  // ── Recharge Wallet / Plan Payment Order ────────────────
   recharge = asyncHandler(async (req, res) => {
-    const { amount, referenceId } = req.body;
+    const { amount, plan_id, planId, referenceId, direct } = req.body;
+    const paymentService = require('../services/payment.service');
+    const pid = plan_id || planId;
+
+    // If plan is provided, initiate Razorpay order for that plan
+    if (pid) {
+      const { SubscriptionPlan } = require('../models/Admin');
+      const mongoose = require('mongoose');
+      let planDoc = null;
+      if (mongoose.Types.ObjectId.isValid(pid)) {
+        planDoc = await SubscriptionPlan.findById(pid).lean();
+      }
+      if (!planDoc) {
+        planDoc = await SubscriptionPlan.findOne({
+          title: { $regex: new RegExp(`^${pid}$`, 'i') },
+          is_deleted: { $ne: true },
+        }).lean();
+      }
+      if (!planDoc) {
+        return ApiResponse.badRequest(res, `Invalid plan: "${pid}".`);
+      }
+
+      const amountPaise = Math.round((planDoc.price_inr || 0) * 100);
+      const order = await paymentService.createPaymentOrder(
+        req.user._id.toString(),
+        'subscription_plan',
+        amountPaise,
+        planDoc._id.toString(),
+        {
+          plan_id: planDoc._id.toString(),
+          plan_title: planDoc.title,
+          price_inr: planDoc.price_inr,
+          wallet_credits: planDoc.wallet_credits || 0,
+        }
+      );
+
+      return ApiResponse.ok(res, 'Payment order created.', {
+        ...order,
+        id: order.razorpay_order_id,
+        key: order.key_id,
+        amount: order.amount_paise,
+      });
+    }
+
+    // If custom amount is provided without 'direct: true' (online Razorpay checkout)
+    if (amount && Number(amount) > 0 && !direct) {
+      const amountPaise = Math.round(Number(amount) * 100);
+      const order = await paymentService.createPaymentOrder(
+        req.user._id.toString(),
+        'wallet_topup',
+        amountPaise,
+        referenceId || null
+      );
+
+      return ApiResponse.ok(res, 'Payment order created.', {
+        ...order,
+        id: order.razorpay_order_id,
+        key: order.key_id,
+        amount: order.amount_paise,
+      });
+    }
+
+    // Direct manual balance credit (Admin / Internal / Webhook)
     const result = await walletService.rechargeWallet({
       userId: req.user._id,
       amount,
