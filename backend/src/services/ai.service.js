@@ -314,36 +314,52 @@ const callOpenRouterAPI = async (systemInstruction, prompt, featureName, mediaPa
     content,
   });
 
-  const payload = {
+  const candidateModels = [
     model,
-    messages,
-    response_format: { type: 'json_object' },
-  };
+    'liquid/lfm-2.5-2.6b:free',
+    'openrouter/free'
+  ].filter((m, i, arr) => m && arr.indexOf(m) === i);
 
-  try {
-    const response = await axios.post(
-      'https://openrouter.ai/api/v1/chat/completions',
-      payload,
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://bizreels.in',
-          'X-Title': 'BizReels',
-        },
-        timeout: 15000,
+  let lastErr = null;
+
+  for (const candidateModel of candidateModels) {
+    const payload = {
+      model: candidateModel,
+      messages,
+      response_format: { type: 'json_object' },
+    };
+
+    try {
+      const response = await axios.post(
+        'https://openrouter.ai/api/v1/chat/completions',
+        payload,
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://bizreels.in',
+            'X-Title': 'BizReels',
+          },
+          signal: AbortSignal.timeout(4000),
+        }
+      );
+
+      const rawText = response.data?.choices?.[0]?.message?.content;
+      if (rawText) {
+        return rawText;
       }
-    );
-
-    const rawText = response.data?.choices?.[0]?.message?.content;
-    if (!rawText) {
-      throw new Error('Empty response from OpenRouter API');
+    } catch (err) {
+      lastErr = err;
+      const status = err.response?.status;
+      const errorMsg = err.response?.data?.error?.message || err.message;
+      logger.warn(`OpenRouter model "${candidateModel}" failed (${status || err.name || 'error'}): ${errorMsg}. Trying fallback...`);
     }
-    return rawText;
-  } catch (err) {
-    if (err.response) {
-      const status = err.response.status;
-      const errorMsg = err.response.data?.error?.message || (err.response.data?.error ? JSON.stringify(err.response.data.error) : err.message);
+  }
+
+  if (lastErr) {
+    if (lastErr.response) {
+      const status = lastErr.response.status;
+      const errorMsg = lastErr.response.data?.error?.message || (lastErr.response.data?.error ? JSON.stringify(lastErr.response.data.error) : lastErr.message);
       if (status === 401) {
         throw new Error(`OpenRouter API Authentication Failed (401): Please verify that your OPENROUTER_API_KEY in .env is correct. Details: ${errorMsg}`);
       } else if (status === 402) {
@@ -356,8 +372,9 @@ const callOpenRouterAPI = async (systemInstruction, prompt, featureName, mediaPa
         throw new Error(`OpenRouter Error (${status}): ${errorMsg}`);
       }
     }
-    throw err;
+    throw lastErr;
   }
+  throw new Error('All candidate OpenRouter models failed to respond.');
 };
 
 const parseJsonStrict = (raw) => {
@@ -1423,6 +1440,58 @@ const safeTruncate = (str, maxLen = 1400) => {
   return truncated.trim() + '...';
 };
 
+const buildSmartSpecificationsTemplate = (title, category, subcategory, requirementType, budget_min, budget_max, otherConditions) => {
+  const isProduct = (requirementType || '').toLowerCase() === 'product';
+  const categoryStr = category ? (subcategory ? `${category} > ${subcategory}` : category) : 'General';
+  const budgetStr = budget_min && budget_max
+    ? `₹${Number(budget_min).toLocaleString('en-IN')} - ₹${Number(budget_max).toLocaleString('en-IN')}`
+    : budget_min
+    ? `Starting from ₹${Number(budget_min).toLocaleString('en-IN')}`
+    : 'Market Competitive / Negotiable';
+
+  if (isProduct) {
+    return [
+      `### Technical Requirements & Specifications for ${title}`,
+      ``,
+      `#### 1. Scope & Categorization`,
+      `- **Product Category**: ${categoryStr}`,
+      `- **Target Requirement**: ${title}`,
+      `- **Estimated Budget Range**: ${budgetStr}`,
+      ``,
+      `#### 2. Key Product Specifications Expected`,
+      `- **Standard / Grade**: Commercial or High-Durability Standard Grade`,
+      `- **Condition**: Brand New with Manufacturer or Vendor Quality Seal`,
+      `- **Warranty & Support**: Minimum 6 to 12 months comprehensive vendor/brand warranty`,
+      otherConditions ? `- **Special Conditions**: ${otherConditions}` : `- **Custom Notes**: Standard verified specifications requested`,
+      ``,
+      `#### 3. Quote Submission Guidelines for Vendors`,
+      `- Please specify exact brand, model number, and dimensions in your proposal`,
+      `- Provide clear pricing breakdown with applicable GST and estimated delivery timeline`,
+      `- Mention availability of after-sales support or local warranty coverage`
+    ].join('\n');
+  }
+
+  return [
+    `### Scope of Work & Technical Specifications for ${title}`,
+    ``,
+    `#### 1. Service Scope & Category`,
+    `- **Service Category**: ${categoryStr}`,
+    `- **Requirement Title**: ${title}`,
+    `- **Estimated Budget Range**: ${budgetStr}`,
+    ``,
+    `#### 2. Deliverables & Execution Standards`,
+    `- **Service Level**: Verified professional execution with skilled and vetted technicians`,
+    `- **Turnaround Time**: Prompt on-site inspection or completion schedule`,
+    `- **Materials / Spares**: Genuine, high-grade replacement parts and tools`,
+    `- **Service Guarantee**: Minimum 30 to 90 days workmanship guarantee`,
+    otherConditions ? `- **Special Conditions**: ${otherConditions}` : `- **Custom Instructions**: Adhere strictly to agreed milestones and safety norms`,
+    ``,
+    `#### 3. Vendor Quotation Guidelines`,
+    `- Provide transparent breakdown of labor, service charges, and any component costs`,
+    `- Mention estimated start date and expected completion duration`
+  ].join('\n');
+};
+
 const generateSpecifications = async (title, category, subcategory, requirementType, budget_min, budget_max, otherConditions) => {
   await ensureBudgetOrRaise(1000);
   const started = Date.now();
@@ -1461,11 +1530,20 @@ Respond in JSON format:
       specifications: safeTruncate(data.specifications || "", 2800),
     };
   } catch (err) {
-    logger.warn(`AI specifications generation failed: ${err.message}`);
+    logger.warn(`AI specifications remote call failed (${err.message}). Using instant smart specifications fallback.`);
+    const fallback = buildSmartSpecificationsTemplate(
+      title,
+      category,
+      subcategory,
+      requirementType,
+      budget_min,
+      budget_max,
+      otherConditions
+    );
     return {
-      ok: false,
-      error: err.message.slice(0, 400),
-      specifications: safeTruncate(`**Technical Specifications for ${title}**\n\n- Standard ${requirementType === 'product' ? 'product' : 'service'} specifications apply.\n- Budget estimate: ${budget_min && budget_max ? `₹${budget_min} - ₹${budget_max}` : 'Flexible'}.`, 2800),
+      ok: true,
+      is_fallback: true,
+      specifications: safeTruncate(fallback, 2800),
     };
   }
 };
