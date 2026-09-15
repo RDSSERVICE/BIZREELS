@@ -4,7 +4,7 @@ import {
   FiSearch, FiX, FiUsers, FiUserCheck, FiFilm, FiLayers, FiShield,
   FiSettings, FiGrid, FiArrowRight, FiZap, FiFolder, FiMapPin,
   FiInbox, FiMail, FiMessageSquare, FiShoppingBag, FiCreditCard,
-  FiStar, FiBarChart2, FiCpu, FiBell, FiGift, FiAlertTriangle,
+  FiStar, FiBarChart2, FiBell, FiGift, FiAlertTriangle,
   FiFileText, FiLock, FiList, FiPieChart, FiTerminal
 } from 'react-icons/fi';
 import { FaRupeeSign } from 'react-icons/fa';
@@ -19,7 +19,6 @@ const NAV_TARGETS = [
   { name: 'KYC Verifications Queue', path: '/admin/kyc', icon: FiShield, category: 'Verification' },
   { name: 'Catalog Listings', path: '/admin/listings', icon: FiLayers, category: 'Content' },
   { name: 'Reels Videos & Moderation', path: '/admin/reels', icon: FiFilm, category: 'Content' },
-  { name: 'Boost Plans & Ads', path: '/admin/boost', icon: FiZap, category: 'Content' },
   { name: 'Categories Hierarchy', path: '/admin/categories', icon: FiFolder, category: 'Content' },
   { name: 'Geo Location & Radius', path: '/admin/locations', icon: FiMapPin, category: 'Operations' },
   { name: 'Requirements & Inquiries', path: '/admin/requirements', icon: FiInbox, category: 'Operations' },
@@ -31,7 +30,6 @@ const NAV_TARGETS = [
   { name: 'Commission Rates & GST', path: '/admin/commission', icon: FaRupeeSign, category: 'Finance' },
   { name: 'Reviews & Feedback', path: '/admin/reviews', icon: FiStar, category: 'Engagement' },
   { name: 'Platform Analytics', path: '/admin/analytics', icon: FiBarChart2, category: 'Engagement' },
-  { name: 'AI Features & Prompt Config', path: '/admin/ai', icon: FiCpu, category: 'Engagement' },
   { name: 'Broadcast Notifications', path: '/admin/notifications', icon: FiBell, category: 'Engagement' },
   { name: 'Coupons & Promotional Offers', path: '/admin/offers', icon: FiGift, category: 'Engagement' },
   { name: 'Reports & Content Moderation', path: '/admin/moderation', icon: FiAlertTriangle, category: 'Moderation' },

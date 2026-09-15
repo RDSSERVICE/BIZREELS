@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
   FiGrid, FiUsers, FiUserCheck, FiShield, FiLayers, FiFilm, FiZap, FiFolder,
   FiMapPin, FiInbox, FiMessageSquare, FiShoppingBag, FiCreditCard, FiStar,
-  FiBarChart2, FiCpu, FiBell, FiGift, FiDollarSign, FiAlertTriangle, FiFileText,
+  FiBarChart2, FiBell, FiGift, FiDollarSign, FiAlertTriangle, FiFileText,
   FiSettings, FiLock, FiList, FiPieChart, FiMenu, FiX, FiLogOut, FiChevronDown,
   FiChevronRight, FiHome, FiSearch, FiMail
 } from 'react-icons/fi';
@@ -47,7 +47,6 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Listings', path: '/admin/listings', icon: FiLayers },
       { name: 'Reels', path: '/admin/reels', icon: FiFilm },
-      { name: 'Boost / Ads', path: '/admin/boost', icon: FiZap },
       { name: 'Categories', path: '/admin/categories', icon: FiFolder },
     ],
   },
@@ -74,7 +73,6 @@ const NAV_SECTIONS = [
     items: [
       { name: 'Reviews', path: '/admin/reviews', icon: FiStar },
       { name: 'Analytics', path: '/admin/analytics', icon: FiBarChart2 },
-      { name: 'AI Management', path: '/admin/ai', icon: FiCpu },
       { name: 'Notifications', path: '/admin/notifications', icon: FiBell },
       { name: 'Offers & Coupons', path: '/admin/offers', icon: FiGift },
     ],

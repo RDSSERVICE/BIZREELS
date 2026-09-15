@@ -93,7 +93,6 @@ const AdminConsole = React.lazy(() => import('../pages/admin/AdminConsole'));
 const AdminKycPage = React.lazy(() => import('../pages/admin/kyc/AdminKycPage'));
 const AdminListingsPage = React.lazy(() => import('../pages/admin/listings/AdminListingsPage'));
 const AdminReelsPage = React.lazy(() => import('../pages/admin/reels/AdminReelsPage'));
-const AdminBoostPage = React.lazy(() => import('../pages/admin/boost/AdminBoostPage'));
 const AdminCategoriesPage = React.lazy(() => import('../pages/admin/categories/AdminCategoriesPage'));
 const AdminLocationsPage = React.lazy(() => import('../pages/admin/locations/AdminLocationsPage'));
 const AdminRequirementsPage = React.lazy(() => import('../pages/admin/requirements/AdminRequirementsPage'));
@@ -104,7 +103,6 @@ const AdminWalletPage = React.lazy(() => import('../pages/admin/wallet/AdminWall
 const AdminSubscriptionsPage = React.lazy(() => import('../pages/admin/subscriptions/AdminSubscriptionsPage'));
 const AdminReviewsPage = React.lazy(() => import('../pages/admin/reviews/AdminReviewsPage'));
 const AdminAnalyticsPage = React.lazy(() => import('../pages/admin/analytics/AdminAnalyticsPage'));
-const AdminAiPage = React.lazy(() => import('../pages/admin/ai/AdminAiPage'));
 const AdminNotificationsPage = React.lazy(() => import('../pages/admin/notifications/AdminNotificationsPage'));
 const AdminOffersPage = React.lazy(() => import('../pages/admin/offers/AdminOffersPage'));
 const AdminCommissionPage = React.lazy(() => import('../pages/admin/commission/AdminCommissionPage'));
@@ -301,7 +299,6 @@ const AppRoutes = () => {
         <Route path="/admin/approvals" element={<AdminKycPage />} />
         <Route path="/admin/listings" element={<AdminListingsPage />} />
         <Route path="/admin/reels" element={<AdminReelsPage />} />
-        <Route path="/admin/boost" element={<AdminBoostPage />} />
         <Route path="/admin/categories" element={<AdminCategoriesPage />} />
         <Route path="/admin/locations" element={<AdminLocationsPage />} />
         <Route path="/admin/requirements" element={<AdminRequirementsPage />} />
@@ -314,7 +311,6 @@ const AppRoutes = () => {
         <Route path="/admin/commission" element={<AdminCommissionPage />} />
         <Route path="/admin/reviews" element={<AdminReviewsPage />} />
         <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
-        <Route path="/admin/ai" element={<AdminAiPage />} />
         <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
         <Route path="/admin/offers" element={<AdminOffersPage />} />
         <Route path="/admin/reports" element={<AdminModerationPage />} />
