@@ -7,6 +7,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppErrorBoundary } from '@/components/error-boundary';
+import { SweetAlertContainer } from '@/components/ui/sweet-alert';
 import { BrandColors } from '@/constants/theme';
 import { AuthProvider, useAuth } from '@/features/auth/context';
 import { queryClient } from '@/lib/query-client';
@@ -92,6 +93,7 @@ export default function RootLayout() {
           {/* Animated splash runs once on top of everything, then fades out */}
           <AnimatedSplashOverlay />
           <AuthGate />
+          <SweetAlertContainer />
         </AuthProvider>
       </QueryClientProvider>
     </AppErrorBoundary>

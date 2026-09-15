@@ -155,7 +155,7 @@ export default function CustomerSettingsScreen() {
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Full Name is required.');
+      Alert.alert('Name Required', 'Please enter your Full Name.');
       return;
     }
 
@@ -197,17 +197,17 @@ export default function CustomerSettingsScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Validation Error', 'All password fields are required.');
+      Alert.alert('Fields Required', 'Please fill in all current and new password fields.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Validation Error', 'New passwords do not match.');
+      Alert.alert('Password Mismatch', 'New password and confirm password do not match.');
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('Validation Error', 'New password must be at least 6 characters.');
+      Alert.alert('Weak Password', 'New password must be at least 6 characters long.');
       return;
     }
 

@@ -55,7 +55,7 @@ const getVerificationStatus = catchAsync(async (req, res) => {
   }
 
   const statusInfo = await fetchAndComputeStatus(user);
-  res.json({ success: true, ...statusInfo });
+  res.json({ success: true, data: statusInfo, ...statusInfo });
 });
 
 const OTP = require('../models/OTP');
@@ -221,9 +221,17 @@ const verifyContact = catchAsync(async (req, res) => {
 
   currentContacts[type] = true;
 
-  if (type === 'mobile' && value) currentVp.mobileNumber = value;
+  if (type === 'mobile' && value) {
+    currentVp.mobileNumber = value;
+    user.phone = value;
+    user.isPhoneVerified = true;
+  }
   if (type === 'whatsapp' && value) currentVp.whatsappNumber = value;
-  if (type === 'email' && value) currentVp.email = value;
+  if (type === 'email' && value) {
+    currentVp.email = value;
+    user.email = value;
+    user.isEmailVerified = true;
+  }
   if (type === 'website' && value) currentVp.website = value;
 
   currentVp.contactVerified = currentContacts;

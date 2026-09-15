@@ -30,18 +30,17 @@ const vendorVerificationController = require('../controllers/vendorVerification.
 
 // ── VENDOR VERIFICATION ENDPOINTS ─────────────────────────────
 
-router.get('/me/verification-status', requireAuth, vendorVerificationController.getVerificationStatus);
-router.post('/me/send-contact-otp', requireAuth, vendorVerificationController.sendContactOtp);
-router.post('/me/verify-contact', requireAuth, vendorVerificationController.verifyContact);
-router.post('/me/verify-document', requireAuth, vendorVerificationController.verifyDocument);
-router.post('/me/verify-payment', requireAuth, vendorVerificationController.verifyPayment);
-
+router.get(['/me/verification-status', '/me/verification'], requireAuth, vendorVerificationController.getVerificationStatus);
+router.post(['/me/send-contact-otp', '/me/verification/send-otp'], requireAuth, vendorVerificationController.sendContactOtp);
+router.post(['/me/verify-contact', '/me/verification/verify-contact'], requireAuth, vendorVerificationController.verifyContact);
+router.post(['/me/verify-document', '/me/verification/document'], requireAuth, vendorVerificationController.verifyDocument);
+router.post(['/me/verify-payment', '/me/verification/payment'], requireAuth, vendorVerificationController.verifyPayment);
 
 // Dedicated Sandbox API Verification Endpoints
 router.post('/me/verification/pan', requireAuth, vendorVerificationController.verifyPan);
 router.post('/me/verification/aadhaar/initiate', requireAuth, vendorVerificationController.initiateAadhaar);
 router.post('/me/verification/aadhaar/verify-otp', requireAuth, vendorVerificationController.verifyAadhaarOtp);
-router.post('/me/verification/gstin', requireAuth, vendorVerificationController.verifyGstin);
+router.post(['/me/verification/gstin', '/me/verification/gst'], requireAuth, vendorVerificationController.verifyGstin);
 router.post('/me/verification/bank', requireAuth, vendorVerificationController.verifyBank);
 router.post('/me/verification/upi', requireAuth, vendorVerificationController.verifyUpi);
 

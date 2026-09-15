@@ -1,5 +1,6 @@
 /**
  * Creator Onboarding Studio Wizard
+ * Redesigned to match the rest of the application's Warm Matte Light Color Theme.
  * Full Feature Parity with Web BecomeCreatorPage.jsx
  */
 
@@ -20,14 +21,20 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BrandColors, FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const PRIMARY = '#F59E0B';
+const PRIMARY_DARK = '#D97706';
+const PRIMARY_LIGHT_BG = '#FFFBEB';
+const BG_LIGHT = '#F6F4EE';
+const CARD_BG = '#FFFFFF';
+const INPUT_BG = '#F0EDE4';
+const BORDER = '#E5E0D4';
+const TEXT_DARK = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
+const TEXT_PLACEHOLDER = '#8C857B';
 
 const CREATOR_CATEGORIES = [
   'Product Reel Creator',
@@ -60,143 +67,129 @@ const SKILLS_LIST = [
   'Mobile Editing',
 ];
 
-const LANGUAGES_LIST = ['Hindi', 'English', 'Chhattisgarhi', 'Marathi', 'Tamil', 'Telugu', 'Punjabi', 'Others'];
-
-const EXPERIENCE_LEVELS = ['Fresher', '0–1 Year', '1–3 Years', '3–5 Years', '5+ Years'];
+const LANGUAGES_LIST = ['Hindi', 'English', 'Chhattisgarhi', 'Bengali', 'Marathi', 'Gujarati', 'Tamil', 'Telugu', 'Kannada'];
+const EXPERIENCE_LEVELS = ['Beginner (0-1 yrs)', 'Intermediate (1-3 yrs)', 'Professional (3+ yrs)'];
 
 export default function CreatorOnboardingScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, setUser } = useAuth();
-  const [submitting, setSubmitting] = useState(false);
+
   const [currentStep, setCurrentStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
 
-  const u = (user as any) || {};
-  const cp = u.creatorProfile || {};
-
-  // Step 1: Personal & Contact
-  const [fullName, setFullName] = useState(cp.fullName || u.name || '');
-  const [displayName, setDisplayName] = useState(cp.displayName || u.name || '');
-  const [gender, setGender] = useState(cp.gender || 'Male');
-  const [dob, setDob] = useState(cp.dob ? String(cp.dob).split('T')[0] : '2000-01-01');
+  // Step 1: Personal Details
+  const [fullName, setFullName] = useState(user?.name || '');
+  const [displayName, setDisplayName] = useState((user as any)?.creatorProfile?.displayName || user?.name || '');
+  const [gender, setGender] = useState((user as any)?.creatorProfile?.gender || 'Male');
+  const [mobileNumber, setMobileNumber] = useState(user?.phone || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(user?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [ageConfirmed, setAgeConfirmed] = useState(true);
-  const [mobileNumber, setMobileNumber] = useState(cp.mobileNumber || u.phone || '');
-  const [whatsappNumber, setWhatsappNumber] = useState(cp.whatsappNumber || u.phone || '');
-  const [email, setEmail] = useState(cp.email || u.email || '');
 
   // Step 2: Location
-  const [country, setCountry] = useState(cp.address?.country || 'India');
-  const [stateName, setStateName] = useState(cp.address?.state || u.location?.state || 'Chhattisgarh');
-  const [city, setCity] = useState(cp.address?.city || u.city || u.location?.city || '');
-  const [district, setDistrict] = useState(cp.address?.district || u.location?.district || '');
-  const [pincode, setPincode] = useState(cp.address?.pincode || u.location?.pincode || '');
+  const [country, setCountry] = useState('India');
+  const [stateName, setStateName] = useState((user as any)?.creatorProfile?.state || 'Chhattisgarh');
+  const [city, setCity] = useState(user?.city || (user as any)?.creatorProfile?.city || 'Raipur');
+  const [district, setDistrict] = useState(user?.city || 'Raipur');
+  const [pincode, setPincode] = useState((user as any)?.creatorProfile?.pincode || '');
 
   // Step 3: Categories & Skills
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    cp.creatorCategories || cp.categories || ['Product Reel Creator', 'UGC Creator']
+    (user as any)?.creatorProfile?.categories || ['Product Reel Creator']
   );
   const [selectedSkills, setSelectedSkills] = useState<string[]>(
-    cp.skills || ['Video Shooting', 'Mobile Editing', 'CapCut']
+    (user as any)?.creatorProfile?.skills || ['Video Shooting', 'Video Editing']
   );
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(
-    cp.languages || ['Hindi', 'English']
+    (user as any)?.creatorProfile?.languages || ['Hindi', 'English']
   );
-  const [experience, setExperience] = useState(cp.experience || '1–3 Years');
+  const [experience, setExperience] = useState((user as any)?.creatorProfile?.experience || 'Intermediate (1-3 yrs)');
 
-  // Step 4: Pricing & Packages
-  const [reelPrice, setReelPrice] = useState(String(cp.pricing?.reelPrice || cp.pricing?.reel1 || '1500'));
-  const [photoShootPrice, setPhotoShootPrice] = useState(String(cp.pricing?.photoShootPrice || '1000'));
-  const [hourlyRate, setHourlyRate] = useState(String(cp.pricing?.hourlyRate || '800'));
-  const [monthlyCollaboration, setMonthlyCollaboration] = useState(String(cp.pricing?.monthlyCollaboration || '15000'));
-  const [negotiable, setNegotiable] = useState(cp.pricing?.negotiable !== false);
-  const [bio, setBio] = useState(cp.bio || '');
+  // Step 4: Pricing & Bio
+  const [reelPrice, setReelPrice] = useState(String((user as any)?.creatorProfile?.reelPrice || 1500));
+  const [photoShootPrice, setPhotoShootPrice] = useState(String((user as any)?.creatorProfile?.photoShootPrice || 1000));
+  const [hourlyRate, setHourlyRate] = useState(String((user as any)?.creatorProfile?.hourlyRate || 800));
+  const [monthlyCollaboration, setMonthlyCollaboration] = useState(
+    String((user as any)?.creatorProfile?.monthlyCollaboration || 15000)
+  );
+  const [negotiable, setNegotiable] = useState(Boolean((user as any)?.creatorProfile?.negotiable ?? true));
+  const [bio, setBio] = useState((user as any)?.creatorProfile?.bio || '');
 
-  // Step 5: Portfolio & Social Links
-  const [instagramLink, setInstagramLink] = useState(cp.portfolio?.instagramLink || '');
-  const [youtubeLink, setYoutubeLink] = useState(cp.portfolio?.youtubeLink || '');
-  const [portfolioVideoLink, setPortfolioVideoLink] = useState(cp.portfolio?.portfolioVideoLink || '');
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  // Step 5: Portfolio & Socials
+  const [instagramLink, setInstagramLink] = useState((user as any)?.creatorProfile?.socialLinks?.instagram || '');
+  const [youtubeLink, setYoutubeLink] = useState((user as any)?.creatorProfile?.socialLinks?.youtube || '');
+  const [portfolioVideoLink, setPortfolioVideoLink] = useState((user as any)?.creatorProfile?.portfolioVideoLink || '');
+  const [termsAccepted, setTermsAccepted] = useState(true);
 
-  const toggleArrayItem = (item: string, array: string[], setArray: (v: string[]) => void) => {
-    if (array.includes(item)) {
-      setArray(array.filter((i) => i !== item));
+  const toggleArrayItem = (item: string, list: string[], setList: (l: string[]) => void) => {
+    if (list.includes(item)) {
+      setList(list.filter((i) => i !== item));
     } else {
-      setArray([...array, item]);
+      setList([...list, item]);
     }
   };
 
   const handleNextStep = () => {
-    if (currentStep === 1) {
-      if (!fullName.trim() || !displayName.trim()) {
-        Alert.alert('Required Fields', 'Please enter your Full Name and Display Name.');
-        return;
-      }
-      if (!mobileNumber.trim()) {
-        Alert.alert('Required Field', 'Please enter your Mobile Number.');
-        return;
-      }
-      if (!ageConfirmed) {
-        Alert.alert('Age Restriction', 'You must confirm you are 18+ years of age.');
-        return;
-      }
-    } else if (currentStep === 2) {
-      if (!city.trim() || !stateName.trim()) {
-        Alert.alert('Required Location', 'Please enter your City and State.');
-        return;
-      }
-    } else if (currentStep === 3) {
-      if (selectedCategories.length === 0) {
-        Alert.alert('Category Selection', 'Please select at least one Creator Category.');
-        return;
-      }
+    if (currentStep === 1 && (!fullName.trim() || !mobileNumber.trim())) {
+      Alert.alert('Personal Details Required', 'Please enter your Full Name and Mobile Contact Number.');
+      return;
     }
-    setCurrentStep((prev) => Math.min(prev + 1, 5));
+    if (currentStep === 2 && (!stateName.trim() || !city.trim())) {
+      Alert.alert('Location Details Required', 'Please specify your operating State and City.');
+      return;
+    }
+    if (currentStep === 3 && selectedCategories.length === 0) {
+      Alert.alert('Creator Category Required', 'Please select at least 1 Creator Category.');
+      return;
+    }
+    if (currentStep === 4 && !reelPrice) {
+      Alert.alert('Reel Rate Required', 'Please enter your Base Reel Creation Price.');
+      return;
+    }
+    if (currentStep < 5) {
+      setCurrentStep((s) => s + 1);
+    }
   };
 
   const handleCompleteRegistration = async () => {
     if (!termsAccepted) {
-      Alert.alert('Terms & Policy', 'Please agree to the Creator Collaboration Terms & Policy to activate your profile.');
+      Alert.alert('Terms Required', 'Please accept the Creator Collaboration Terms to proceed.');
       return;
     }
 
     setSubmitting(true);
     try {
       const creatorProfileData = {
+        displayName: displayName.trim() || fullName.trim(),
         fullName: fullName.trim(),
-        displayName: displayName.trim(),
         gender,
-        dob,
-        ageConfirmed,
         mobileNumber: mobileNumber.trim(),
-        whatsappNumber: (whatsappNumber || mobileNumber).trim(),
+        whatsappNumber: whatsappNumber.trim(),
         email: email.trim(),
-        address: {
-          country: country.trim(),
-          state: stateName.trim(),
-          district: (district || city).trim(),
-          city: city.trim(),
-          pincode: pincode.trim(),
-        },
-        creatorCategories: selectedCategories,
+        ageConfirmed,
+        country,
+        state: stateName.trim(),
+        city: city.trim(),
+        district: district.trim(),
+        pincode: pincode.trim(),
         categories: selectedCategories,
+        category: selectedCategories[0] || 'Product Reel Creator',
         skills: selectedSkills,
         languages: selectedLanguages,
         experience,
-        pricing: {
-          reelPrice: Number(reelPrice) || 1500,
-          reel1: Number(reelPrice) || 1500,
-          photoShootPrice: Number(photoShootPrice) || 1000,
-          hourlyRate: Number(hourlyRate) || 800,
-          monthlyCollaboration: Number(monthlyCollaboration) || 15000,
-          negotiable,
-        },
+        reelPrice: Number(reelPrice) || 1500,
+        photoShootPrice: Number(photoShootPrice) || 1000,
+        hourlyRate: Number(hourlyRate) || 800,
+        monthlyCollaboration: Number(monthlyCollaboration) || 15000,
+        negotiable,
         bio: bio.trim(),
-        portfolio: {
-          instagramLink: instagramLink.trim(),
-          youtubeLink: youtubeLink.trim(),
-          portfolioVideoLink: portfolioVideoLink.trim(),
+        socialLinks: {
+          instagram: instagramLink.trim(),
+          youtube: youtubeLink.trim(),
         },
-        termsAccepted: true,
+        portfolioVideoLink: portfolioVideoLink.trim(),
+        onboardingCompleted: true,
         updatedAt: new Date().toISOString(),
       };
 
@@ -235,7 +228,7 @@ export default function CreatorOnboardingScreen() {
       {/* Header */}
       <View style={styles.headerBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => (currentStep > 1 ? setCurrentStep((s) => s - 1) : router.replace('/(tabs)/home'))}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_DARK} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>CREATOR ONBOARDING</Text>
@@ -255,10 +248,10 @@ export default function CreatorOnboardingScreen() {
             <Text style={styles.cardTitle}>1. Personal Identity & Contact</Text>
 
             <Text style={styles.label}>Full Name *</Text>
-            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="e.g. Rahul Sharma" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="e.g. Rahul Sharma" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>Creator Display / Studio Handle *</Text>
-            <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="e.g. Rahul Content Studio" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={displayName} onChangeText={setDisplayName} placeholder="e.g. Rahul Content Studio" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>Gender</Text>
             <View style={styles.chipRow}>
@@ -270,16 +263,16 @@ export default function CreatorOnboardingScreen() {
             </View>
 
             <Text style={styles.label}>Mobile Phone Number *</Text>
-            <TextInput style={styles.input} value={mobileNumber} onChangeText={setMobileNumber} keyboardType="phone-pad" placeholder="+91 98765 43210" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={mobileNumber} onChangeText={setMobileNumber} keyboardType="phone-pad" placeholder="+91 98765 43210" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>WhatsApp Number</Text>
-            <TextInput style={styles.input} value={whatsappNumber} onChangeText={setWhatsappNumber} keyboardType="phone-pad" placeholder="+91 98765 43210" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={whatsappNumber} onChangeText={setWhatsappNumber} keyboardType="phone-pad" placeholder="+91 98765 43210" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>Email Address</Text>
-            <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="creator@example.com" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="creator@example.com" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <View style={styles.switchRow}>
-              <Switch value={ageConfirmed} onValueChange={setAgeConfirmed} trackColor={{ false: BORDER, true: YELLOW }} thumbColor="#fff" />
+              <Switch value={ageConfirmed} onValueChange={setAgeConfirmed} trackColor={{ false: '#CBD5E1', true: PRIMARY }} thumbColor="#fff" />
               <Text style={styles.switchLabel}>I confirm I am 18+ years of age for Creator registration</Text>
             </View>
           </View>
@@ -291,19 +284,19 @@ export default function CreatorOnboardingScreen() {
             <Text style={styles.cardTitle}>2. Location & Operating Region</Text>
 
             <Text style={styles.label}>Country</Text>
-            <TextInput style={styles.input} value={country} onChangeText={setCountry} placeholder="India" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={country} onChangeText={setCountry} placeholder="India" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>State *</Text>
-            <TextInput style={styles.input} value={stateName} onChangeText={setStateName} placeholder="e.g. Chhattisgarh, Maharashtra, Delhi" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={stateName} onChangeText={setStateName} placeholder="e.g. Chhattisgarh, Maharashtra, Delhi" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>City *</Text>
-            <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="e.g. Raipur, Bilaspur, Durg, Bhilai" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="e.g. Raipur, Bilaspur, Durg, Bhilai" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>District</Text>
-            <TextInput style={styles.input} value={district} onChangeText={setDistrict} placeholder="e.g. Raipur" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={district} onChangeText={setDistrict} placeholder="e.g. Raipur" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>Pincode</Text>
-            <TextInput style={styles.input} value={pincode} onChangeText={setPincode} keyboardType="number-pad" placeholder="492001" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={pincode} onChangeText={setPincode} keyboardType="number-pad" placeholder="492001" placeholderTextColor={TEXT_PLACEHOLDER} />
           </View>
         )}
 
@@ -365,27 +358,27 @@ export default function CreatorOnboardingScreen() {
             <Text style={styles.cardTitle}>4. Pricing & Rates (₹)</Text>
 
             <Text style={styles.label}>Base Reel Price (₹) *</Text>
-            <TextInput style={styles.input} value={reelPrice} onChangeText={setReelPrice} keyboardType="number-pad" placeholder="1500" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={reelPrice} onChangeText={setReelPrice} keyboardType="number-pad" placeholder="1500" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>Product Photo Shoot Rate (₹)</Text>
-            <TextInput style={styles.input} value={photoShootPrice} onChangeText={setPhotoShootPrice} keyboardType="number-pad" placeholder="1000" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={photoShootPrice} onChangeText={setPhotoShootPrice} keyboardType="number-pad" placeholder="1000" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>Hourly Shoot Rate (₹)</Text>
-            <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="number-pad" placeholder="800" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={hourlyRate} onChangeText={setHourlyRate} keyboardType="number-pad" placeholder="800" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <Text style={styles.label}>Monthly Brand Collaboration Package (₹)</Text>
-            <TextInput style={styles.input} value={monthlyCollaboration} onChangeText={setMonthlyCollaboration} keyboardType="number-pad" placeholder="15000" placeholderTextColor="rgba(255,255,255,0.4)" />
+            <TextInput style={styles.input} value={monthlyCollaboration} onChangeText={setMonthlyCollaboration} keyboardType="number-pad" placeholder="15000" placeholderTextColor={TEXT_PLACEHOLDER} />
 
             <View style={styles.switchRow}>
-              <Switch value={negotiable} onValueChange={setNegotiable} trackColor={{ false: BORDER, true: YELLOW }} thumbColor="#fff" />
+              <Switch value={negotiable} onValueChange={setNegotiable} trackColor={{ false: '#CBD5E1', true: PRIMARY }} thumbColor="#fff" />
               <Text style={styles.switchLabel}>Open to budget negotiations for long-term vendor campaigns</Text>
             </View>
 
             <Text style={styles.label}>Creator Bio / Pitch Statement</Text>
             <TextInput
-              style={[styles.input, { height: 90 }]}
+              style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
               placeholder="Describe your creative style and why local vendors should hire you..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={bio}
               onChangeText={setBio}
               multiline
@@ -399,22 +392,22 @@ export default function CreatorOnboardingScreen() {
             <Text style={styles.cardTitle}>5. Portfolio Links & Activation</Text>
 
             <Text style={styles.label}>Instagram Profile / Reel Link</Text>
-            <TextInput style={styles.input} value={instagramLink} onChangeText={setInstagramLink} placeholder="https://instagram.com/yourhandle" placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+            <TextInput style={styles.input} value={instagramLink} onChangeText={setInstagramLink} placeholder="https://instagram.com/yourhandle" placeholderTextColor={TEXT_PLACEHOLDER} autoCapitalize="none" />
 
             <Text style={styles.label}>YouTube Channel / Video Link</Text>
-            <TextInput style={styles.input} value={youtubeLink} onChangeText={setYoutubeLink} placeholder="https://youtube.com/@channel" placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+            <TextInput style={styles.input} value={youtubeLink} onChangeText={setYoutubeLink} placeholder="https://youtube.com/@channel" placeholderTextColor={TEXT_PLACEHOLDER} autoCapitalize="none" />
 
             <Text style={styles.label}>Sample Portfolio Video Link</Text>
-            <TextInput style={styles.input} value={portfolioVideoLink} onChangeText={setPortfolioVideoLink} placeholder="https://drive.google.com/..." placeholderTextColor="rgba(255,255,255,0.4)" autoCapitalize="none" />
+            <TextInput style={styles.input} value={portfolioVideoLink} onChangeText={setPortfolioVideoLink} placeholder="https://drive.google.com/..." placeholderTextColor={TEXT_PLACEHOLDER} autoCapitalize="none" />
 
             <View style={styles.switchRow}>
-              <Switch value={termsAccepted} onValueChange={setTermsAccepted} trackColor={{ false: BORDER, true: YELLOW }} thumbColor="#fff" />
+              <Switch value={termsAccepted} onValueChange={setTermsAccepted} trackColor={{ false: '#CBD5E1', true: PRIMARY }} thumbColor="#fff" />
               <Text style={styles.switchLabel}>I accept the BizReels Creator Collaboration Policy & Terms</Text>
             </View>
 
             <TouchableOpacity style={styles.submitBtn} onPress={handleCompleteRegistration} disabled={submitting}>
               {submitting ? (
-                <ActivityIndicator color={BLACK} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.submitBtnText}>Complete & Activate Creator Studio ✦</Text>
               )}
@@ -434,13 +427,13 @@ export default function CreatorOnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_LIGHT },
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     gap: Spacing.three,
@@ -448,48 +441,48 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    backgroundColor: BLACK,
+    backgroundColor: INPUT_BG,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
-  headerTitle: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 1 },
-  headerSub: { color: '#888', fontSize: FontSize.xs, fontWeight: '600' },
+  headerTitle: { color: PRIMARY_DARK, fontSize: FontSize.sm, fontWeight: '900', letterSpacing: 0.5 },
+  headerSub: { color: TEXT_MUTED, fontSize: FontSize.xs, fontWeight: '600' },
   progressTrack: { height: 4, backgroundColor: BORDER, width: '100%' },
-  progressFill: { height: '100%', backgroundColor: YELLOW },
+  progressFill: { height: '100%', backgroundColor: PRIMARY },
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.four, gap: Spacing.four },
-  card: { backgroundColor: DARK_CARD, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, borderRadius: 12, gap: Spacing.two },
-  cardTitle: { color: YELLOW, fontSize: FontSize.sm, fontWeight: '900', marginBottom: 4 },
-  label: { color: '#ddd', fontSize: FontSize.xs, fontWeight: '700', marginTop: 8 },
+  card: { backgroundColor: CARD_BG, borderWidth: 1, borderColor: BORDER, padding: Spacing.four, borderRadius: Radius.lg, gap: Spacing.two },
+  cardTitle: { color: PRIMARY_DARK, fontSize: FontSize.sm, fontWeight: '900', marginBottom: 4 },
+  label: { color: '#475569', fontSize: FontSize.xs, fontWeight: '700', marginTop: 8 },
   input: {
-    backgroundColor: BLACK,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    color: '#fff',
+    color: TEXT_DARK,
     paddingHorizontal: Spacing.three,
     height: 44,
     fontSize: FontSize.xs,
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
   chip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: BLACK,
+    borderRadius: Radius.md,
+    backgroundColor: INPUT_BG,
     borderWidth: 1,
     borderColor: BORDER,
   },
-  chipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  chipText: { color: '#ccc', fontSize: 11, fontWeight: '600' },
-  chipTextActive: { color: BLACK, fontWeight: '800' },
+  chipActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
+  chipText: { color: TEXT_DARK, fontSize: 11, fontWeight: '600' },
+  chipTextActive: { color: '#FFFFFF', fontWeight: '900' },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
-  switchLabel: { flex: 1, color: '#ccc', fontSize: 11, fontWeight: '600' },
-  nextBtn: { backgroundColor: YELLOW, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  nextBtnText: { color: BLACK, fontSize: FontSize.sm, fontWeight: '900' },
-  submitBtn: { backgroundColor: YELLOW, height: 50, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
-  submitBtnText: { color: BLACK, fontSize: FontSize.base, fontWeight: '900' },
+  switchLabel: { flex: 1, color: TEXT_DARK, fontSize: 11, fontWeight: '600' },
+  nextBtn: { backgroundColor: PRIMARY, height: 48, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  nextBtnText: { color: '#FFFFFF', fontSize: FontSize.sm, fontWeight: '900' },
+  submitBtn: { backgroundColor: PRIMARY, height: 50, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  submitBtnText: { color: '#FFFFFF', fontSize: FontSize.base, fontWeight: '900' },
 });

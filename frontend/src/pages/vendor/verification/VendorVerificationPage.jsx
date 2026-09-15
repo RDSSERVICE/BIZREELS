@@ -209,37 +209,26 @@ export default function VendorVerificationPage() {
     fetchStatus();
   }, []);
 
-  // Image Upload Handler
+  // Image & Document Upload Handler
   const handleFileUpload = async (e, setUrlState) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const toastId = toast.loading('Uploading document...');
+    const toastId = toast.loading('Uploading file...');
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const res = await api.post('/v1/upload/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      const url = res.data?.url || res.data?.data?.url || res.url;
+      const res = await api.post('/v1/upload/image', formData);
+      const url = res.data?.url || res.data?.data?.url || res.data?.secure_url || res.url;
       if (url) {
         setUrlState(url);
-        toast.success('Document uploaded!', { id: toastId });
+        toast.success('Document uploaded successfully!', { id: toastId });
       } else {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setUrlState(reader.result);
-          toast.success('Document attached', { id: toastId });
-        };
-        reader.readAsDataURL(file);
+        toast.error('Could not obtain file URL. Please retry.', { id: toastId });
       }
     } catch (err) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUrlState(reader.result);
-        toast.success('Document attached', { id: toastId });
-      };
-      reader.readAsDataURL(file);
+      console.error('File upload error:', err);
+      toast.error(err?.response?.data?.message || err?.message || 'File upload failed. Please try again.', { id: toastId });
     }
   };
 
@@ -776,6 +765,10 @@ export default function VendorVerificationPage() {
     (Array.isArray(statusData.documents?.dynamicDocs) && statusData.documents.dynamicDocs.length > 0)
   );
 
+  const isPart3Complete = Boolean(
+    statusData.bankVerified || statusData.paymentDetails?.accountNumber || statusData.paymentDetails?.upiId
+  );
+
   const handleTabClick = (tab) => {
     if (tab === 'documents' && !isPart1Complete) {
       toast.error('🔒 Complete Part 1 (Contact Verification) to unlock Part 2.');
@@ -849,48 +842,72 @@ export default function VendorVerificationPage() {
       </div>
 
       {/* STEP TABS HEADER */}
-      <div className="flex items-center gap-2 border-b border-[#e3dccb] pb-2 flex-wrap">
+      <div className="flex items-center gap-3 border-b border-[#e3dccb] pb-3 flex-wrap">
         <button
           type="button"
           onClick={() => setActiveTab('contacts')}
-          className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 cursor-pointer ${
+          className={`px-4 py-2.5 rounded-2xl border transition-all flex items-center gap-2.5 cursor-pointer text-xs sm:text-sm ${
             activeTab === 'contacts'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs'
-              : 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white'
+              ? 'bg-[#241b15] text-white border-2 border-[#d99a3d] font-bold shadow-md scale-[1.02]'
+              : 'bg-[#f8f4ec] text-slate-800 border-[#e3dccb] hover:bg-white font-semibold'
           }`}
         >
-          <FiPhone size={14} className={activeTab === 'contacts' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-extrabold ${
+            activeTab === 'contacts' ? 'bg-[#d99a3d] text-white' : 'bg-[#e3dccb] text-slate-700'
+          }`}>1</span>
+          <FiPhone size={15} className={activeTab === 'contacts' ? 'text-[#d99a3d]' : 'text-slate-500'} />
           <span>{bi('Part 1: Contact Verification', 'भाग 1: संपर्क सत्यापन')}</span>
+          {isPart1Complete && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === 'contacts' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700'
+            }`}>✓ Done</span>
+          )}
         </button>
 
         <button
           type="button"
           onClick={() => handleTabClick('documents')}
-          className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-2xl border transition-all flex items-center gap-2.5 text-xs sm:text-sm ${
             activeTab === 'documents'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs cursor-pointer'
+              ? 'bg-[#241b15] text-white border-2 border-[#d99a3d] font-bold shadow-md scale-[1.02] cursor-pointer'
               : isPart1Complete
-              ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
-              : 'bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb] cursor-not-allowed'
+              ? 'bg-[#f8f4ec] text-slate-800 border-[#e3dccb] hover:bg-white font-semibold cursor-pointer'
+              : 'bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb] cursor-not-allowed opacity-75'
           }`}
         >
-          <FiFileText size={14} className={activeTab === 'documents' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-extrabold ${
+            activeTab === 'documents' ? 'bg-[#d99a3d] text-white' : 'bg-[#e3dccb] text-slate-700'
+          }`}>2</span>
+          <FiFileText size={15} className={activeTab === 'documents' ? 'text-[#d99a3d]' : 'text-slate-500'} />
           <span>{bi('Part 2: Business Documents', 'भाग 2: व्यावसायिक दस्तावेज़')}</span>
+          {isPart2Complete && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === 'documents' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700'
+            }`}>✓ Done</span>
+          )}
         </button>
 
         <button
           type="button"
           onClick={() => handleTabClick('payment')}
-          className={`px-4 py-2.5 rounded-xl border transition flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-2xl border transition-all flex items-center gap-2.5 text-xs sm:text-sm ${
             activeTab === 'payment'
-              ? 'bg-[#241b15] text-[#d99a3d] border-[#241b15] font-black shadow-xs cursor-pointer'
+              ? 'bg-[#241b15] text-white border-2 border-[#d99a3d] font-bold shadow-md scale-[1.02] cursor-pointer'
               : isPart1Complete && isPart2Complete
-              ? 'bg-[#f8f4ec] text-slate-700 border-[#e3dccb] hover:bg-white cursor-pointer'
-              : 'bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb] cursor-not-allowed'
+              ? 'bg-[#f8f4ec] text-slate-800 border-[#e3dccb] hover:bg-white font-semibold cursor-pointer'
+              : 'bg-[#f8f4ec]/60 text-slate-400 border-[#e3dccb] cursor-not-allowed opacity-75'
           }`}
         >
-          <FiCreditCard size={14} className={activeTab === 'payment' ? 'text-[#d99a3d]' : 'text-slate-400'} />
+          <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-extrabold ${
+            activeTab === 'payment' ? 'bg-[#d99a3d] text-white' : 'bg-[#e3dccb] text-slate-700'
+          }`}>3</span>
+          <FiCreditCard size={15} className={activeTab === 'payment' ? 'text-[#d99a3d]' : 'text-slate-500'} />
           <span>{bi('Part 3: Bank & Settlement Details', 'भाग 3: बैंक और निपटान विवरण')}</span>
+          {isPart3Complete && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+              activeTab === 'payment' ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700'
+            }`}>✓ Done</span>
+          )}
         </button>
       </div>
 

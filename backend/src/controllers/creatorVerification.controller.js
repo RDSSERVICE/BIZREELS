@@ -122,7 +122,7 @@ const getVerificationStatus = catchAsync(async (req, res) => {
   }
 
   const statusInfo = computeCreatorVerification(user);
-  res.json({ success: true, ...statusInfo });
+  res.json({ success: true, data: statusInfo, ...statusInfo });
 });
 
 // ─────────────────────────────────────────────────────────────

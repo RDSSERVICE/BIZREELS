@@ -11,11 +11,11 @@ const creatorVerificationController = require('../controllers/creatorVerificatio
 
 // ── CREATOR VERIFICATION ENDPOINTS ────────────────────────────
 
-router.get('/me/verification-status', authenticate, creatorVerificationController.getVerificationStatus);
-router.post('/me/send-contact-otp', authenticate, creatorVerificationController.sendContactOtp);
-router.post('/me/verify-contact', authenticate, creatorVerificationController.verifyContact);
-router.post('/me/verify-document', authenticate, creatorVerificationController.verifyDocument);
-router.post('/me/verify-payment', authenticate, creatorVerificationController.verifyPayment);
+router.get(['/me/verification-status', '/me/verification'], authenticate, creatorVerificationController.getVerificationStatus);
+router.post(['/me/send-contact-otp', '/me/verification/send-otp'], authenticate, creatorVerificationController.sendContactOtp);
+router.post(['/me/verify-contact', '/me/verification/verify-contact'], authenticate, creatorVerificationController.verifyContact);
+router.post(['/me/verify-document', '/me/verification/document'], authenticate, creatorVerificationController.verifyDocument);
+router.post(['/me/verify-payment', '/me/verification/payment'], authenticate, creatorVerificationController.verifyPayment);
 
 // Dedicated Sandbox API Verification Endpoints
 router.post('/me/verification/pan', authenticate, creatorVerificationController.verifyPan);

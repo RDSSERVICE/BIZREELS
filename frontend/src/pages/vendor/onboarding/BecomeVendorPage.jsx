@@ -184,7 +184,7 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     const promptText = aiPrompt.trim() || `${sName} specializing in ${catsStr}`;
     
     setIsGeneratingAiBio(true);
-    const toastId = toast.loading('Gemini AI generating professional business bio...');
+    const toastId = toast.loading('AI generating professional business bio...');
     try {
       const res = await api.post('/v1/ai/generate-description', {
         prompt: promptText,
@@ -344,13 +344,13 @@ export default function BecomeVendorPage({ isEditMode = false }) {
     setPincodeLoading(true);
     try {
       const res = await api.post('/v1/location/pincode-lookup', { pincode: targetCode });
-      const data = res.data || res;
+      const data = res.data?.data || res.data;
       if (data) {
-        if (data.city) setCity(data.city);
+        if (data.city || data.district) setCity(data.city || data.district);
         if (data.state) setStateName(data.state);
         if (data.district || data.city) setDistrict(data.district || data.city);
         if (data.area && !areaLocality) setAreaLocality(data.area);
-        toast.success(`Location auto-fetched: ${data.city || data.area}, ${data.state}`);
+        toast.success(`Location auto-fetched: ${data.city || data.district || data.area}, ${data.state}`);
       }
     } catch (err) {
       toast.error('Could not auto-fetch pincode data. Please enter address manually.');

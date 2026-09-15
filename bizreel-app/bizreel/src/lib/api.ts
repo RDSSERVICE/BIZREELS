@@ -35,11 +35,21 @@ export const api = axios.create({
   },
 });
 
-// Attach access token to every request if present
+// Attach access token to every request if present & normalize duplicate /v1 URL prefixes
 api.interceptors.request.use((config) => {
   const token = tokenStore.getItem('accessToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  if (config.url) {
+    if (config.url.startsWith('/v1/')) {
+      config.url = config.url.replace(/^\/v1\//, '/');
+    } else if (config.url.startsWith('/api/v1/')) {
+      config.url = config.url.replace(/^\/api\/v1\//, '/');
+    }
   }
   return config;
 });

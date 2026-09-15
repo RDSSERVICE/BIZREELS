@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import API_CONFIG from '../../config';
 import { FiMapPin, FiNavigation, FiSearch, FiAlertTriangle } from 'react-icons/fi';
 import Button from './Button';
@@ -160,7 +161,7 @@ const LocationPicker = ({
   // Geolocate using browser API
   const handleDetectLocation = () => {
     if (!navigator.geolocation) {
-      return alert('Geolocation is not supported by your browser.');
+      return toast.error('Geolocation is not supported by your browser.');
     }
 
     setDetecting(true);
@@ -205,7 +206,7 @@ const LocationPicker = ({
       },
       (error) => {
         console.error('Geolocation detection failed:', error);
-        alert('Could not detect location. Please check your browser permission settings.');
+        toast.error('Could not detect location. Please check browser permission settings.');
         setDetecting(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }

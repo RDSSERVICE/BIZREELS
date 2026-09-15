@@ -184,11 +184,8 @@ app.get('/', (req, res) => {
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Mount API routes across /api/v1, /api, /v1, and root for seamless compatibility
-app.use('/api/v1', routes);
-app.use('/api', routes);
-app.use('/v1', routes);
-app.use('/', routes);
+// Mount API routes across /api/v1, /api/v1/v1, /v1/v1, /api, /v1, and root for seamless compatibility
+app.use(['/api/v1', '/api/v1/v1', '/v1/v1', '/api', '/v1', '/'], routes);
 
 // ══════════════════════════════════════════════════════════════
 // 404 HANDLER

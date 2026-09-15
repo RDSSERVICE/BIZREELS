@@ -183,9 +183,15 @@ export default function RegisterScreen() {
 
   function onSubmit(values: RegisterFormValues) {
     setServerError(null);
+    let formattedPhone = (values.phone || '').trim().replace(/\s+/g, '');
+    if (formattedPhone && !formattedPhone.startsWith('+')) {
+      formattedPhone = `+91${formattedPhone}`;
+    }
+
     register(
       {
         ...values,
+        phone: formattedPhone || undefined,
         role: selectedRole,
         interests: selectedInterests,
       },
@@ -199,8 +205,8 @@ export default function RegisterScreen() {
             router.replace('/(tabs)');
           }
         },
-        onError: (error) => {
-          setServerError(error.message);
+        onError: (error: any) => {
+          setServerError(error?.message || 'Registration failed. Please check your details.');
         },
       }
     );
@@ -483,34 +489,22 @@ export default function RegisterScreen() {
                 />
               </View>
 
-              {/* Primary Action Button: Send OTP & Verify */}
+              {/* Primary Action Button: Create Account (Matching Web 1:1 Direct Signup) */}
               <View style={{ gap: Spacing.three, marginTop: Spacing.two }}>
-                {!isVerified ? (
-                  <Pressable
-                    style={({ pressed }) => [
-                      s.primaryButton,
-                      pressed && s.primaryButtonPressed,
-                      isSendingOtp && s.primaryButtonDisabled,
-                    ]}
-                    onPress={handleTriggerOtpModal}
-                    disabled={isSendingOtp}
-                    accessibilityLabel="Verify OTP & Continue to Interests">
-                    {isSendingOtp ? (
-                      <ActivityIndicator color="#F59E0B" />
-                    ) : (
-                      <>
-                        <Text style={s.primaryButtonText}>VERIFY OTP & CONTINUE</Text>
-                        <Ionicons name="shield-checkmark" size={18} color="#F59E0B" />
-                      </>
-                    )}
-                  </Pressable>
-                ) : (
-                  <TouchableOpacity
-                    style={s.primaryButton}
-                    onPress={() => setStep(2)}>
-                    <Text style={s.primaryButtonText}>✓ MOBILE VERIFIED — SELECT INTERESTS →</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[s.primaryButton, isPending && s.primaryButtonDisabled]}
+                  onPress={handleSubmit(onSubmit)}
+                  disabled={isPending}
+                  accessibilityLabel="Create Account">
+                  {isPending ? (
+                    <ActivityIndicator color="#1C1A17" />
+                  ) : (
+                    <>
+                      <Text style={s.primaryButtonText}>CREATE ACCOUNT</Text>
+                      <Ionicons name="arrow-forward" size={18} color="#1C1A17" />
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
 
               {/* OR Divider */}

@@ -18,8 +18,9 @@ export const registerSchema = z
     name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name is too long'),
     phone: z
       .string()
-      .min(10, 'Enter a valid 10-digit mobile number')
-      .regex(/^\+?[0-9]{10,15}$/, 'Enter a valid mobile number (e.g. 9876543210 or +919876543210)'),
+      .optional()
+      .or(z.literal(''))
+      .refine(val => !val || val.length >= 10, 'Enter a valid 10-digit mobile number'),
     email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
     password: passwordSchema,
     confirmPassword: z.string().min(1, 'Please confirm your password'),

@@ -6,6 +6,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -51,17 +52,36 @@ export default function VendorVerificationCenterScreen() {
   const [activeTab, setActiveTab] = useState<1 | 2 | 3>(1);
 
   const uData = (user as any) || {};
-  const [phone, setPhone] = useState(uData.phone || '+918927544778');
+  const [phone, setPhone] = useState(uData.phone || '');
   const [whatsapp, setWhatsapp] = useState(
-    uData.vendorProfile?.socialLinks?.whatsapp || uData.phone || '+918927544778'
+    uData.vendorProfile?.socialLinks?.whatsapp || uData.phone || ''
   );
-  const [email, setEmail] = useState(uData.email || 'rajeshsarkar1234@gmail.com');
+  const [email, setEmail] = useState(uData.email || '');
   const [website, setWebsite] = useState(uData.vendorProfile?.socialLinks?.website || '');
 
-  const [phoneVerified, setPhoneVerified] = useState(!!uData.isPhoneVerified);
-  const [whatsappVerified, setWhatsappVerified] = useState(false);
-  const [emailVerified, setEmailVerified] = useState(!!uData.isEmailVerified);
-  const [websiteVerified, setWebsiteVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(Boolean(uData.isPhoneVerified || uData.vendorProfile?.contactVerified?.mobile));
+  const [whatsappVerified, setWhatsappVerified] = useState(Boolean(uData.vendorProfile?.contactVerified?.whatsapp));
+  const [emailVerified, setEmailVerified] = useState(Boolean(uData.isEmailVerified || uData.vendorProfile?.contactVerified?.email));
+  const [websiteVerified, setWebsiteVerified] = useState(Boolean(uData.vendorProfile?.contactVerified?.website));
+
+  useEffect(() => {
+    if (uData) {
+      if (uData.phone && !phone) setPhone(uData.phone);
+      if (uData.email && !email) setEmail(uData.email);
+      if (uData.vendorProfile?.socialLinks?.whatsapp && !whatsapp) setWhatsapp(uData.vendorProfile.socialLinks.whatsapp);
+      if (uData.vendorProfile?.socialLinks?.website && !website) setWebsite(uData.vendorProfile.socialLinks.website);
+    }
+  }, [uData]);
+
+  useEffect(() => {
+    if (status) {
+      const cv = (status as any)?.contactVerified || uData.vendorProfile?.contactVerified || {};
+      setPhoneVerified(Boolean(cv.mobile || uData.isPhoneVerified));
+      setWhatsappVerified(Boolean(cv.whatsapp));
+      setEmailVerified(Boolean(cv.email || uData.isEmailVerified));
+      setWebsiteVerified(Boolean(cv.website));
+    }
+  }, [status, uData]);
 
   // OTP Modal State
   const [otpModalChannel, setOtpModalChannel] = useState<'mobile' | 'whatsapp' | 'email' | null>(null);
@@ -75,6 +95,59 @@ export default function VendorVerificationCenterScreen() {
   const [aadhaarNum, setAadhaarNum] = useState('');
   const [aadhaarFront, setAadhaarFront] = useState('');
   const [aadhaarBack, setAadhaarBack] = useState('');
+  const [aadhaarRefId, setAadhaarRefId] = useState('');
+  const [aadhaarOtp, setAadhaarOtp] = useState('');
+  const [showAadhaarOtp, setShowAadhaarOtp] = useState(false);
+  const [initiatingAadhaar, setInitiatingAadhaar] = useState(false);
+  const [verifyingAadhaarOtp, setVerifyingAadhaarOtp] = useState(false);
+
+  const handleInitiateAadhaar = async () => {
+    if (!aadhaarNum || aadhaarNum.length !== 12) {
+      Alert.alert('Invalid Aadhaar', 'Please enter a valid 12-digit Aadhaar number.');
+      return;
+    }
+    setInitiatingAadhaar(true);
+    try {
+      const res = await api.post('/vendors/me/verification/aadhaar/initiate', { aadhaarNumber: aadhaarNum })
+        .catch(() => api.post('/vendor/me/verification/aadhaar/initiate', { aadhaarNumber: aadhaarNum }));
+      const refId = res.data?.refId || res.data?.data?.refId || 'REF_SANDBOX_123';
+      setAadhaarRefId(refId);
+      setShowAadhaarOtp(true);
+      Alert.alert('OTP Sent 📲', 'An OTP has been sent to your Aadhaar-linked mobile number.');
+    } catch (err: any) {
+      Alert.alert('Initiate Failed', err?.response?.data?.message || 'Could not send Aadhaar OTP. You can submit documents manually.');
+    } finally {
+      setInitiatingAadhaar(false);
+    }
+  };
+
+  const handleVerifyAadhaarOtp = async () => {
+    if (!aadhaarOtp || aadhaarOtp.length < 4) {
+      Alert.alert('Invalid OTP', 'Please enter the valid Aadhaar OTP.');
+      return;
+    }
+    setVerifyingAadhaarOtp(true);
+    try {
+      await api.post('/vendors/me/verification/aadhaar/verify-otp', {
+        refId: aadhaarRefId,
+        otp: aadhaarOtp.trim(),
+      }).catch(() =>
+        api.post('/vendor/me/verification/aadhaar/verify-otp', {
+          refId: aadhaarRefId,
+          otp: aadhaarOtp.trim(),
+        })
+      );
+      Alert.alert('Aadhaar Verified! 🟢', 'Your Aadhaar identity has been verified successfully!');
+      setActiveModal(null);
+      setShowAadhaarOtp(false);
+      setAadhaarOtp('');
+      refetch();
+    } catch (err: any) {
+      Alert.alert('Verification Failed', err?.response?.data?.message || 'Invalid Aadhaar OTP.');
+    } finally {
+      setVerifyingAadhaarOtp(false);
+    }
+  };
 
   const [panInput, setPanInput] = useState('');
   const [panFront, setPanFront] = useState('');
@@ -105,21 +178,32 @@ export default function VendorVerificationCenterScreen() {
   const verifyBankMutation = useVerifyBank();
   const verifyUpiMutation = useVerifyUpi();
 
-  const handleSendOtp = async (channel: 'mobile' | 'whatsapp' | 'email') => {
+  const [editContactMode, setEditContactMode] = useState<{ mobile?: boolean; whatsapp?: boolean; email?: boolean }>({});
+  const [customMobile, setCustomMobile] = useState('');
+  const [customWhatsapp, setCustomWhatsapp] = useState('');
+  const [customEmail, setCustomEmail] = useState('');
+  const [pendingTargetVal, setPendingTargetVal] = useState('');
+
+  const handleSendOtp = async (channel: 'mobile' | 'whatsapp' | 'email', customVal?: string) => {
+    const targetVal = customVal || (channel === 'email' ? email : channel === 'whatsapp' ? whatsapp : phone);
+    if (!targetVal || !targetVal.trim()) {
+      Alert.alert('Missing Value', `Please enter a valid ${channel}.`);
+      return;
+    }
+    setPendingTargetVal(targetVal.trim());
     setOtpModalChannel(channel);
     setSendingOtp(true);
     try {
-      const targetVal = channel === 'email' ? email : channel === 'whatsapp' ? whatsapp : phone;
       await api.post('/vendors/me/send-contact-otp', {
         type: channel,
-        value: targetVal,
+        value: targetVal.trim(),
       }).catch(() =>
         api.post('/auth/send-otp', {
           channel: channel === 'mobile' ? 'sms' : channel,
-          target: targetVal,
+          target: targetVal.trim(),
         })
       );
-      Alert.alert('OTP Sent!', `6-digit verification code sent via ${channel.toUpperCase()}.`);
+      Alert.alert('OTP Sent!', `6-digit verification code sent via ${channel.toUpperCase()} to ${targetVal.trim()}.`);
     } catch (err: any) {
       console.warn('Failed to send OTP:', err);
       Alert.alert('Error', `Failed to send verification code via ${channel.toUpperCase()}. Please try again.`);
@@ -130,36 +214,63 @@ export default function VendorVerificationCenterScreen() {
 
   const handleVerifyOtp = async () => {
     if (!otpInput.trim() || otpInput.length < 4) {
-      Alert.alert('Invalid OTP', 'Please enter the valid OTP code.');
+      Alert.alert('Invalid OTP', 'Please enter a valid OTP code.');
       return;
     }
 
     setVerifyingOtp(true);
     try {
-      const targetVal = otpModalChannel === 'email' ? email : otpModalChannel === 'whatsapp' ? whatsapp : phone;
+      const targetVal = pendingTargetVal || (otpModalChannel === 'email' ? email : otpModalChannel === 'whatsapp' ? whatsapp : phone);
 
-      await api.post('/vendors/me/verify-contact', {
-        type: otpModalChannel,
-        value: targetVal,
-        code: otpInput.trim(),
-      }).catch(() =>
-        api.post('/auth/verify-otp', {
-          otp: otpInput.trim(),
-          channel: otpModalChannel,
-        })
-      );
+      let verifiedSuccess = false;
+      let errorMsg = 'Invalid or expired OTP code.';
+
+      try {
+        const res = await api.post('/vendors/me/verify-contact', {
+          type: otpModalChannel,
+          value: targetVal,
+          code: otpInput.trim(),
+        });
+        if (res.data?.success !== false) {
+          verifiedSuccess = true;
+        }
+      } catch (e: any) {
+        errorMsg = e?.response?.data?.message || e?.message || errorMsg;
+        try {
+          const fallbackRes = await api.post('/auth/verify-otp', {
+            otp: otpInput.trim(),
+            channel: otpModalChannel,
+          });
+          if (fallbackRes.data?.success !== false) {
+            verifiedSuccess = true;
+          }
+        } catch (fErr: any) {
+          errorMsg = fErr?.response?.data?.message || fErr?.message || errorMsg;
+        }
+      }
+
+      if (!verifiedSuccess) {
+        Alert.alert('Verification Failed ❌', errorMsg);
+        return;
+      }
 
       if (otpModalChannel === 'mobile') {
+        if (customMobile) setPhone(customMobile);
         setPhoneVerified(true);
-        await api.put('/auth/profile', { phone, isPhoneVerified: true }).catch(() => {});
-        await api.put('/vendors/me/profile', { phone }).catch(() => {});
+        setEditContactMode(prev => ({ ...prev, mobile: false }));
+        await api.put('/auth/profile', { phone: targetVal, isPhoneVerified: true }).catch(() => {});
+        await api.put('/vendors/me/profile', { phone: targetVal }).catch(() => {});
       } else if (otpModalChannel === 'whatsapp') {
+        if (customWhatsapp) setWhatsapp(customWhatsapp);
         setWhatsappVerified(true);
-        await api.put('/vendors/me/profile', { socialLinks: { whatsapp } }).catch(() => {});
+        setEditContactMode(prev => ({ ...prev, whatsapp: false }));
+        await api.put('/vendors/me/profile', { socialLinks: { whatsapp: targetVal } }).catch(() => {});
       } else if (otpModalChannel === 'email') {
+        if (customEmail) setEmail(customEmail);
         setEmailVerified(true);
-        await api.put('/auth/profile', { email, isEmailVerified: true }).catch(() => {});
-        await api.put('/vendors/me/profile', { email }).catch(() => {});
+        setEditContactMode(prev => ({ ...prev, email: false }));
+        await api.put('/auth/profile', { email: targetVal, isEmailVerified: true }).catch(() => {});
+        await api.put('/vendors/me/profile', { email: targetVal }).catch(() => {});
       }
 
       Alert.alert('Verified & Saved! 🎉', `${otpModalChannel?.toUpperCase()} channel verified and saved successfully.`);
@@ -167,21 +278,46 @@ export default function VendorVerificationCenterScreen() {
       setOtpInput('');
       refetch();
     } catch (err: any) {
-      console.warn('Fallback local verify:', err);
-      if (otpModalChannel === 'mobile') {
-        setPhoneVerified(true);
-      } else if (otpModalChannel === 'whatsapp') {
-        setWhatsappVerified(true);
-      } else if (otpModalChannel === 'email') {
-        setEmailVerified(true);
-      }
-
-      Alert.alert('Verified & Saved! 🎉', `${otpModalChannel?.toUpperCase()} channel verified and saved successfully.`);
-      setOtpModalChannel(null);
-      setOtpInput('');
-      refetch();
+      Alert.alert('Verification Failed ❌', err?.response?.data?.message || err?.message || 'Failed to verify OTP code.');
     } finally {
       setVerifyingOtp(false);
+    }
+  };
+
+  const handlePickDocumentImage = async (setUrlState: (url: string) => void) => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Required', 'Media library access is required to select document photos.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+        allowsEditing: true,
+      });
+      if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+      const asset = result.assets[0];
+      const formData = new FormData();
+      formData.append('image', {
+        uri: asset.uri,
+        type: asset.mimeType || 'image/jpeg',
+        name: asset.fileName || `doc_${Date.now()}.jpg`,
+      } as any);
+
+      const res = await api.post('/v1/upload/image', formData);
+      const uploadedUrl = res.data?.url || res.data?.data?.url || res.data?.secure_url;
+      if (uploadedUrl) {
+        setUrlState(uploadedUrl);
+        Alert.alert('Upload Successful! 🟢', 'Document photo uploaded and attached.');
+      } else {
+        setUrlState(asset.uri);
+        Alert.alert('Attached', 'Document image attached.');
+      }
+    } catch (err: any) {
+      console.error('Mobile upload error:', err);
+      Alert.alert('Upload Error', err?.response?.data?.message || err?.message || 'Failed to upload document image.');
     }
   };
 
@@ -219,27 +355,38 @@ export default function VendorVerificationCenterScreen() {
       return;
     }
     const cleanGstin = gstinInput.trim().toUpperCase();
-    api.post('/vendors/me/verification/gst', { gstin: cleanGstin, fileUrl: gstFile })
+    api.post('/vendors/me/verification/gstin', { gstin: cleanGstin, fileUrl: gstFile })
+      .catch(() => api.post('/vendors/me/verification/gst', { gstin: cleanGstin, fileUrl: gstFile }))
+      .catch(() => api.post('/vendor/me/verification/gstin', { gstin: cleanGstin, fileUrl: gstFile }))
       .then(() => {
         Alert.alert('GSTIN Verified & Saved! 🟢', 'Your GSTIN tax status has been verified and saved.');
         setActiveModal(null);
         refetch();
       })
       .catch(() => {
-        handleGenericDocSubmit('gst', cleanGstin, gstFile);
+        handleGenericDocSubmit('gstin', cleanGstin, gstFile);
       });
   };
 
   const handleGenericDocSubmit = async (docType: string, docNumber: string, frontUrl?: string, backUrl?: string, docName?: string) => {
     try {
-      await api.post('/vendors/me/verification/document', {
+      await api.post('/vendors/me/verify-document', {
         docType,
         docNumber: docNumber.trim(),
         frontUrl,
         backUrl,
         fileUrl: frontUrl || backUrl,
         docName,
-      });
+      }).catch(() =>
+        api.post('/vendors/me/verification/document', {
+          docType,
+          docNumber: docNumber.trim(),
+          frontUrl,
+          backUrl,
+          fileUrl: frontUrl || backUrl,
+          docName,
+        })
+      );
       Alert.alert('Document Submitted! 📄', 'Your document has been submitted for Admin review.');
       setActiveModal(null);
       refetch();
@@ -303,6 +450,7 @@ export default function VendorVerificationCenterScreen() {
     (docsObj.udyamRegistration?.status === 'approved' ? 1 : 0);
 
   const bankVerifiedCount = (status?.bankVerified ? 1 : 0) + (status?.paymentVerified ? 1 : 0);
+  const paymentVerified = Boolean(status?.bankVerified || status?.paymentVerified);
 
   const totalVerifiedCount = contactsVerifiedCount + docsVerifiedCount + bankVerifiedCount;
   const progressPercent = Math.min(100, Math.round((totalVerifiedCount / 11) * 100));
@@ -314,6 +462,33 @@ export default function VendorVerificationCenterScreen() {
     uData.vendorProfile?.verificationStatus === 'verified_vendor' ||
     uData.isVerified ||
     (status as any)?.isVerified;
+
+  const badgeInfo = {
+    unverified: {
+      label: 'Unverified Vendor',
+      icon: '⚪',
+      desc: 'Verify contact details and identity documents to unlock customer leads and verified badge.'
+    },
+    partially_verified: {
+      label: 'Partially Verified',
+      icon: '🟡',
+      desc: 'Good progress! Verify PAN or Aadhaar card to earn your official 🟢 Verified Vendor badge.'
+    },
+    verified_vendor: {
+      label: 'Verified Vendor (OFFICIAL)',
+      icon: '🟢',
+      desc: 'Verified Business! You now enjoy top reel boost ranking, verified checkmark, and maximum buyer trust.'
+    },
+    premium_verified: {
+      label: 'Premium Verified (SUBSCRIBED)',
+      icon: '🔵',
+      desc: 'Elite Status! You have VIP listing placement, max lead generation, and priority customer chat.'
+    }
+  }[status?.tier || 'unverified'] || {
+    label: 'Unverified Vendor',
+    icon: '⚪',
+    desc: 'Verify contact details and identity documents to unlock customer leads and verified badge.'
+  };
 
   // Helper to render Document Status Cards with Approved, Pending, Rejected & Re-submit states
   const renderDocCard = (key: string, title: string, desc: string, iconName: any, onOpenModal: () => void) => {
@@ -341,37 +516,37 @@ export default function VendorVerificationCenterScreen() {
 
         {/* ── Status Banner ── */}
         {isApproved && (
-          <View style={[styles.statusBadgeRow, { backgroundColor: 'rgba(16, 185, 129, 0.12)', padding: 6, borderRadius: 8 }]}>
-            <Ionicons name="checkmark-circle" size={16} color={GREEN} />
-            <Text style={[styles.statusBadgeText, { color: GREEN, fontWeight: '700' }]}>
+          <View style={[styles.statusBadgeRow, { backgroundColor: '#D1FAE5', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }]}>
+            <Ionicons name="checkmark-circle" size={16} color="#047857" />
+            <Text style={[styles.statusBadgeText, { color: '#047857', fontWeight: '800' }]}>
               Approved & Verified {docItem.docNumber ? `(${docItem.docNumber})` : ''}
             </Text>
           </View>
         )}
 
         {isPending && (
-          <View style={[styles.statusBadgeRow, { backgroundColor: 'rgba(245, 158, 11, 0.12)', padding: 8, borderRadius: 8, flexDirection: 'column', alignItems: 'flex-start' }]}>
+          <View style={[styles.statusBadgeRow, { backgroundColor: '#FEF3C7', padding: 10, borderRadius: 10, flexDirection: 'column', alignItems: 'flex-start' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="time-outline" size={16} color={YELLOW} />
-              <Text style={[styles.statusBadgeText, { color: YELLOW, fontWeight: '700' }]}>
+              <Ionicons name="time-outline" size={16} color="#B45309" />
+              <Text style={[styles.statusBadgeText, { color: '#B45309', fontWeight: '800' }]}>
                 Pending Admin Review
               </Text>
             </View>
-            <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+            <Text style={{ fontSize: 11, color: '#92400E', marginTop: 4, fontWeight: '600' }}>
               Document submitted & undergoing compliance verification by Admin.
             </Text>
           </View>
         )}
 
         {isRejected && (
-          <View style={[styles.statusBadgeRow, { backgroundColor: 'rgba(239, 68, 68, 0.12)', padding: 8, borderRadius: 8, flexDirection: 'column', alignItems: 'flex-start' }]}>
+          <View style={[styles.statusBadgeRow, { backgroundColor: '#FEE2E2', padding: 10, borderRadius: 10, flexDirection: 'column', alignItems: 'flex-start' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Ionicons name="alert-circle" size={16} color="#EF4444" />
-              <Text style={[styles.statusBadgeText, { color: '#EF4444', fontWeight: '700' }]}>
+              <Ionicons name="alert-circle" size={16} color="#DC2626" />
+              <Text style={[styles.statusBadgeText, { color: '#DC2626', fontWeight: '800' }]}>
                 Verification Rejected
               </Text>
             </View>
-            <Text style={{ fontSize: 11, color: '#FCA5A5', marginTop: 4, fontWeight: '600' }}>
+            <Text style={{ fontSize: 11, color: '#991B1B', marginTop: 4, fontWeight: '600' }}>
               Reason: {rejectionReason || 'Document rejected during compliance check. Please re-upload clear proof.'}
             </Text>
           </View>
@@ -379,8 +554,8 @@ export default function VendorVerificationCenterScreen() {
 
         {!isApproved && !isPending && !isRejected && (
           <View style={styles.statusBadgeRow}>
-            <Ionicons name="shield-outline" size={14} color={YELLOW} />
-            <Text style={[styles.statusBadgeText, { color: YELLOW }]}>
+            <Ionicons name="shield-outline" size={14} color="#B45309" />
+            <Text style={[styles.statusBadgeText, { color: '#B45309', fontWeight: '700' }]}>
               Not Verified
             </Text>
           </View>
@@ -421,23 +596,39 @@ export default function VendorVerificationCenterScreen() {
         {/* ── Hero Banner ── */}
         <View style={styles.heroBanner}>
           <View style={styles.heroHeaderRow}>
-            <View style={{ flex: 1 }}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <View style={styles.tierBadgeRow}>
+                <Text style={styles.tierIconText}>{badgeInfo.icon}</Text>
+                <Text style={styles.tierLabelText}>
+                  CURRENT TRUST TIER: {badgeInfo.label.toUpperCase()}
+                </Text>
+              </View>
               <Text style={styles.heroTitle}>TRUST & COMPLIANCE CENTER</Text>
-              <Text style={styles.heroSub}>
-                Verify contact details and identity documents to unlock customer leads and verified badge.
-              </Text>
+              <Text style={styles.heroSub}>{badgeInfo.desc}</Text>
             </View>
-            <View style={styles.progressCircleContainer}>
-              <Text style={styles.progressPercentText}>{progressPercent}%</Text>
-              <Text style={styles.progressReadyText}>READY</Text>
+
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              <View style={styles.progressCircleContainer}>
+                <Text style={styles.progressPercentText}>{progressPercent}%</Text>
+                <Text style={styles.progressReadyText}>READY</Text>
+              </View>
+              <Text style={styles.stepProgressText}>
+                {contactsVerifiedCount >= 2 && docsVerifiedCount >= 2
+                  ? '3/3 Complete'
+                  : contactsVerifiedCount >= 2
+                  ? '2/3 In Progress'
+                  : '1/3 Contacts Pending'}
+              </Text>
             </View>
           </View>
 
           {/* Edit Alert Notice Box */}
           <View style={styles.noticeBox}>
-            <Ionicons name="create-outline" size={18} color={YELLOW} />
+            <View style={styles.noticeIconBadge}>
+              <Ionicons name="create-outline" size={16} color="#D99A3D" />
+            </View>
             <Text style={styles.noticeText}>
-              <Text style={{ fontWeight: FontWeight.bold }}>EDIT & RE-VERIFICATION OPTIONS ENABLED: </Text>
+              <Text style={{ fontWeight: '800' }}>EDIT & RE-VERIFICATION OPTIONS ENABLED: </Text>
               You can click &quot;Edit / Change&quot; on any verified contact, document, or bank account to update your details anytime.
             </Text>
           </View>
@@ -450,29 +641,56 @@ export default function VendorVerificationCenterScreen() {
           contentContainerStyle={styles.tabsRowScroll}>
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 1 && styles.tabBtnActive]}
-            onPress={() => setActiveTab(1)}>
-            <Ionicons name="call" size={14} color={activeTab === 1 ? BLACK : '#fff'} />
+            onPress={() => setActiveTab(1)}
+            activeOpacity={0.8}>
+            <View style={[styles.stepNumBadge, activeTab === 1 && styles.stepNumBadgeActive]}>
+              <Text style={[styles.stepNumText, activeTab === 1 && styles.stepNumTextActive]}>1</Text>
+            </View>
+            <Ionicons name="call" size={16} color={activeTab === 1 ? '#D99A3D' : '#64748B'} />
             <Text style={[styles.tabBtnText, activeTab === 1 && styles.tabBtnTextActive]}>
-              Part 1: Contacts
+              Part 1: Contact Channels
             </Text>
+            {contactsVerifiedCount >= 2 && (
+              <View style={[styles.doneBadge, activeTab === 1 && styles.doneBadgeActive]}>
+                <Text style={[styles.doneBadgeText, activeTab === 1 && styles.doneBadgeTextActive]}>✓ Done</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 2 && styles.tabBtnActive]}
-            onPress={() => setActiveTab(2)}>
-            <Ionicons name="document-text" size={14} color={activeTab === 2 ? BLACK : '#fff'} />
+            onPress={() => setActiveTab(2)}
+            activeOpacity={0.8}>
+            <View style={[styles.stepNumBadge, activeTab === 2 && styles.stepNumBadgeActive]}>
+              <Text style={[styles.stepNumText, activeTab === 2 && styles.stepNumTextActive]}>2</Text>
+            </View>
+            <Ionicons name="document-text" size={16} color={activeTab === 2 ? '#D99A3D' : '#64748B'} />
             <Text style={[styles.tabBtnText, activeTab === 2 && styles.tabBtnTextActive]}>
               Part 2: Business Documents
             </Text>
+            {docsVerifiedCount >= 2 && (
+              <View style={[styles.doneBadge, activeTab === 2 && styles.doneBadgeActive]}>
+                <Text style={[styles.doneBadgeText, activeTab === 2 && styles.doneBadgeTextActive]}>✓ Done</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.tabBtn, activeTab === 3 && styles.tabBtnActive]}
-            onPress={() => setActiveTab(3)}>
-            <Ionicons name="card" size={14} color={activeTab === 3 ? BLACK : '#fff'} />
+            onPress={() => setActiveTab(3)}
+            activeOpacity={0.8}>
+            <View style={[styles.stepNumBadge, activeTab === 3 && styles.stepNumBadgeActive]}>
+              <Text style={[styles.stepNumText, activeTab === 3 && styles.stepNumTextActive]}>3</Text>
+            </View>
+            <Ionicons name="card" size={16} color={activeTab === 3 ? '#D99A3D' : '#64748B'} />
             <Text style={[styles.tabBtnText, activeTab === 3 && styles.tabBtnTextActive]}>
               Part 3: Bank & Settlement
             </Text>
+            {paymentVerified && (
+              <View style={[styles.doneBadge, activeTab === 3 && styles.doneBadgeActive]}>
+                <Text style={[styles.doneBadgeText, activeTab === 3 && styles.doneBadgeTextActive]}>✓ Done</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </ScrollView>
 
@@ -487,76 +705,200 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.cardsGrid}>
               {/* Mobile Number Card */}
               <View style={styles.channelCard}>
-                <Text style={styles.channelLabel}>MOBILE NUMBER</Text>
-                <Text style={styles.channelVal}>{phone}</Text>
-                <View style={styles.statusBadgeRow}>
-                  <Ionicons
-                    name={phoneVerified ? 'checkmark-circle' : 'warning-outline'}
-                    size={14}
-                    color={phoneVerified ? GREEN : YELLOW}
-                  />
-                  <Text style={[styles.statusBadgeText, { color: phoneVerified ? GREEN : YELLOW }]}>
-                    {phoneVerified ? 'Verified' : 'Unverified'}
-                  </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.channelLabel}>MOBILE NUMBER</Text>
+                    <Text style={styles.channelVal}>{customMobile || phone || 'Not set'}</Text>
+                    <View style={styles.statusBadgeRow}>
+                      <Ionicons
+                        name={phoneVerified && !editContactMode.mobile ? 'checkmark-circle' : 'warning-outline'}
+                        size={14}
+                        color={phoneVerified && !editContactMode.mobile ? GREEN : YELLOW}
+                      />
+                      <Text style={[styles.statusBadgeText, { color: phoneVerified && !editContactMode.mobile ? GREEN : YELLOW }]}>
+                        {phoneVerified && !editContactMode.mobile ? 'Verified Phone ✓' : editContactMode.mobile ? 'Editing Mobile Number' : 'Unverified'}
+                      </Text>
+                    </View>
+                  </View>
+                  {phoneVerified && !editContactMode.mobile && (
+                    <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                      <Text style={{ color: '#047857', fontSize: 10, fontWeight: '800' }}>Verified ✓</Text>
+                    </View>
+                  )}
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.verifyOtpBtn, phoneVerified && styles.verifyOtpBtnDone]}
-                  onPress={() => handleSendOtp('mobile')}>
-                  <Text style={[styles.verifyOtpBtnText, phoneVerified && { color: '#0F172A' }]}>
-                    {phoneVerified ? 'Edit / Re-verify OTP' : 'Verify Mobile OTP'}
-                  </Text>
-                </TouchableOpacity>
+                {editContactMode.mobile ? (
+                  <View style={{ gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderColor: '#E3DCCB' }}>
+                    <TextInput
+                      style={styles.urlInput}
+                      placeholder="Enter new mobile number"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="phone-pad"
+                      value={customMobile}
+                      onChangeText={setCustomMobile}
+                    />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.verifyOtpBtn, { flex: 1, marginTop: 0 }]}
+                        onPress={() => handleSendOtp('mobile', customMobile || phone)}>
+                        <Text style={[styles.verifyOtpBtnText, { color: '#FFFFFF' }]}>Send OTP & Verify</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#E2E8F0', borderRadius: 9999, justifyContent: 'center' }}
+                        onPress={() => setEditContactMode(prev => ({ ...prev, mobile: false }))}>
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '700' }}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.verifyOtpBtn, phoneVerified && styles.verifyOtpBtnDone]}
+                    onPress={() => {
+                      if (phoneVerified) {
+                        setEditContactMode(prev => ({ ...prev, mobile: true }));
+                        setCustomMobile(phone);
+                      } else {
+                        handleSendOtp('mobile');
+                      }
+                    }}>
+                    <Text style={[styles.verifyOtpBtnText, phoneVerified && { color: '#0F172A' }]}>
+                      {phoneVerified ? '✏️ Edit / Change Mobile' : 'Verify Mobile OTP'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* WhatsApp Number Card */}
               <View style={styles.channelCard}>
-                <Text style={styles.channelLabel}>WHATSAPP NUMBER</Text>
-                <Text style={styles.channelVal}>{whatsapp}</Text>
-                <View style={styles.statusBadgeRow}>
-                  <Ionicons
-                    name={whatsappVerified ? 'checkmark-circle' : 'warning-outline'}
-                    size={14}
-                    color={whatsappVerified ? GREEN : YELLOW}
-                  />
-                  <Text style={[styles.statusBadgeText, { color: whatsappVerified ? GREEN : YELLOW }]}>
-                    {whatsappVerified ? 'Verified' : 'Unverified'}
-                  </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.channelLabel}>WHATSAPP NUMBER</Text>
+                    <Text style={styles.channelVal}>{customWhatsapp || whatsapp || 'Not set'}</Text>
+                    <View style={styles.statusBadgeRow}>
+                      <Ionicons
+                        name={whatsappVerified && !editContactMode.whatsapp ? 'checkmark-circle' : 'warning-outline'}
+                        size={14}
+                        color={whatsappVerified && !editContactMode.whatsapp ? GREEN : YELLOW}
+                      />
+                      <Text style={[styles.statusBadgeText, { color: whatsappVerified && !editContactMode.whatsapp ? GREEN : YELLOW }]}>
+                        {whatsappVerified && !editContactMode.whatsapp ? 'Verified WhatsApp ✓' : editContactMode.whatsapp ? 'Editing WhatsApp Number' : 'Unverified'}
+                      </Text>
+                    </View>
+                  </View>
+                  {whatsappVerified && !editContactMode.whatsapp && (
+                    <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                      <Text style={{ color: '#047857', fontSize: 10, fontWeight: '800' }}>Verified ✓</Text>
+                    </View>
+                  )}
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.verifyOtpBtn, whatsappVerified && styles.verifyOtpBtnDone]}
-                  onPress={() => handleSendOtp('whatsapp')}>
-                  <Text style={[styles.verifyOtpBtnText, whatsappVerified && { color: '#0F172A' }]}>
-                    {whatsappVerified ? 'Edit / Re-verify OTP' : 'Verify WhatsApp OTP'}
-                  </Text>
-                </TouchableOpacity>
+                {editContactMode.whatsapp ? (
+                  <View style={{ gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderColor: '#E3DCCB' }}>
+                    <TextInput
+                      style={styles.urlInput}
+                      placeholder="Enter new WhatsApp number"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="phone-pad"
+                      value={customWhatsapp}
+                      onChangeText={setCustomWhatsapp}
+                    />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.verifyOtpBtn, { flex: 1, marginTop: 0 }]}
+                        onPress={() => handleSendOtp('whatsapp', customWhatsapp || whatsapp)}>
+                        <Text style={[styles.verifyOtpBtnText, { color: '#FFFFFF' }]}>Send OTP & Verify</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#E2E8F0', borderRadius: 9999, justifyContent: 'center' }}
+                        onPress={() => setEditContactMode(prev => ({ ...prev, whatsapp: false }))}>
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '700' }}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.verifyOtpBtn, whatsappVerified && styles.verifyOtpBtnDone]}
+                    onPress={() => {
+                      if (whatsappVerified) {
+                        setEditContactMode(prev => ({ ...prev, whatsapp: true }));
+                        setCustomWhatsapp(whatsapp);
+                      } else {
+                        handleSendOtp('whatsapp');
+                      }
+                    }}>
+                    <Text style={[styles.verifyOtpBtnText, whatsappVerified && { color: '#0F172A' }]}>
+                      {whatsappVerified ? '✏️ Edit / Change WhatsApp' : 'Verify WhatsApp OTP'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Email Address Card */}
               <View style={styles.channelCard}>
-                <Text style={styles.channelLabel}>EMAIL ADDRESS</Text>
-                <Text style={styles.channelVal} numberOfLines={1}>
-                  {email}
-                </Text>
-                <View style={styles.statusBadgeRow}>
-                  <Ionicons
-                    name={emailVerified ? 'checkmark-circle' : 'warning-outline'}
-                    size={14}
-                    color={emailVerified ? GREEN : YELLOW}
-                  />
-                  <Text style={[styles.statusBadgeText, { color: emailVerified ? GREEN : YELLOW }]}>
-                    {emailVerified ? 'Verified' : 'Unverified'}
-                  </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.channelLabel}>EMAIL ADDRESS</Text>
+                    <Text style={styles.channelVal} numberOfLines={1}>
+                      {customEmail || email || 'Not set'}
+                    </Text>
+                    <View style={styles.statusBadgeRow}>
+                      <Ionicons
+                        name={emailVerified && !editContactMode.email ? 'checkmark-circle' : 'warning-outline'}
+                        size={14}
+                        color={emailVerified && !editContactMode.email ? GREEN : YELLOW}
+                      />
+                      <Text style={[styles.statusBadgeText, { color: emailVerified && !editContactMode.email ? GREEN : YELLOW }]}>
+                        {emailVerified && !editContactMode.email ? 'Verified Email ✓' : editContactMode.email ? 'Editing Email Address' : 'Unverified'}
+                      </Text>
+                    </View>
+                  </View>
+                  {emailVerified && !editContactMode.email && (
+                    <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                      <Text style={{ color: '#047857', fontSize: 10, fontWeight: '800' }}>Verified ✓</Text>
+                    </View>
+                  )}
                 </View>
 
-                <TouchableOpacity
-                  style={[styles.verifyOtpBtn, emailVerified && styles.verifyOtpBtnDone]}
-                  onPress={() => handleSendOtp('email')}>
-                  <Text style={[styles.verifyOtpBtnText, emailVerified && { color: '#0F172A' }]}>
-                    {emailVerified ? 'Edit / Re-verify OTP' : 'Verify Email OTP'}
-                  </Text>
-                </TouchableOpacity>
+                {editContactMode.email ? (
+                  <View style={{ gap: 8, marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderColor: '#E3DCCB' }}>
+                    <TextInput
+                      style={styles.urlInput}
+                      placeholder="Enter new email address"
+                      placeholderTextColor="#94A3B8"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      value={customEmail}
+                      onChangeText={setCustomEmail}
+                    />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.verifyOtpBtn, { flex: 1, marginTop: 0 }]}
+                        onPress={() => handleSendOtp('email', customEmail || email)}>
+                        <Text style={[styles.verifyOtpBtnText, { color: '#FFFFFF' }]}>Send OTP & Verify</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#E2E8F0', borderRadius: 9999, justifyContent: 'center' }}
+                        onPress={() => setEditContactMode(prev => ({ ...prev, email: false }))}>
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '700' }}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.verifyOtpBtn, emailVerified && styles.verifyOtpBtnDone]}
+                    onPress={() => {
+                      if (emailVerified) {
+                        setEditContactMode(prev => ({ ...prev, email: true }));
+                        setCustomEmail(email);
+                      } else {
+                        handleSendOtp('email');
+                      }
+                    }}>
+                    <Text style={[styles.verifyOtpBtnText, emailVerified && { color: '#0F172A' }]}>
+                      {emailVerified ? '✏️ Edit / Change Email' : 'Verify Email OTP'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Business Website Card */}
@@ -691,7 +1033,7 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Verify {otpModalChannel?.toUpperCase()} OTP</Text>
               <TouchableOpacity onPress={() => setOtpModalChannel(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
 
@@ -702,7 +1044,7 @@ export default function VendorVerificationCenterScreen() {
             <TextInput
               style={styles.input}
               placeholder="Enter 6-digit OTP (e.g. 123456)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               keyboardType="number-pad"
               value={otpInput}
               onChangeText={setOtpInput}
@@ -711,7 +1053,7 @@ export default function VendorVerificationCenterScreen() {
 
             <TouchableOpacity style={styles.confirmModalBtn} onPress={handleVerifyOtp} disabled={verifyingOtp}>
               {verifyingOtp ? (
-                <ActivityIndicator color={BLACK} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.confirmModalBtnText}>VERIFY OTP CODE</Text>
               )}
@@ -726,37 +1068,78 @@ export default function VendorVerificationCenterScreen() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Aadhaar Card Verification</Text>
-              <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+              <TouchableOpacity onPress={() => { setActiveModal(null); setShowAadhaarOtp(false); }}>
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
+
             <TextInput
               style={styles.input}
               placeholder="Enter 12-digit Aadhaar Number"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               keyboardType="number-pad"
               value={aadhaarNum}
               onChangeText={setAadhaarNum}
               maxLength={12}
             />
+
+            {!showAadhaarOtp ? (
+              <TouchableOpacity
+                style={[styles.confirmModalBtn, { backgroundColor: GOLD, marginBottom: 8 }]}
+                onPress={handleInitiateAadhaar}
+                disabled={initiatingAadhaar}>
+                {initiatingAadhaar ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.confirmModalBtnText}>⚡ INITIATE INSTANT AADHAAR OTP</Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={{ gap: 8, marginVertical: 4 }}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter 6-digit Aadhaar OTP"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="number-pad"
+                  value={aadhaarOtp}
+                  onChangeText={setAadhaarOtp}
+                  maxLength={6}
+                />
+                <TouchableOpacity
+                  style={[styles.confirmModalBtn, { backgroundColor: GREEN }]}
+                  onPress={handleVerifyAadhaarOtp}
+                  disabled={verifyingAadhaarOtp}>
+                  {verifyingAadhaarOtp ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={styles.confirmModalBtnText}>VERIFY AADHAAR OTP</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <Text style={{ fontSize: 11, color: '#64748B', textAlign: 'center', marginVertical: 4 }}>
+              — OR UPLOAD AADHAAR DOCUMENT COPIES —
+            </Text>
+
             <TextInput
               style={styles.input}
               placeholder="Front Document Image URL (Optional)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={aadhaarFront}
               onChangeText={setAadhaarFront}
             />
             <TextInput
               style={styles.input}
               placeholder="Back Document Image URL (Optional)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={aadhaarBack}
               onChangeText={setAadhaarBack}
             />
             <TouchableOpacity
-              style={styles.confirmModalBtn}
+              style={[styles.confirmModalBtn, { backgroundColor: ESPRESSO }]}
               onPress={() => handleGenericDocSubmit('aadhaar', aadhaarNum, aadhaarFront, aadhaarBack)}>
-              <Text style={styles.confirmModalBtnText}>SUBMIT AADHAAR FOR VERIFICATION</Text>
+              <Text style={styles.confirmModalBtnText}>SUBMIT DOCUMENT MANUALLY</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -769,13 +1152,13 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>PAN Card Verification</Text>
               <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Enter 10-digit PAN (e.g. ABCDE1234F)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={panInput}
               onChangeText={setPanInput}
               autoCapitalize="characters"
@@ -784,10 +1167,30 @@ export default function VendorVerificationCenterScreen() {
             <TextInput
               style={styles.input}
               placeholder="PAN Card Photo URL (Optional)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={panFront}
               onChangeText={setPanFront}
             />
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+                gap: 6
+              }}
+              onPress={() => handlePickDocumentImage(setPanFront)}>
+              <Ionicons name="camera-outline" size={18} color="#0F172A" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {panFront ? '✓ Photo Selected (Tap to Change)' : '📷 Upload / Select PAN Photo'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={handleVerifyPan}>
@@ -804,13 +1207,13 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>GSTIN Tax Verification</Text>
               <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Enter 15-digit GSTIN (e.g. 22AAAAA0000A1Z5)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={gstinInput}
               onChangeText={setGstinInput}
               autoCapitalize="characters"
@@ -819,10 +1222,30 @@ export default function VendorVerificationCenterScreen() {
             <TextInput
               style={styles.input}
               placeholder="GST Certificate Image/PDF URL (Optional)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={gstFile}
               onChangeText={setGstFile}
             />
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+                gap: 6
+              }}
+              onPress={() => handlePickDocumentImage(setGstFile)}>
+              <Ionicons name="document-text-outline" size={18} color="#0F172A" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {gstFile ? '✓ Document Selected (Tap to Change)' : '📷 Upload GST Image / PDF'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={handleVerifyGstin}>
@@ -839,23 +1262,43 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Shop License Verification</Text>
               <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Shop License Registration Number"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={shopLicenseNum}
               onChangeText={setShopLicenseNum}
             />
             <TextInput
               style={styles.input}
               placeholder="License File/Image URL"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={shopLicenseFile}
               onChangeText={setShopLicenseFile}
             />
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+                gap: 6
+              }}
+              onPress={() => handlePickDocumentImage(setShopLicenseFile)}>
+              <Ionicons name="document-attach-outline" size={18} color="#0F172A" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {shopLicenseFile ? '✓ Document Selected (Tap to Change)' : '📷 Upload License File / Photo'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={() => handleGenericDocSubmit('shopLicense', shopLicenseNum, shopLicenseFile)}>
@@ -872,13 +1315,13 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>MSME / Udyam Registration</Text>
               <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Udyam Registration Number (e.g. UDYAM-XX-00-0000000)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={udyamNum}
               onChangeText={setUdyamNum}
               autoCapitalize="characters"
@@ -886,10 +1329,30 @@ export default function VendorVerificationCenterScreen() {
             <TextInput
               style={styles.input}
               placeholder="Udyam Certificate Image/PDF URL"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={udyamFile}
               onChangeText={setUdyamFile}
             />
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+                gap: 6
+              }}
+              onPress={() => handlePickDocumentImage(setUdyamFile)}>
+              <Ionicons name="document-outline" size={18} color="#0F172A" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {udyamFile ? '✓ Certificate Selected (Tap to Change)' : '📷 Upload Udyam Certificate'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={() => handleGenericDocSubmit('udyamRegistration', udyamNum, udyamFile)}>
@@ -906,30 +1369,50 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Custom Document Submission</Text>
               <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Document Name (e.g. Trade License)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={customDocName}
               onChangeText={setCustomDocName}
             />
             <TextInput
               style={styles.input}
               placeholder="Document / License Number"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={customDocNum}
               onChangeText={setCustomDocNum}
             />
             <TextInput
               style={styles.input}
               placeholder="Document File/Image URL"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={customDocFile}
               onChangeText={setCustomDocFile}
             />
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+                gap: 6
+              }}
+              onPress={() => handlePickDocumentImage(setCustomDocFile)}>
+              <Ionicons name="folder-open-outline" size={18} color="#0F172A" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {customDocFile ? '✓ Document Selected (Tap to Change)' : '📷 Upload Document File'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={() => handleGenericDocSubmit('custom', customDocNum, customDocFile, undefined, customDocName)}>
@@ -946,20 +1429,20 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Link Bank Account</Text>
               <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Account Holder Name"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={bankHolder}
               onChangeText={setBankHolder}
             />
             <TextInput
               style={styles.input}
               placeholder="Bank Account Number"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               keyboardType="number-pad"
               value={bankAccount}
               onChangeText={setBankAccount}
@@ -967,7 +1450,7 @@ export default function VendorVerificationCenterScreen() {
             <TextInput
               style={styles.input}
               placeholder="IFSC Code (e.g. SBIN0001234)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={bankIfsc}
               onChangeText={setBankIfsc}
               autoCapitalize="characters"
@@ -975,16 +1458,36 @@ export default function VendorVerificationCenterScreen() {
             <TextInput
               style={styles.input}
               placeholder="Cheque / Statement Image URL (Optional)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={statementFile}
               onChangeText={setStatementFile}
             />
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+                gap: 6
+              }}
+              onPress={() => handlePickDocumentImage(setStatementFile)}>
+              <Ionicons name="card-outline" size={18} color="#0F172A" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {statementFile ? '✓ Cheque Selected (Tap to Change)' : '📷 Upload Cancelled Cheque / Passbook'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={handleVerifyBank}
               disabled={verifyBankMutation.isPending}>
               {verifyBankMutation.isPending ? (
-                <ActivityIndicator color={BLACK} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.confirmModalBtnText}>LINK BANK ACCOUNT</Text>
               )}
@@ -1000,13 +1503,13 @@ export default function VendorVerificationCenterScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Link UPI VPA ID</Text>
               <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color="#0F172A" />
               </TouchableOpacity>
             </View>
             <TextInput
               style={styles.input}
               placeholder="Enter UPI VPA ID (e.g. name@upi)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={upiInput}
               onChangeText={setUpiInput}
               autoCapitalize="none"
@@ -1014,16 +1517,36 @@ export default function VendorVerificationCenterScreen() {
             <TextInput
               style={styles.input}
               placeholder="UPI QR Code Image URL (Optional)"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="#94A3B8"
               value={qrCodeFile}
               onChangeText={setQrCodeFile}
             />
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#F1F5F9',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#CBD5E1',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+                gap: 6
+              }}
+              onPress={() => handlePickDocumentImage(setQrCodeFile)}>
+              <Ionicons name="qr-code-outline" size={18} color="#0F172A" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                {qrCodeFile ? '✓ QR Code Selected (Tap to Change)' : '📷 Upload UPI QR Code Image'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.confirmModalBtn}
               onPress={handleVerifyUpi}
               disabled={verifyUpiMutation.isPending}>
               {verifyUpiMutation.isPending ? (
-                <ActivityIndicator color={BLACK} />
+                <ActivityIndicator color="#FFFFFF" />
               ) : (
                 <Text style={styles.confirmModalBtnText}>VERIFY UPI VPA</Text>
               )}
@@ -1083,13 +1606,27 @@ const styles = StyleSheet.create({
 
   // Hero Banner
   heroBanner: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#241B15',
+    borderRadius: 20,
     padding: Spacing.four,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderWidth: 2,
+    borderColor: '#241B15',
     gap: 12,
-    ...Shadows.sm,
+    ...Shadows.md,
+  },
+  tierBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tierIconText: {
+    fontSize: 16,
+  },
+  tierLabelText: {
+    color: '#D99A3D',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
   },
   heroHeaderRow: {
     flexDirection: 'row',
@@ -1098,22 +1635,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   heroTitle: {
-    color: '#0F172A',
-    fontSize: FontSize.md,
+    color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   heroSub: {
-    color: '#64748B',
-    fontSize: FontSize.xs,
-    marginTop: 4,
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 2,
     lineHeight: 16,
   },
   progressCircleContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#FFFBEB',
+    backgroundColor: '#1A1410',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -1125,56 +1662,124 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   progressReadyText: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 8,
     fontWeight: FontWeight.bold,
   },
+  stepProgressText: {
+    color: '#D99A3D',
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 2,
+    textAlign: 'center',
+  },
   noticeBox: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFBEB',
-    borderRadius: 12,
-    padding: 10,
-    gap: 8,
+    alignItems: 'center',
+    backgroundColor: '#F8F4EC',
+    borderRadius: 16,
+    padding: 12,
+    gap: 10,
     borderWidth: 1,
-    borderColor: '#D99A3D',
+    borderColor: '#E3DCCB',
+  },
+  noticeIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#241B15',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   noticeText: {
-    color: '#0F172A',
+    color: '#1A1A1A',
     fontSize: 11,
     flex: 1,
     lineHeight: 16,
   },
 
-  // Tabs Row
+  // Tabs Row & Step Chips
   tabsRowScroll: {
     flexDirection: 'row',
-    gap: 8,
-    paddingVertical: 4,
+    gap: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
   },
   tabBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 9999,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#F8F4EC',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#E3DCCB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
   },
   tabBtnActive: {
     backgroundColor: '#241B15',
     borderColor: '#D99A3D',
+    borderWidth: 2,
+    shadowColor: '#D99A3D',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepNumBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#E2D9C8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumBadgeActive: {
+    backgroundColor: '#D99A3D',
+  },
+  stepNumText: {
+    color: '#475569',
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
+  },
+  stepNumTextActive: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: FontWeight.bold,
   },
   tabBtnText: {
-    color: '#64748B',
-    fontSize: 10,
+    color: '#334155',
+    fontSize: 13,
     fontWeight: FontWeight.bold,
   },
   tabBtnTextActive: {
-    color: '#D99A3D',
+    color: '#FFFFFF',
+    fontWeight: FontWeight.bold,
+  },
+  doneBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  doneBadgeActive: {
+    backgroundColor: '#10B981',
+  },
+  doneBadgeText: {
+    color: '#047857',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
+  },
+  doneBadgeTextActive: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: FontWeight.bold,
   },
 
   // Tab Section
@@ -1363,7 +1968,7 @@ const styles = StyleSheet.create({
     borderColor: '#D99A3D',
   },
   confirmModalBtnText: {
-    color: '#D99A3D',
+    color: '#FFFFFF',
     fontSize: FontSize.xs,
     fontWeight: FontWeight.bold,
   },

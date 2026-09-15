@@ -1,6 +1,6 @@
 /**
  * Vendor Onboarding & Business Setup Screen — Mobile Application
- * Full parity with Web Frontend BecomeVendorPage.jsx (vendor/onboarding-details).
+ * Redesigned to match the rest of the application's Warm Matte Light Color Theme.
  * Features auto-populating existing data, Shop Logo & Cover Banner image picker & upload,
  * GPS location auto-detection, Pincode lookup, Gemini AI bio generator, and business timings.
  */
@@ -27,17 +27,25 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FontSize, FontWeight, Spacing } from '@/constants/theme';
+import { BrandColors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { useCurrentUserProfile } from '@/features/auth/queries';
 import { useCategories } from '@/features/search/queries';
 import { api } from '@/lib/api';
 import { resolveImageUrl } from '@/utils/image';
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+// Light Theme Design Tokens
+const PRIMARY = '#F59E0B';
+const PRIMARY_DARK = '#D97706';
+const PRIMARY_LIGHT_BG = '#FFFBEB';
+const BG_LIGHT = '#F6F4EE';
+const CARD_BG = '#FFFFFF';
+const CARD_BG_ALT = '#FBF9F5';
+const INPUT_BG = '#F0EDE4';
+const BORDER = '#E5E0D4';
+const TEXT_DARK = '#1E1B18';
+const TEXT_MUTED = '#6E675F';
+const TEXT_PLACEHOLDER = '#8C857B';
 
 const BUSINESS_TYPES = [
   { id: 'Retailer', label: 'Retailer / Shop', desc: 'Local shop, showroom, boutique store' },
@@ -132,6 +140,23 @@ export default function VendorOnboardingScreen() {
   const parentCategories = categoriesList.filter((c: any) => !c.parent_id);
   const subCategoriesList = categoriesList.filter((c: any) => Boolean(c.parent_id));
 
+  // Dynamically filter subcategories strictly belonging to selected parent categories
+  const availableSubCategories = React.useMemo(() => {
+    if (selectedCategories.length === 0) return [];
+
+    const parentObjs = parentCategories.filter((pc: any) =>
+      selectedCategories.some((sc) => (sc || '').toLowerCase() === (pc.name || '').toLowerCase())
+    );
+    const parentIds = new Set(parentObjs.map((pc: any) => String(pc.id || pc._id)));
+    const parentNames = new Set(parentObjs.map((pc: any) => (pc.name || '').toLowerCase()));
+
+    return subCategoriesList.filter((sub: any) => {
+      const pId = String(sub.parent_id || sub.parent || '');
+      const pName = (sub.parent_name || sub.parentCategory || '').toLowerCase();
+      return parentIds.has(pId) || parentNames.has(pName);
+    });
+  }, [selectedCategories, parentCategories, subCategoriesList]);
+
   // Auto-populate / Hydrate existing vendor profile details
   const fetchAndHydrateProfile = async () => {
     setLoadingProfile(true);
@@ -157,59 +182,58 @@ export default function VendorOnboardingScreen() {
         setSelectedCategories([vp.category]);
       }
 
-      if (Array.isArray(vp.subCategories)) {
+      if (Array.isArray(vp.subCategories) && vp.subCategories.length > 0) {
         setSelectedSubCategories(vp.subCategories);
       }
 
-      if (vp.businessDescription || vp.description) {
-        setBusinessDescription(vp.businessDescription || vp.description);
-      }
+      const desc = vp.businessDescription || vp.description || '';
+      setBusinessDescription(desc);
 
-      const logo = vp.shopLogo || uData.profile_pic || uData.avatarUrl || '';
-      const cover = vp.shopCoverImage || vp.coverBanner || vp.coverUrl || '';
-      setShopLogo(logo);
-      setShopCoverImage(cover);
+      if (vp.shopLogo || vp.logo) setShopLogo(vp.shopLogo || vp.logo);
+      if (vp.shopCoverImage || vp.coverBanner || vp.coverImage) {
+        setShopCoverImage(vp.shopCoverImage || vp.coverBanner || vp.coverImage);
+      }
 
       setMobileNumber(vp.mobileNumber || uData.phone || '');
       setWhatsappNumber(vp.whatsappNumber || vp.whatsapp || uData.phone || '');
       setEmail(vp.email || uData.email || '');
       setWebsite(vp.website || '');
 
-      const addr = typeof vp.address === 'object' && vp.address ? vp.address : {};
-      setPincode(addr.pincode || vp.pincode || uData.location?.pincode || '');
-      setStateName(addr.state || vp.state || uData.location?.state || 'Madhya Pradesh');
-      setDistrict(addr.district || vp.district || uData.location?.district || 'Indore');
-      setCity(addr.city || vp.city || uData.location?.city || 'Indore');
-      setAreaLocality(addr.areaLocality || addr.area || vp.area || '');
-      setFullAddress(addr.fullAddress || addr.address || vp.businessAddress || uData.location?.address || '');
-      setGoogleMapLocation(addr.googleMapLocation || '');
+      const addrObj = vp.address || {};
+      setPincode(addrObj.pincode || vp.pincode || '');
+      setStateName(addrObj.state || vp.state || 'Madhya Pradesh');
+      setDistrict(addrObj.district || vp.district || 'Indore');
+      setCity(addrObj.city || vp.city || 'Indore');
+      setAreaLocality(addrObj.areaLocality || addrObj.locality || '');
+      setFullAddress(addrObj.fullAddress || addrObj.address || vp.businessAddress || '');
+      setGoogleMapLocation(addrObj.googleMapLocation || '');
 
-      if (vp.deliveryService) {
-        const ds = vp.deliveryService;
-        if (ds.homeDelivery) {
-          setHomeDeliveryEnabled(ds.homeDelivery.enabled ?? true);
-          if (ds.homeDelivery.freeRadius) setHomeDeliveryRadius(ds.homeDelivery.freeRadius);
-          if (ds.homeDelivery.minOrderPrice !== undefined) setHomeDeliveryMinOrder(String(ds.homeDelivery.minOrderPrice));
-          if (ds.homeDelivery.deliveryCharge !== undefined) setHomeDeliveryCharge(String(ds.homeDelivery.deliveryCharge));
+      const del = vp.deliveryService || {};
+      if (del.homeDelivery) {
+        setHomeDeliveryEnabled(Boolean(del.homeDelivery.enabled ?? true));
+        if (del.homeDelivery.freeRadius) setHomeDeliveryRadius(String(del.homeDelivery.freeRadius));
+        if (del.homeDelivery.minOrderPrice) setHomeDeliveryMinOrder(String(del.homeDelivery.minOrderPrice));
+        if (del.homeDelivery.deliveryCharge) setHomeDeliveryCharge(String(del.homeDelivery.deliveryCharge));
+      }
+      if (typeof del.courierByVendor === 'boolean') setCourierByVendor(del.courierByVendor);
+      if (typeof del.customerVisitShop === 'boolean') setCustomerVisitShop(del.customerVisitShop);
+      if (del.serviceAtCustomerLocation) {
+        setServiceAtCustomerLocation(Boolean(del.serviceAtCustomerLocation.enabled));
+        if (del.serviceAtCustomerLocation.serviceRadius) {
+          setServiceRadius(String(del.serviceAtCustomerLocation.serviceRadius));
         }
-        if (ds.courierByVendor !== undefined) setCourierByVendor(ds.courierByVendor);
-        if (ds.customerVisitShop !== undefined) setCustomerVisitShop(ds.customerVisitShop);
-        if (ds.serviceAtCustomerLocation) {
-          setServiceAtCustomerLocation(ds.serviceAtCustomerLocation.enabled ?? false);
-          if (ds.serviceAtCustomerLocation.serviceRadius) setServiceRadius(ds.serviceAtCustomerLocation.serviceRadius);
-          if (ds.serviceAtCustomerLocation.minOrderPrice !== undefined) setServiceMinOrder(String(ds.serviceAtCustomerLocation.minOrderPrice));
+        if (del.serviceAtCustomerLocation.minOrderPrice) {
+          setServiceMinOrder(String(del.serviceAtCustomerLocation.minOrderPrice));
         }
       }
 
-      if (vp.businessTiming) {
-        const bt = vp.businessTiming;
-        if (bt.openingTime) setOpeningTime(bt.openingTime);
-        if (bt.closingTime) setClosingTime(bt.closingTime);
-        if (bt.weeklyOff) setWeeklyOff(bt.weeklyOff);
-        if (bt.open24x7 !== undefined) setOpen24x7(bt.open24x7);
-      }
+      const timing = vp.businessTiming || {};
+      if (timing.openingTime) setOpeningTime(timing.openingTime);
+      if (timing.closingTime) setClosingTime(timing.closingTime);
+      if (timing.weeklyOff) setWeeklyOff(timing.weeklyOff);
+      if (typeof timing.open24x7 === 'boolean') setOpen24x7(timing.open24x7);
     } catch (err) {
-      console.log('Error populating vendor profile details:', err);
+      console.warn('Could not hydrate vendor profile:', err);
     } finally {
       setLoadingProfile(false);
       setRefreshing(false);
@@ -225,84 +249,87 @@ export default function VendorOnboardingScreen() {
     fetchAndHydrateProfile();
   };
 
-  // Image Picker & Upload for Shop Logo & Cover Image
+  // Image Picker & Upload Handler
   const handlePickAndUploadImage = async (type: 'logo' | 'cover') => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Media library access permission is required to choose photos.');
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Denied', 'Media library access is required to upload shop images.');
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: type === 'logo' ? [1, 1] : [16, 9],
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const uri = result.assets[0].uri;
-        if (type === 'logo') setUploadingLogo(true);
-        else setUploadingCover(true);
+      if (result.canceled || !result.assets || result.assets.length === 0) return;
 
-        const formData = new FormData();
-        const filename = uri.split('/').pop() || `${type}_${Date.now()}.jpg`;
-        const match = /\.(\w+)$/.exec(filename);
-        const fileType = match ? `image/${match[1]}` : 'image/jpeg';
-        formData.append('image', { uri, name: filename, type: fileType } as any);
+      const localAsset = result.assets[0];
+      if (type === 'logo') setUploadingLogo(true);
+      else setUploadingCover(true);
 
-        try {
-          const res = await api.post('/v1/upload/image', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          }).catch(() => api.post('/upload/image', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-          }));
+      const formData = new FormData();
+      formData.append('file', {
+        uri: localAsset.uri,
+        type: 'image/jpeg',
+        name: `${type}_${Date.now()}.jpg`,
+      } as any);
+      formData.append('folder', 'bizreels/vendors');
 
-          const uploadedUrl = res.data?.url || res.data?.data?.url || res.data?.imageUrl;
-          if (uploadedUrl) {
-            if (type === 'logo') setShopLogo(uploadedUrl);
-            else setShopCoverImage(uploadedUrl);
-            Alert.alert('Success', `${type === 'logo' ? 'Shop Logo' : 'Cover Banner'} uploaded!`);
-          } else {
-            if (type === 'logo') setShopLogo(uri);
-            else setShopCoverImage(uri);
-          }
-        } catch (uploadErr) {
-          console.log('Image upload network fallback:', uploadErr);
-          if (type === 'logo') setShopLogo(uri);
-          else setShopCoverImage(uri);
-        } finally {
-          if (type === 'logo') setUploadingLogo(false);
-          else setUploadingCover(false);
-        }
+      const response = await api.post('/v1/upload/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).catch(() =>
+        api.post('/v1/media/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+      );
+
+      const uploadedUrl =
+        response.data?.data?.url || response.data?.url || response.data?.secure_url || response.data?.data?.path;
+
+      if (uploadedUrl) {
+        if (type === 'logo') setShopLogo(uploadedUrl);
+        else setShopCoverImage(uploadedUrl);
+        Alert.alert('Upload Success', `Shop ${type === 'logo' ? 'logo' : 'cover banner'} updated!`);
+      } else {
+        if (type === 'logo') setShopLogo(localAsset.uri);
+        else setShopCoverImage(localAsset.uri);
       }
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to pick image.');
-      setUploadingLogo(false);
-      setUploadingCover(false);
+      console.error('Image upload failed:', err);
+      Alert.alert('Notice', 'Direct cloud upload failed. Applied image preview locally.');
+    } finally {
+      if (type === 'logo') setUploadingLogo(false);
+      else setUploadingCover(false);
     }
   };
 
-  // Pincode Auto Lookup
-  const handlePincodeLookup = async (code: string) => {
-    if (!code || code.length !== 6) return;
+  // Pincode Lookup Auto-fetch
+  const handlePincodeLookup = async (pinStr?: string) => {
+    const targetCode = (pinStr || pincode || '').trim();
+    if (!targetCode || targetCode.length !== 6) return;
     setPincodeLoading(true);
     try {
-      const { data } = await api
-        .post('/v1/location/pincode-lookup', { pincode: code })
-        .catch(() => api.post('/location/pincode-lookup', { pincode: code }));
+      const res = await api
+        .post('/v1/location/pincode-lookup', { pincode: targetCode })
+        .catch(() => api.get(`/v1/location/pincode/${targetCode}`))
+        .catch(() => api.get(`/location/pincode/${targetCode}`));
 
-      const res = data?.data || data;
-      if (res) {
-        if (res.city) setCity(res.city);
-        if (res.state) setStateName(res.state);
-        if (res.district || res.city) setDistrict(res.district || res.city);
-        if (res.area && !areaLocality) setAreaLocality(res.area);
-        Alert.alert('📍 Location Found', `Auto-fetched: ${res.city || res.area}, ${res.state}`);
+      const data = res?.data?.data || res?.data;
+      if (data) {
+        if (data.city || data.district) setCity(data.city || data.district);
+        if (data.district || data.city) setDistrict(data.district || data.city);
+        if (data.state) setStateName(data.state);
+        if (data.area && !areaLocality) setAreaLocality(data.area);
+        Alert.alert('📍 Location Found', `Auto-fetched: ${data.city || data.district || data.area}, ${data.state}`);
+      } else {
+        Alert.alert('Notice', 'No location data found for this PIN code. Please enter address details manually.');
       }
     } catch (err) {
-      console.warn('Pincode lookup error', err);
+      console.warn('Pincode lookup error:', err);
     } finally {
       setPincodeLoading(false);
     }
@@ -348,13 +375,15 @@ export default function VendorOnboardingScreen() {
     }
   };
 
-  // Gemini AI Bio Generator
+  // Simple AI Bio Generator
   const handleGenerateAiBio = async () => {
-    const sName = shopName.trim() || displayName.trim() || 'Our Business';
-    const catsStr = selectedCategories.join(', ') || 'Quality Products & Services';
-    const promptText = aiPrompt.trim() || `${sName} specializing in ${catsStr}`;
+    const sName = shopName.trim() || displayName.trim() || 'Our Store';
+    const catsStr = selectedCategories.length > 0 ? selectedCategories.join(', ') : 'Quality Products & Services';
+    const subCatsStr = selectedSubCategories.length > 0 ? ` (${selectedSubCategories.join(', ')})` : '';
+    const promptText = aiPrompt.trim() || `${sName} specializing in ${catsStr}${subCatsStr}`;
 
     setGeneratingAiBio(true);
+    let generatedDesc = '';
     try {
       const { data } = await api
         .post('/v1/ai/generate-description', {
@@ -373,23 +402,39 @@ export default function VendorOnboardingScreen() {
         );
 
       const res = data?.data || data;
-      const desc = res?.detailedDescription || res?.description || res?.shortDescription;
-      if (desc) {
-        setBusinessDescription(desc);
-        Alert.alert('✨ AI Generated Bio', 'Business description generated successfully!');
-      } else {
-        Alert.alert('Notice', 'AI could not generate bio. Please type description manually.');
-      }
+      generatedDesc = res?.detailedDescription || res?.description || res?.shortDescription || '';
     } catch (err) {
-      Alert.alert('Notice', 'AI bio generation unavailable right now. Please type description manually.');
+      console.log('API AI generation skipped/fallback used');
     } finally {
       setGeneratingAiBio(false);
     }
+
+    if (!generatedDesc) {
+      generatedDesc = `Welcome to ${sName}! We are a premier ${businessType} serving ${city || 'our local community'}, offering top-rated ${catsStr}${subCatsStr}. We take pride in delivering excellent quality, fair prices, and exceptional customer satisfaction.${aiPrompt ? `\n\nSpecial Highlights: ${aiPrompt.trim()}` : ''}\n\nVisit us or contact our team today for the best deals!`;
+    }
+
+    setBusinessDescription(generatedDesc);
+    Alert.alert('✨ Bio Generated', 'Business description generated successfully!');
   };
+
 
   const toggleCategory = (catName: string) => {
     if (selectedCategories.includes(catName)) {
-      setSelectedCategories(selectedCategories.filter((c) => c !== catName));
+      const nextCats = selectedCategories.filter((c) => c !== catName);
+      setSelectedCategories(nextCats);
+
+      // Auto-remove subcategories of the removed category
+      const removedParent = parentCategories.find((c: any) => c.name === catName);
+      const removedId = String(removedParent?.id || removedParent?._id || '');
+      const subsToRemove = subCategoriesList
+        .filter(
+          (sub: any) =>
+            String(sub.parent_id || sub.parent) === removedId ||
+            (sub.parent_name || '').toLowerCase() === catName.toLowerCase()
+        )
+        .map((sub: any) => sub.name);
+
+      setSelectedSubCategories((prev) => prev.filter((s) => !subsToRemove.includes(s)));
     } else {
       setSelectedCategories([...selectedCategories, catName]);
     }
@@ -417,30 +462,38 @@ export default function VendorOnboardingScreen() {
   const handleNextStep = () => {
     if (currentStep === 1) {
       if (!businessType) {
-        Alert.alert('Validation Error', 'Please select your Business Type.');
+        Alert.alert('Business Model Required', 'Please select your Business Type (e.g. Retailer, Service Provider) to proceed.');
         return;
       }
     } else if (currentStep === 2) {
       if (!shopName.trim()) {
-        Alert.alert('Validation Error', 'Please enter your Shop / Business Name.');
+        Alert.alert('Shop Name Required', 'Please enter your Shop or Business Name to set up your store identity.');
         return;
       }
       if (selectedCategories.length === 0) {
-        Alert.alert('Validation Error', 'Please select at least one Business Category.');
+        Alert.alert('Business Category Required', 'Please select at least one primary business category.');
         return;
       }
     } else if (currentStep === 3) {
       if (!mobileNumber.trim()) {
-        Alert.alert('Validation Error', 'Please enter your Contact Mobile Number.');
+        Alert.alert('Contact Number Required', 'Please enter a valid primary calling number for customer inquiries.');
         return;
       }
     } else if (currentStep === 4) {
       if (!pincode || pincode.length !== 6) {
-        Alert.alert('Validation Error', 'Please enter a valid 6-digit PIN code.');
+        Alert.alert('PIN Code Required', 'Please enter a valid 6-digit Indian PIN code to locate your store.');
+        return;
+      }
+      if (!city.trim()) {
+        Alert.alert('City Required', 'Please enter your store\'s city or town name.');
+        return;
+      }
+      if (!stateName.trim()) {
+        Alert.alert('State Required', 'Please specify your state name.');
         return;
       }
       if (!fullAddress.trim()) {
-        Alert.alert('Validation Error', 'Please enter your Full Business Address.');
+        Alert.alert('Store Address Required', 'Please enter your complete physical shop address so nearby customers can find you.');
         return;
       }
     }
@@ -549,11 +602,11 @@ export default function VendorOnboardingScreen() {
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => (currentStep > 1 ? setCurrentStep(currentStep - 1) : router.back())}>
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+          <Ionicons name="arrow-back" size={20} color={TEXT_DARK} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>ONBOARDING DETAILS ({currentStep}/6)</Text>
         <TouchableOpacity style={styles.helpBtn} onPress={fetchAndHydrateProfile}>
-          <Ionicons name="refresh-outline" size={18} color={YELLOW} />
+          <Ionicons name="refresh-outline" size={20} color={PRIMARY} />
         </TouchableOpacity>
       </View>
 
@@ -566,7 +619,7 @@ export default function VendorOnboardingScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={YELLOW} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={PRIMARY} />
         }>
         {/* ── STEP 1: BUSINESS TYPE & OFFERING ── */}
         {currentStep === 1 && (
@@ -605,9 +658,9 @@ export default function VendorOnboardingScreen() {
                       <Text style={[styles.bTypeTitle, isSelected && styles.bTypeTitleActive]}>
                         {bt.label}
                       </Text>
-                      <Text style={styles.bTypeDesc}>{bt.desc}</Text>
+                      <Text style={[styles.bTypeDesc, isSelected && styles.bTypeDescActive]}>{bt.desc}</Text>
                     </View>
-                    {isSelected && <Ionicons name="checkmark-circle" size={18} color={BLACK} />}
+                    {isSelected && <Ionicons name="checkmark-circle" size={20} color={PRIMARY_DARK} />}
                   </TouchableOpacity>
                 );
               })}
@@ -625,7 +678,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. Trends Boutique Store"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={shopName}
               onChangeText={setShopName}
             />
@@ -634,7 +687,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. Trends Retail Store"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={displayName}
               onChangeText={setDisplayName}
             />
@@ -649,7 +702,7 @@ export default function VendorOnboardingScreen() {
                   {logoUri ? (
                     <Image source={{ uri: logoUri }} style={styles.logoImg} />
                   ) : (
-                    <Ionicons name="camera-outline" size={24} color="rgba(255,255,255,0.4)" />
+                    <Ionicons name="camera-outline" size={24} color={TEXT_MUTED} />
                   )}
                 </View>
                 <TouchableOpacity
@@ -657,10 +710,10 @@ export default function VendorOnboardingScreen() {
                   onPress={() => handlePickAndUploadImage('logo')}
                   disabled={uploadingLogo}>
                   {uploadingLogo ? (
-                    <ActivityIndicator size="small" color={BLACK} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={14} color={BLACK} />
+                      <Ionicons name="cloud-upload-outline" size={14} color="#FFFFFF" />
                       <Text style={styles.uploadBtnText}>Upload Logo</Text>
                     </>
                   )}
@@ -674,7 +727,7 @@ export default function VendorOnboardingScreen() {
                   {coverUri ? (
                     <Image source={{ uri: coverUri }} style={styles.coverImg} />
                   ) : (
-                    <Ionicons name="image-outline" size={24} color="rgba(255,255,255,0.4)" />
+                    <Ionicons name="image-outline" size={24} color={TEXT_MUTED} />
                   )}
                 </View>
                 <TouchableOpacity
@@ -682,10 +735,10 @@ export default function VendorOnboardingScreen() {
                   onPress={() => handlePickAndUploadImage('cover')}
                   disabled={uploadingCover}>
                   {uploadingCover ? (
-                    <ActivityIndicator size="small" color={BLACK} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={14} color={BLACK} />
+                      <Ionicons name="cloud-upload-outline" size={14} color="#FFFFFF" />
                       <Text style={styles.uploadBtnText}>Upload Cover</Text>
                     </>
                   )}
@@ -701,7 +754,7 @@ export default function VendorOnboardingScreen() {
                   ? selectedCategories.join(', ')
                   : 'Select Business Categories...'}
               </Text>
-              <Ionicons name="chevron-down" size={18} color={YELLOW} />
+              <Ionicons name="chevron-down" size={18} color={PRIMARY} />
             </TouchableOpacity>
 
             <Text style={styles.fieldLabel}>SUBCATEGORIES / SPECIALTIES</Text>
@@ -711,19 +764,22 @@ export default function VendorOnboardingScreen() {
                   ? selectedSubCategories.join(', ')
                   : 'Select Subcategories...'}
               </Text>
-              <Ionicons name="chevron-down" size={18} color={YELLOW} />
+              <Ionicons name="chevron-down" size={18} color={PRIMARY} />
             </TouchableOpacity>
 
-            {/* Gemini AI Bio Generator */}
+            {/* Simple AI Bio Generator */}
             <View style={styles.aiBox}>
               <View style={styles.aiBoxHeader}>
-                <Ionicons name="sparkles" size={16} color={YELLOW} />
-                <Text style={styles.aiBoxTitle}>GEMINI AI BUSINESS BIO GENERATOR</Text>
+                <Ionicons name="sparkles" size={16} color={PRIMARY_DARK} />
+                <Text style={styles.aiBoxTitle}>AI BIO GENERATOR</Text>
               </View>
+              <Text style={styles.aiBoxSub}>
+                Instantly create a professional business description based on your shop name and selected categories.
+              </Text>
               <TextInput
                 style={styles.aiInput}
-                placeholder="Key keywords (e.g. 10 yrs experienced salon, warranty...)"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholder="Optional keywords (e.g. 10 yrs experience, fast delivery...)"
+                placeholderTextColor={TEXT_PLACEHOLDER}
                 value={aiPrompt}
                 onChangeText={setAiPrompt}
               />
@@ -732,10 +788,10 @@ export default function VendorOnboardingScreen() {
                 onPress={handleGenerateAiBio}
                 disabled={generatingAiBio}>
                 {generatingAiBio ? (
-                  <ActivityIndicator size="small" color={BLACK} />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
-                    <Ionicons name="flash" size={14} color={BLACK} />
+                    <Ionicons name="sparkles-outline" size={14} color="#FFFFFF" />
                     <Text style={styles.aiGenerateBtnText}>GENERATE BIO WITH AI</Text>
                   </>
                 )}
@@ -746,7 +802,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={[styles.input, { height: 90, textAlignVertical: 'top' }]}
               placeholder="Describe your products, warranty, fast delivery, services offered..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               multiline
               value={businessDescription}
               onChangeText={setBusinessDescription}
@@ -764,7 +820,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="Primary 10-digit calling number"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               keyboardType="phone-pad"
               value={mobileNumber}
               onChangeText={setMobileNumber}
@@ -774,7 +830,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="WhatsApp number for leads & inquiries"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               keyboardType="phone-pad"
               value={whatsappNumber}
               onChangeText={setWhatsappNumber}
@@ -784,7 +840,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="store@example.com"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               keyboardType="email-address"
               value={email}
               onChangeText={setEmail}
@@ -794,7 +850,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="https://www.yourstore.com"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               keyboardType="url"
               value={website}
               onChangeText={setWebsite}
@@ -813,10 +869,10 @@ export default function VendorOnboardingScreen() {
               onPress={handleDetectGps}
               disabled={detectingGps}>
               {detectingGps ? (
-                <ActivityIndicator size="small" color={BLACK} />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <>
-                  <Ionicons name="navigate" size={16} color={BLACK} />
+                  <Ionicons name="navigate" size={16} color="#FFFFFF" />
                   <Text style={styles.gpsBtnText}>AUTO-DETECT GPS LOCATION</Text>
                 </>
               )}
@@ -827,7 +883,7 @@ export default function VendorOnboardingScreen() {
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="e.g. 452001"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor={TEXT_PLACEHOLDER}
                 keyboardType="number-pad"
                 maxLength={6}
                 value={pincode}
@@ -841,7 +897,7 @@ export default function VendorOnboardingScreen() {
                 onPress={() => handlePincodeLookup(pincode)}
                 disabled={pincodeLoading}>
                 {pincodeLoading ? (
-                  <ActivityIndicator size="small" color={BLACK} />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Text style={styles.lookupBtnText}>LOOKUP</Text>
                 )}
@@ -852,7 +908,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="City name"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={city}
               onChangeText={setCity}
             />
@@ -861,7 +917,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="District name"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={district}
               onChangeText={setDistrict}
             />
@@ -870,7 +926,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="State name"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={stateName}
               onChangeText={setStateName}
             />
@@ -879,7 +935,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={styles.input}
               placeholder="Sector, Landmark, Market Name"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={areaLocality}
               onChangeText={setAreaLocality}
             />
@@ -888,7 +944,7 @@ export default function VendorOnboardingScreen() {
             <TextInput
               style={[styles.input, { height: 75, textAlignVertical: 'top' }]}
               placeholder="Shop No., Floor, Building Name, Street Address, Landmark..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               multiline
               value={fullAddress}
               onChangeText={setFullAddress}
@@ -907,8 +963,8 @@ export default function VendorOnboardingScreen() {
               <Switch
                 value={homeDeliveryEnabled}
                 onValueChange={setHomeDeliveryEnabled}
-                trackColor={{ false: BORDER, true: YELLOW }}
-                thumbColor={homeDeliveryEnabled ? BLACK : '#fff'}
+                trackColor={{ false: '#CBD5E1', true: PRIMARY }}
+                thumbColor={homeDeliveryEnabled ? '#FFFFFF' : '#F8FAFC'}
               />
             </View>
 
@@ -918,7 +974,7 @@ export default function VendorOnboardingScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. 5 km"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_PLACEHOLDER}
                   value={homeDeliveryRadius}
                   onChangeText={setHomeDeliveryRadius}
                 />
@@ -927,7 +983,7 @@ export default function VendorOnboardingScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="200"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_PLACEHOLDER}
                   keyboardType="number-pad"
                   value={homeDeliveryMinOrder}
                   onChangeText={setHomeDeliveryMinOrder}
@@ -937,7 +993,7 @@ export default function VendorOnboardingScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="30"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_PLACEHOLDER}
                   keyboardType="number-pad"
                   value={homeDeliveryCharge}
                   onChangeText={setHomeDeliveryCharge}
@@ -950,8 +1006,8 @@ export default function VendorOnboardingScreen() {
               <Switch
                 value={customerVisitShop}
                 onValueChange={setCustomerVisitShop}
-                trackColor={{ false: BORDER, true: YELLOW }}
-                thumbColor={customerVisitShop ? BLACK : '#fff'}
+                trackColor={{ false: '#CBD5E1', true: PRIMARY }}
+                thumbColor={customerVisitShop ? '#FFFFFF' : '#F8FAFC'}
               />
             </View>
 
@@ -960,8 +1016,8 @@ export default function VendorOnboardingScreen() {
               <Switch
                 value={courierByVendor}
                 onValueChange={setCourierByVendor}
-                trackColor={{ false: BORDER, true: YELLOW }}
-                thumbColor={courierByVendor ? BLACK : '#fff'}
+                trackColor={{ false: '#CBD5E1', true: PRIMARY }}
+                thumbColor={courierByVendor ? '#FFFFFF' : '#F8FAFC'}
               />
             </View>
 
@@ -970,8 +1026,8 @@ export default function VendorOnboardingScreen() {
               <Switch
                 value={serviceAtCustomerLocation}
                 onValueChange={setServiceAtCustomerLocation}
-                trackColor={{ false: BORDER, true: YELLOW }}
-                thumbColor={serviceAtCustomerLocation ? BLACK : '#fff'}
+                trackColor={{ false: '#CBD5E1', true: PRIMARY }}
+                thumbColor={serviceAtCustomerLocation ? '#FFFFFF' : '#F8FAFC'}
               />
             </View>
           </View>
@@ -988,8 +1044,8 @@ export default function VendorOnboardingScreen() {
               <Switch
                 value={open24x7}
                 onValueChange={setOpen24x7}
-                trackColor={{ false: BORDER, true: YELLOW }}
-                thumbColor={open24x7 ? BLACK : '#fff'}
+                trackColor={{ false: '#CBD5E1', true: PRIMARY }}
+                thumbColor={open24x7 ? '#FFFFFF' : '#F8FAFC'}
               />
             </View>
 
@@ -999,7 +1055,7 @@ export default function VendorOnboardingScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="09:00 AM"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_PLACEHOLDER}
                   value={openingTime}
                   onChangeText={setOpeningTime}
                 />
@@ -1008,7 +1064,7 @@ export default function VendorOnboardingScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="09:00 PM"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor={TEXT_PLACEHOLDER}
                   value={closingTime}
                   onChangeText={setClosingTime}
                 />
@@ -1038,7 +1094,7 @@ export default function VendorOnboardingScreen() {
               <Ionicons
                 name={termsAccepted ? 'checkbox' : 'square-outline'}
                 size={22}
-                color={YELLOW}
+                color={PRIMARY_DARK}
               />
               <Text style={styles.declarationText}>
                 I hereby declare that all business details, addresses, and contact numbers provided are true, valid, and authentic.
@@ -1046,7 +1102,6 @@ export default function VendorOnboardingScreen() {
             </TouchableOpacity>
           </View>
         )}
-
       </ScrollView>
 
       {/* Fixed Bottom Action Bar */}
@@ -1055,7 +1110,7 @@ export default function VendorOnboardingScreen() {
           <TouchableOpacity
             style={styles.prevBtn}
             onPress={() => setCurrentStep(currentStep - 1)}>
-            <Ionicons name="arrow-back" size={16} color="#fff" />
+            <Ionicons name="arrow-back" size={16} color={TEXT_DARK} />
             <Text style={styles.prevBtnText}>PREVIOUS</Text>
           </TouchableOpacity>
         )}
@@ -1063,7 +1118,7 @@ export default function VendorOnboardingScreen() {
         {currentStep < 6 ? (
           <TouchableOpacity style={styles.nextBtn} onPress={handleNextStep}>
             <Text style={styles.nextBtnText}>NEXT STEP</Text>
-            <Ionicons name="arrow-forward" size={16} color={BLACK} />
+            <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -1071,10 +1126,10 @@ export default function VendorOnboardingScreen() {
             onPress={handleSubmitOnboarding}
             disabled={submitting}>
             {submitting ? (
-              <ActivityIndicator size="small" color={BLACK} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <Ionicons name="save-outline" size={18} color={BLACK} />
+                <Ionicons name="save-outline" size={18} color="#FFFFFF" />
                 <Text style={styles.submitBtnText}>SAVE & UPDATE PROFILE</Text>
               </>
             )}
@@ -1089,14 +1144,14 @@ export default function VendorOnboardingScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>SELECT BUSINESS CATEGORIES</Text>
               <TouchableOpacity onPress={() => setCatModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color={TEXT_DARK} />
               </TouchableOpacity>
             </View>
 
             <TextInput
               style={styles.modalSearch}
               placeholder="Search categories..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={catSearch}
               onChangeText={setCatSearch}
             />
@@ -1115,9 +1170,11 @@ export default function VendorOnboardingScreen() {
                     <Ionicons
                       name={isSelected ? 'checkbox' : 'square-outline'}
                       size={20}
-                      color={isSelected ? YELLOW : '#fff'}
+                      color={isSelected ? PRIMARY_DARK : TEXT_MUTED}
                     />
-                    <Text style={styles.catModalRowText}>{item.name}</Text>
+                    <Text style={[styles.catModalRowText, isSelected && styles.catModalRowTextActive]}>
+                      {item.name}
+                    </Text>
                   </TouchableOpacity>
                 );
               }}
@@ -1139,23 +1196,32 @@ export default function VendorOnboardingScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>SELECT SUBCATEGORIES</Text>
               <TouchableOpacity onPress={() => setSubModalVisible(false)}>
-                <Ionicons name="close" size={22} color="#fff" />
+                <Ionicons name="close" size={22} color={TEXT_DARK} />
               </TouchableOpacity>
             </View>
 
             <TextInput
               style={styles.modalSearch}
               placeholder="Search subcategories..."
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor={TEXT_PLACEHOLDER}
               value={subSearch}
               onChangeText={setSubSearch}
             />
 
             <FlatList
-              data={subCategoriesList.filter((c: any) =>
+              data={availableSubCategories.filter((c: any) =>
                 (c.name || '').toLowerCase().includes(subSearch.toLowerCase())
               )}
               keyExtractor={(item: any) => item._id || item.id || item.name}
+              ListEmptyComponent={() => (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: TEXT_MUTED, fontSize: 12, textAlign: 'center', fontWeight: '600' }}>
+                    {selectedCategories.length === 0
+                      ? '⚠️ Please select a primary business category above first.'
+                      : 'No subcategories found for the selected category.'}
+                  </Text>
+                </View>
+              )}
               renderItem={({ item }) => {
                 const isSelected = selectedSubCategories.includes(item.name);
                 return (
@@ -1165,9 +1231,11 @@ export default function VendorOnboardingScreen() {
                     <Ionicons
                       name={isSelected ? 'checkbox' : 'square-outline'}
                       size={20}
-                      color={isSelected ? YELLOW : '#fff'}
+                      color={isSelected ? PRIMARY_DARK : TEXT_MUTED}
                     />
-                    <Text style={styles.catModalRowText}>{item.name}</Text>
+                    <Text style={[styles.catModalRowText, isSelected && styles.catModalRowTextActive]}>
+                      {item.name}
+                    </Text>
                   </TouchableOpacity>
                 );
               }}
@@ -1186,90 +1254,78 @@ export default function VendorOnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_LIGHT },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
   backBtn: {
-    width: 32,
-    height: 32,
-    backgroundColor: DARK_CARD,
+    width: 34,
+    height: 34,
+    backgroundColor: INPUT_BG,
+    borderRadius: Radius.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: BORDER,
   },
-  headerTitle: { color: '#fff', fontSize: 13, fontWeight: '900', letterSpacing: 1 },
+  headerTitle: { color: TEXT_DARK, fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
   helpBtn: { padding: 4 },
 
-  stepTabsScroll: { backgroundColor: DARK_CARD, paddingVertical: 6, paddingHorizontal: 12 },
-  stepTabChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: BLACK,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: BORDER,
-  },
-  stepTabChipActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  stepTabText: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '800' },
-  stepTabTextActive: { color: BLACK, fontWeight: '900' },
-
-  progressTrack: { height: 4, backgroundColor: DARK_CARD },
-  progressBar: { height: '100%', backgroundColor: YELLOW },
+  progressTrack: { height: 4, backgroundColor: BORDER },
+  progressBar: { height: '100%', backgroundColor: PRIMARY },
 
   scrollContent: { padding: 16, paddingBottom: 40 },
   stepContainer: { gap: 12 },
-  stepTitle: { color: YELLOW, fontSize: 14, fontWeight: '900', letterSpacing: 1 },
-  stepSub: { color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 8 },
-  fieldLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '900', letterSpacing: 1, marginTop: 8 },
+  stepTitle: { color: PRIMARY_DARK, fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
+  stepSub: { color: TEXT_MUTED, fontSize: 12, marginBottom: 8 },
+  fieldLabel: { color: '#475569', fontSize: 10, fontWeight: '900', letterSpacing: 0.5, marginTop: 8 },
   input: {
-    backgroundColor: DARK_CARD,
-    color: '#fff',
+    backgroundColor: CARD_BG,
+    color: TEXT_DARK,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 13,
-    borderRadius: 12,
+    borderRadius: Radius.md,
   },
 
   imagesRow: { flexDirection: 'row', gap: 12, marginVertical: 4 },
   imageUploadCard: {
     flex: 1,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
-    borderRadius: 14,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: Radius.lg,
     padding: 12,
     alignItems: 'center',
     gap: 8,
   },
-  imageCardLabel: { color: 'rgba(255,255,255,0.6)', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+  imageCardLabel: { color: TEXT_MUTED, fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
   logoPreviewBox: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: BLACK,
+    backgroundColor: INPUT_BG,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: YELLOW,
+    borderColor: PRIMARY,
   },
   logoImg: { width: '100%', height: '100%' },
   coverPreviewBox: {
     width: '100%',
     height: 64,
-    borderRadius: 12,
-    backgroundColor: BLACK,
+    borderRadius: Radius.md,
+    backgroundColor: INPUT_BG,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -1280,160 +1336,162 @@ const styles = StyleSheet.create({
   uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: YELLOW,
+    backgroundColor: PRIMARY,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
+    borderRadius: Radius.md,
     gap: 4,
   },
-  uploadBtnText: { color: BLACK, fontSize: 10, fontWeight: '900' },
+  uploadBtnText: { color: '#FFFFFF', fontSize: 10, fontWeight: '900' },
 
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pillBtn: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: Radius.md,
   },
-  pillBtnActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  pillBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
-  pillBtnTextActive: { color: BLACK },
+  pillBtnActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
+  pillBtnText: { color: TEXT_DARK, fontSize: 12, fontWeight: '700' },
+  pillBtnTextActive: { color: '#FFFFFF', fontWeight: '900' },
 
   bTypeGrid: { gap: 8 },
   bTypeCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.2)',
+    borderColor: BORDER,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: Radius.lg,
   },
-  bTypeCardActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  bTypeTitle: { color: '#fff', fontSize: 13, fontWeight: '900' },
-  bTypeTitleActive: { color: BLACK },
-  bTypeDesc: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 2 },
+  bTypeCardActive: { backgroundColor: PRIMARY_LIGHT_BG, borderColor: PRIMARY },
+  bTypeTitle: { color: TEXT_DARK, fontSize: 13, fontWeight: '800' },
+  bTypeTitleActive: { color: PRIMARY_DARK, fontWeight: '900' },
+  bTypeDesc: { color: TEXT_MUTED, fontSize: 11, marginTop: 2 },
+  bTypeDescActive: { color: '#92400E' },
 
   pickerBtn: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
-  pickerBtnText: { color: '#fff', fontSize: 12, fontWeight: '700', flex: 1 },
+  pickerBtnText: { color: TEXT_DARK, fontSize: 12, fontWeight: '700', flex: 1 },
 
   aiBox: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: PRIMARY_LIGHT_BG,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: '#FDE68A',
     padding: 12,
     marginVertical: 8,
-    borderRadius: 10,
+    borderRadius: Radius.lg,
     gap: 8,
   },
   aiBoxHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  aiBoxTitle: { color: YELLOW, fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+  aiBoxTitle: { color: PRIMARY_DARK, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  aiBoxSub: { color: TEXT_MUTED, fontSize: 11, lineHeight: 15, marginBottom: 2 },
   aiInput: {
-    backgroundColor: BLACK,
-    color: '#fff',
+    backgroundColor: CARD_BG,
+    color: TEXT_DARK,
     borderWidth: 1,
-    borderColor: BORDER,
+    borderColor: '#FDE68A',
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 12,
-    borderRadius: 6,
+    borderRadius: Radius.md,
   },
   aiGenerateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: YELLOW,
+    backgroundColor: PRIMARY,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: Radius.md,
     gap: 6,
   },
-  aiGenerateBtnText: { color: BLACK, fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
+  aiGenerateBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
 
   gpsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: YELLOW,
+    backgroundColor: PRIMARY,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: Radius.md,
     gap: 6,
     marginBottom: 8,
   },
-  gpsBtnText: { color: BLACK, fontSize: 11, fontWeight: '900', letterSpacing: 1 },
+  gpsBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
 
   rowInputWrapper: { flexDirection: 'row', gap: 8 },
   lookupBtn: {
-    backgroundColor: YELLOW,
+    backgroundColor: PRIMARY,
     paddingHorizontal: 16,
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
-  lookupBtnText: { color: BLACK, fontSize: 11, fontWeight: '900' },
+  lookupBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '900' },
 
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: BORDER,
     marginVertical: 4,
   },
-  switchLabel: { color: '#fff', fontSize: 12, fontWeight: '700', flex: 1 },
+  switchLabel: { color: TEXT_DARK, fontSize: 12, fontWeight: '700', flex: 1 },
 
   subFieldsBox: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG_ALT,
     borderWidth: 1,
     borderColor: BORDER,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: Radius.lg,
     gap: 6,
     marginBottom: 8,
   },
   dayPill: {
-    backgroundColor: BLACK,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: Radius.md,
   },
-  dayPillActive: { backgroundColor: YELLOW, borderColor: YELLOW },
-  dayPillText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  dayPillTextActive: { color: BLACK },
+  dayPillActive: { backgroundColor: PRIMARY, borderColor: PRIMARY },
+  dayPillText: { color: TEXT_DARK, fontSize: 11, fontWeight: '700' },
+  dayPillTextActive: { color: '#FFFFFF', fontWeight: '900' },
 
   declarationBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: DARK_CARD,
+    backgroundColor: PRIMARY_LIGHT_BG,
     borderWidth: 1,
-    borderColor: YELLOW,
+    borderColor: '#FDE68A',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: Radius.lg,
     marginTop: 12,
   },
-  declarationText: { color: '#fff', fontSize: 11, fontWeight: '700', flex: 1, lineHeight: 16 },
+  declarationText: { color: TEXT_DARK, fontSize: 11, fontWeight: '700', flex: 1, lineHeight: 16 },
 
   bottomActionBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderTopWidth: 1,
     borderTopColor: BORDER,
     paddingHorizontal: 16,
@@ -1444,60 +1502,60 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: DARK_CARD,
+    backgroundColor: INPUT_BG,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 16,
     height: 44,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     gap: 6,
   },
-  prevBtnText: { color: '#fff', fontSize: 12, fontWeight: '900' },
+  prevBtnText: { color: TEXT_DARK, fontSize: 12, fontWeight: '900' },
   nextBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: YELLOW,
+    backgroundColor: PRIMARY,
     height: 44,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     gap: 6,
   },
-  nextBtnText: { color: BLACK, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  nextBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
   submitBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: YELLOW,
+    backgroundColor: PRIMARY,
     height: 44,
-    borderRadius: 10,
+    borderRadius: Radius.md,
     gap: 6,
   },
-  submitBtnText: { color: BLACK, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  submitBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderTopWidth: 2,
-    borderTopColor: YELLOW,
+    borderTopColor: PRIMARY,
     maxHeight: '80%',
     padding: 16,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
     gap: 12,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  modalTitle: { color: YELLOW, fontSize: 13, fontWeight: '900', letterSpacing: 1 },
+  modalTitle: { color: PRIMARY_DARK, fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
   modalSearch: {
-    backgroundColor: BLACK,
-    color: '#fff',
+    backgroundColor: INPUT_BG,
+    color: TEXT_DARK,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 12,
-    borderRadius: 8,
+    borderRadius: Radius.md,
   },
   catModalRow: {
     flexDirection: 'row',
@@ -1507,8 +1565,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
   },
-  catModalRowActive: { backgroundColor: 'rgba(245,158,11,0.1)' },
-  catModalRowText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  modalDoneBtn: { backgroundColor: YELLOW, paddingVertical: 12, alignItems: 'center', marginTop: 8, borderRadius: 8 },
-  modalDoneBtnText: { color: BLACK, fontSize: 12, fontWeight: '900', letterSpacing: 1 },
+  catModalRowActive: { backgroundColor: '#FEF3C7' },
+  catModalRowText: { color: TEXT_DARK, fontSize: 12, fontWeight: '700' },
+  catModalRowTextActive: { color: PRIMARY_DARK, fontWeight: '900' },
+  modalDoneBtn: { backgroundColor: PRIMARY, paddingVertical: 12, alignItems: 'center', marginTop: 8, borderRadius: Radius.md },
+  modalDoneBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
 });
