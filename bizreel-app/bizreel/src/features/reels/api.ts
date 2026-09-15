@@ -117,7 +117,13 @@ export async function createReel(payload: {
   caption?: string;
   postType?: string;
   postPurpose?: string;
+  announcementTagline?: string;
   taggedListing?: string;
+  offerId?: string;
+  couponCode?: string;
+  discountPercent?: string;
+  promotionArea?: string;
+  targetAudiences?: string[];
   category?: string;
   subcategory?: string;
   hashtags?: string[];

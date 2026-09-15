@@ -156,7 +156,6 @@ export default function InterestSelectionPage() {
       <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e3dccb] shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-black text-[#1a1a1a] uppercase tracking-wider flex items-center gap-2">
-            <FiStar className="text-[#d99a3d] fill-[#d99a3d]" size={14} />
             Quick One-Click Starter Packs:
           </span>
           <span className="text-[10px] text-slate-400 font-medium">Instantly add curated category bundles</span>

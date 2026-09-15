@@ -5,7 +5,7 @@ const Joi = require('joi');
  * Extra Menu: discountType, discountValue, applicableOn, minOrderAmount, maxDiscountLimit
  */
 const discountConfigSchema = Joi.object({
-  discountType: Joi.string().valid('fixed', 'percent', 'up_to').required()
+  discountType: Joi.string().valid('fixed', 'percent', 'percentage', 'up_to').required()
     .messages({ 'any.required': 'Discount type is required' }),
   discountValue: Joi.number().min(0).required()
     .messages({ 'any.required': 'Discount value is required' }),

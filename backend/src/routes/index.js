@@ -82,6 +82,12 @@ router.use('/webhooks/exotel', lazyLoad('./call.routes'));
 router.use('/whatsapp', lazyLoad('./whatsapp.routes'));
 router.use('/webhooks/whatsapp', lazyLoad('./whatsapp.routes'));
 
+// AI copy top-level alias for mobile & frontend compatibility
+router.use('/ai-copy', (req, res, next) => {
+  req.url = '/ai-copy' + req.url;
+  return lazyLoad('./listingRoutes')(req, res, next);
+});
+
 // Referrals endpoint alias for backward compatibility (lazy loaded controller)
 router.get(['/users/me/referrals', '/users/me/referrals/'], authenticate, (req, res, next) => {
   require('../controllers/referral.controller').getDashboard(req, res, next);
@@ -268,7 +274,8 @@ router.post('/vendor/wallet/verify', authenticate, async (req, res, next) => {
   }
 });
 
-router.use('/vendors', lazyLoad('./vendor.routes'));
+router.use(['/vendor/offers', '/vendors/offers', '/vendor/me/offers', '/vendors/me/offers'], lazyLoad('./vendor-offer.routes'));
+router.use(['/vendors', '/vendor'], lazyLoad('./vendor.routes'));
 
 // Creator Studio endpoints
 router.use('/creator', lazyLoad('./creator.routes'));

@@ -394,7 +394,7 @@ export default function VendorVerificationCenterScreen() {
             isRejected && { backgroundColor: '#EF4444', borderColor: '#EF4444' }
           ]}
           onPress={onOpenModal}>
-          <Text style={[styles.verifyOtpBtnText, (isApproved || isRejected) && { color: '#fff' }]}>
+          <Text style={[styles.verifyOtpBtnText, isApproved && { color: '#0F172A' }, isRejected && { color: '#ffffff' }]}>
             {isApproved ? 'Update / View Document' : isPending ? 'Re-upload / Update' : isRejected ? '🔴 Re-submit Document' : `Verify ${title}`}
           </Text>
         </TouchableOpacity>
@@ -503,7 +503,7 @@ export default function VendorVerificationCenterScreen() {
                 <TouchableOpacity
                   style={[styles.verifyOtpBtn, phoneVerified && styles.verifyOtpBtnDone]}
                   onPress={() => handleSendOtp('mobile')}>
-                  <Text style={[styles.verifyOtpBtnText, phoneVerified && { color: '#fff' }]}>
+                  <Text style={[styles.verifyOtpBtnText, phoneVerified && { color: '#0F172A' }]}>
                     {phoneVerified ? 'Edit / Re-verify OTP' : 'Verify Mobile OTP'}
                   </Text>
                 </TouchableOpacity>
@@ -527,7 +527,7 @@ export default function VendorVerificationCenterScreen() {
                 <TouchableOpacity
                   style={[styles.verifyOtpBtn, whatsappVerified && styles.verifyOtpBtnDone]}
                   onPress={() => handleSendOtp('whatsapp')}>
-                  <Text style={[styles.verifyOtpBtnText, whatsappVerified && { color: '#fff' }]}>
+                  <Text style={[styles.verifyOtpBtnText, whatsappVerified && { color: '#0F172A' }]}>
                     {whatsappVerified ? 'Edit / Re-verify OTP' : 'Verify WhatsApp OTP'}
                   </Text>
                 </TouchableOpacity>
@@ -553,7 +553,7 @@ export default function VendorVerificationCenterScreen() {
                 <TouchableOpacity
                   style={[styles.verifyOtpBtn, emailVerified && styles.verifyOtpBtnDone]}
                   onPress={() => handleSendOtp('email')}>
-                  <Text style={[styles.verifyOtpBtnText, emailVerified && { color: '#fff' }]}>
+                  <Text style={[styles.verifyOtpBtnText, emailVerified && { color: '#0F172A' }]}>
                     {emailVerified ? 'Edit / Re-verify OTP' : 'Verify Email OTP'}
                   </Text>
                 </TouchableOpacity>
@@ -649,8 +649,8 @@ export default function VendorVerificationCenterScreen() {
                     {status?.bankVerified ? 'Bank Linked & Verified' : 'Pending Bank Details'}
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.verifyOtpBtn} onPress={() => setActiveModal('bank')}>
-                  <Text style={styles.verifyOtpBtnText}>
+                <TouchableOpacity style={[styles.verifyOtpBtn, status?.bankVerified && styles.verifyOtpBtnDone]} onPress={() => setActiveModal('bank')}>
+                  <Text style={[styles.verifyOtpBtnText, status?.bankVerified && { color: '#0F172A' }]}>
                     {status?.bankVerified ? 'Edit Bank Account' : 'Verify Bank Account'}
                   </Text>
                 </TouchableOpacity>
@@ -673,8 +673,8 @@ export default function VendorVerificationCenterScreen() {
                     {status?.paymentVerified ? 'UPI Linked & Verified' : 'Pending UPI VPA'}
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.verifyOtpBtn} onPress={() => setActiveModal('upi')}>
-                  <Text style={styles.verifyOtpBtnText}>
+                <TouchableOpacity style={[styles.verifyOtpBtn, status?.paymentVerified && styles.verifyOtpBtnDone]} onPress={() => setActiveModal('upi')}>
+                  <Text style={[styles.verifyOtpBtnText, status?.paymentVerified && { color: '#0F172A' }]}>
                     {status?.paymentVerified ? 'Edit UPI VPA' : 'Verify UPI VPA ID'}
                   </Text>
                 </TouchableOpacity>

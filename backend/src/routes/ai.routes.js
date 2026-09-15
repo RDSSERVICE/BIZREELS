@@ -396,5 +396,26 @@ router.post('/generate-description', requireAuth, catchAsync(async (req, res) =>
   });
 }));
 
+router.post('/generate-caption', requireAuth, catchAsync(async (req, res) => {
+  const { prompt, type = 'reel', category, subcategory, context = {} } = req.body;
+
+  enforceRateLimit(req.user._id.toString(), 'gen-desc', LIGHT_LIMIT);
+
+  const result = await aiService.generateDescription({
+    prompt: prompt ? String(prompt).trim() : '',
+    type: type || 'reel',
+    category: category ? String(category).trim() : '',
+    subcategory: subcategory ? String(subcategory).trim() : '',
+    context: typeof context === 'object' && context !== null ? context : {},
+  });
+
+  res.json({
+    success: true,
+    data: result,
+    ...result,
+  });
+}));
+
 module.exports = router;
+
 

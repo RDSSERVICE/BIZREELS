@@ -227,17 +227,49 @@ export default function LoginScreen() {
 
         {/* Logo + heading */}
         <View style={s.headerSection}>
-          <Image
-            source={require('@/assets/android/playstore-icon.png')}
-            style={s.logo}
-            contentFit="contain"
-          />
-          <View style={s.headingRow}>
-            <Text style={s.heading}>Welcome Back</Text>
+          <View style={s.logoWrapper}>
+            <Image
+              source={require('@/assets/android/playstore-icon.png')}
+              style={s.logo}
+              contentFit="contain"
+            />
           </View>
+          <Text style={s.heading}>Welcome Back</Text>
           <Text style={s.subheading}>
             Sign in to your BizReels account to access local products, video reels & seller tools.
           </Text>
+        </View>
+
+        {/* Role Selection Selector */}
+        <View style={s.roleSelectorBox}>
+          <Text style={s.roleSelectorLabel}>SELECT YOUR ROLE</Text>
+          <View style={s.rolePillsRow}>
+            {[
+              { id: 'customer', label: 'Customer', icon: 'person-outline', desc: 'Browse & Buy' },
+              { id: 'vendor', label: 'Vendor', icon: 'storefront-outline', desc: 'Sell & Reel Ads' },
+              { id: 'creator', label: 'Creator', icon: 'videocam-outline', desc: 'Promote & Earn' },
+            ].map((r) => {
+              const isSel = selectedRole === r.id;
+              return (
+                <TouchableOpacity
+                  key={r.id}
+                  style={[s.roleCard, isSel && s.roleCardActive]}
+                  onPress={() => setSelectedRole(r.id as any)}>
+                  <Ionicons
+                    name={r.icon as any}
+                    size={18}
+                    color={isSel ? '#F59E0B' : AMBER_GOLD}
+                  />
+                  <Text style={[s.roleCardTitle, isSel && s.roleCardTitleActive]}>
+                    {r.label}
+                  </Text>
+                  <Text style={[s.roleCardSub, isSel && s.roleCardSubActive]}>
+                    {r.desc}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Auth Mode Switcher Tabs */}
@@ -250,8 +282,8 @@ export default function LoginScreen() {
             }}>
             <Ionicons
               name="mail-outline"
-              size={16}
-              color={authMode === 'email' ? BLACK : YELLOW}
+              size={15}
+              color={authMode === 'email' ? '#F59E0B' : TEXT_MUTED}
             />
             <Text style={[s.modeTabText, authMode === 'email' && s.modeTabTextActive]}>
               EMAIL SIGN IN
@@ -266,33 +298,13 @@ export default function LoginScreen() {
             }}>
             <Ionicons
               name="call-outline"
-              size={16}
-              color={authMode === 'phone' ? BLACK : YELLOW}
+              size={15}
+              color={authMode === 'phone' ? '#F59E0B' : TEXT_MUTED}
             />
             <Text style={[s.modeTabText, authMode === 'phone' && s.modeTabTextActive]}>
               MOBILE OTP
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Role Selection Selector */}
-        <View style={s.roleSelectorBox}>
-          <Text style={s.roleSelectorLabel}>SELECT TARGET ROLE</Text>
-          <View style={s.rolePillsRow}>
-            {(['customer', 'vendor', 'creator'] as const).map((role) => {
-              const isSel = selectedRole === role;
-              return (
-                <TouchableOpacity
-                  key={role}
-                  style={[s.rolePill, isSel && s.rolePillActive]}
-                  onPress={() => setSelectedRole(role)}>
-                  <Text style={[s.rolePillText, isSel && s.rolePillTextActive]}>
-                    {role.toUpperCase()}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
         </View>
 
         {/* Form card */}
@@ -301,7 +313,7 @@ export default function LoginScreen() {
           {/* Server error banner */}
           {serverError && (
             <View style={s.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color="#EF4444" />
+              <Ionicons name="alert-circle" size={18} color="#DC2626" />
               <Text style={s.errorBannerText}>{serverError}</Text>
             </View>
           )}
@@ -317,11 +329,11 @@ export default function LoginScreen() {
                   name="email"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
-                      <Ionicons name="mail-outline" size={18} color={YELLOW} style={s.inputIcon} />
+                      <Ionicons name="mail-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
-                        placeholder="Enter your email address"
-                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        placeholder="name@example.com"
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="email-address"
@@ -353,11 +365,11 @@ export default function LoginScreen() {
                   name="password"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, (errors.password || !!serverError) && s.inputError]}>
-                      <Ionicons name="lock-closed-outline" size={18} color={YELLOW} style={s.inputIcon} />
+                      <Ionicons name="lock-closed-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
-                        placeholder="Enter your password"
-                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        placeholder="••••••••"
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="none"
                         autoCorrect={false}
                         secureTextEntry={!showPassword}
@@ -376,7 +388,7 @@ export default function LoginScreen() {
                         <Ionicons
                           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
-                          color={YELLOW}
+                          color={AMBER_GOLD}
                         />
                       </Pressable>
                     </View>
@@ -393,11 +405,11 @@ export default function LoginScreen() {
                 accessibilityLabel="Sign In"
                 accessibilityRole="button">
                 {isEmailLoginPending ? (
-                  <ActivityIndicator color={BLACK} />
+                  <ActivityIndicator color="#F59E0B" />
                 ) : (
                   <>
                     <Text style={s.primaryButtonText}>SIGN IN NOW</Text>
-                    <Ionicons name="arrow-forward" size={18} color={BLACK} />
+                    <Ionicons name="arrow-forward" size={18} color="#F59E0B" />
                   </>
                 )}
               </TouchableOpacity>
@@ -412,11 +424,11 @@ export default function LoginScreen() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <Text style={s.label}>ENTER 6-DIGIT VERIFICATION CODE</Text>
                     <TouchableOpacity onPress={() => { setOtpSent(false); setOtpDigits(['', '', '', '', '', '']); setOtpCode(''); }}>
-                      <Text style={{ color: YELLOW, fontSize: 11, fontWeight: '800' }}>Edit Number ›</Text>
+                      <Text style={{ color: AMBER_GOLD, fontSize: 11, fontWeight: '800' }}>Edit Number ›</Text>
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, marginBottom: 12 }}>
+                  <Text style={{ color: TEXT_MUTED, fontSize: 11, marginBottom: 12 }}>
                     Code sent to {identifier}
                   </Text>
 
@@ -447,11 +459,11 @@ export default function LoginScreen() {
                     onPress={() => handleVerifyOtp()}
                     disabled={isVerifyOtpPending}>
                     {isVerifyOtpPending ? (
-                      <ActivityIndicator color={BLACK} />
+                      <ActivityIndicator color="#F59E0B" />
                     ) : (
                       <>
                         <Text style={s.primaryButtonText}>VERIFY & SIGN IN</Text>
-                        <Ionicons name="checkmark-circle" size={18} color={BLACK} />
+                        <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
                       </>
                     )}
                   </TouchableOpacity>
@@ -460,7 +472,7 @@ export default function LoginScreen() {
                     disabled={countdown > 0 || isSendOtpPending}
                     onPress={handleSendOtp}
                     style={{ marginTop: 12, alignItems: 'center' }}>
-                    <Text style={{ color: countdown > 0 ? 'rgba(255,255,255,0.4)' : YELLOW, fontSize: FontSize.xs, fontWeight: '700' }}>
+                    <Text style={{ color: countdown > 0 ? TEXT_MUTED : AMBER_GOLD, fontSize: FontSize.xs, fontWeight: '700' }}>
                       {countdown > 0 ? `Resend OTP in ${countdown}s` : "Didn't receive OTP? Resend Now"}
                     </Text>
                   </TouchableOpacity>
@@ -471,11 +483,11 @@ export default function LoginScreen() {
                   <View style={s.fieldGroup}>
                     <Text style={s.label}>Email Address or Mobile Number</Text>
                     <View style={s.inputRow}>
-                      <Ionicons name="person-circle-outline" size={18} color={YELLOW} style={s.inputIcon} />
+                      <Ionicons name="person-circle-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
                         placeholder="Enter email or 10-digit mobile number"
-                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="none"
                         autoCorrect={false}
                         value={identifier}
@@ -492,11 +504,11 @@ export default function LoginScreen() {
                     onPress={handleSendOtp}
                     disabled={isSendOtpPending}>
                     {isSendOtpPending ? (
-                      <ActivityIndicator color={BLACK} />
+                      <ActivityIndicator color="#F59E0B" />
                     ) : (
                       <>
                         <Text style={s.primaryButtonText}>SEND OTP CODE</Text>
-                        <Ionicons name="send" size={16} color={BLACK} />
+                        <Ionicons name="send" size={16} color="#F59E0B" />
                       </>
                     )}
                   </TouchableOpacity>
@@ -520,7 +532,7 @@ export default function LoginScreen() {
             accessibilityLabel="Continue with Google"
             accessibilityRole="button">
             {isGooglePending ? (
-              <ActivityIndicator color={YELLOW} />
+              <ActivityIndicator color={AMBER_GOLD} />
             ) : (
               <>
                 <Ionicons name="logo-google" size={18} color="#EA4335" />
@@ -542,7 +554,7 @@ export default function LoginScreen() {
 
         {/* Security note & Privacy Policy */}
         <View style={s.securityNote}>
-          <Ionicons name="shield-checkmark" size={20} color={YELLOW} />
+          <Ionicons name="shield-checkmark" size={20} color={AMBER_GOLD} />
           <View style={{ flex: 1 }}>
             <Text style={s.securityTitle}>Your information is secure with us.</Text>
             <Text style={s.securitySub}>We use encrypted token authentication.</Text>
@@ -553,7 +565,7 @@ export default function LoginScreen() {
           style={{ alignItems: 'center', paddingVertical: 12 }}
           onPress={() => Linking.openURL('https://bizreels.in/privacy-policy')}
         >
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, textDecorationLine: 'underline' }}>
+          <Text style={{ color: TEXT_MUTED, fontSize: 11, textDecorationLine: 'underline' }}>
             Terms of Service &amp; Privacy Policy (https://bizreels.in/privacy-policy)
           </Text>
         </TouchableOpacity>
@@ -562,15 +574,18 @@ export default function LoginScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const BG_LIGHT = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
+const AMBER_GOLD = '#D97706';
+const PRIMARY_BTN_BG = '#241B15';
 
 function makeStyles(_theme: any) {
   return StyleSheet.create({
-    flex: { flex: 1, backgroundColor: BLACK },
-    scroll: { flex: 1, backgroundColor: BLACK },
+    flex: { flex: 1, backgroundColor: BG_LIGHT },
+    scroll: { flex: 1, backgroundColor: BG_LIGHT },
     scrollContent: {
       paddingHorizontal: Spacing.four,
       paddingTop: Platform.OS === 'ios' ? 60 : 48,
@@ -578,24 +593,38 @@ function makeStyles(_theme: any) {
       gap: Spacing.four,
     },
     pressed: { opacity: 0.6 },
-    headerSection: { gap: Spacing.two },
-    logo: { width: 52, height: 52, marginBottom: Spacing.one },
-    headingRow: { flexDirection: 'row', alignItems: 'center' },
+    headerSection: { gap: Spacing.two, alignItems: 'center', textAlign: 'center' },
+    logoWrapper: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      backgroundColor: 'rgba(217, 119, 6, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 4,
+    },
+    logo: { width: 44, height: 44 },
+    headingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
     heading: {
       fontSize: FontSize['2xl'],
       fontWeight: '900',
-      color: '#fff',
-      letterSpacing: 1,
+      color: TEXT_DARK,
+      letterSpacing: 0.5,
     },
-    sparkle: { fontSize: FontSize.lg, color: YELLOW },
+    sparkle: { fontSize: FontSize.lg, color: AMBER_GOLD },
     subheading: {
-      fontSize: FontSize.sm,
-      color: 'rgba(255,255,255,0.6)',
-      lineHeight: 20,
+      fontSize: FontSize.xs,
+      color: TEXT_MUTED,
+      lineHeight: 18,
+      textAlign: 'center',
+      paddingHorizontal: 12,
     },
     modeTabContainer: {
       flexDirection: 'row',
-      backgroundColor: DARK_CARD,
+      backgroundColor: '#F1F5F9',
+      borderRadius: 14,
       borderWidth: 1,
       borderColor: BORDER,
       padding: 4,
@@ -607,29 +636,31 @@ function makeStyles(_theme: any) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
+      borderRadius: 10,
       backgroundColor: 'transparent',
     },
     modeTabBtnActive: {
-      backgroundColor: YELLOW,
+      backgroundColor: PRIMARY_BTN_BG,
     },
     modeTabText: {
-      color: YELLOW,
+      color: TEXT_MUTED,
       fontSize: FontSize.xs,
       fontWeight: '900',
       letterSpacing: 0.5,
     },
     modeTabTextActive: {
-      color: BLACK,
+      color: '#F59E0B',
     },
     roleSelectorBox: {
-      backgroundColor: DARK_CARD,
+      backgroundColor: CARD_BG,
+      borderRadius: 18,
       borderWidth: 1,
       borderColor: BORDER,
       padding: Spacing.three,
       gap: 8,
     },
     roleSelectorLabel: {
-      color: YELLOW,
+      color: AMBER_GOLD,
       fontSize: 10,
       fontWeight: '900',
       letterSpacing: 1,
@@ -638,31 +669,65 @@ function makeStyles(_theme: any) {
       flexDirection: 'row',
       gap: 8,
     },
+    roleCard: {
+      flex: 1,
+      backgroundColor: '#F8FAFC',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: BORDER,
+      padding: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 3,
+    },
+    roleCardActive: {
+      backgroundColor: PRIMARY_BTN_BG,
+      borderColor: PRIMARY_BTN_BG,
+    },
+    roleCardTitle: {
+      color: TEXT_DARK,
+      fontSize: 11,
+      fontWeight: '900',
+    },
+    roleCardTitleActive: {
+      color: '#FFFFFF',
+    },
+    roleCardSub: {
+      color: TEXT_MUTED,
+      fontSize: 8.5,
+      fontWeight: '600',
+    },
+    roleCardSubActive: {
+      color: '#F59E0B',
+      fontWeight: '700',
+    },
     rolePill: {
       flex: 1,
       height: 36,
-      backgroundColor: BLACK,
+      backgroundColor: CARD_BG,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: BORDER,
       alignItems: 'center',
       justifyContent: 'center',
     },
     rolePillActive: {
-      backgroundColor: YELLOW,
-      borderColor: YELLOW,
+      backgroundColor: PRIMARY_BTN_BG,
+      borderColor: PRIMARY_BTN_BG,
     },
     rolePillText: {
-      color: 'rgba(255,255,255,0.6)',
+      color: TEXT_MUTED,
       fontSize: 10,
       fontWeight: '900',
     },
     rolePillTextActive: {
-      color: BLACK,
+      color: '#F59E0B',
     },
     channelBtn: {
       flex: 1,
       height: 40,
-      backgroundColor: BLACK,
+      backgroundColor: CARD_BG,
+      borderRadius: 10,
       borderWidth: 1,
       borderColor: BORDER,
       flexDirection: 'row',
@@ -671,41 +736,46 @@ function makeStyles(_theme: any) {
       gap: 6,
     },
     channelBtnActive: {
-      backgroundColor: YELLOW,
-      borderColor: YELLOW,
+      backgroundColor: PRIMARY_BTN_BG,
+      borderColor: PRIMARY_BTN_BG,
     },
     channelBtnText: {
-      color: '#fff',
+      color: TEXT_DARK,
       fontSize: FontSize.xs,
       fontWeight: '900',
     },
     channelBtnTextActive: {
-      color: BLACK,
+      color: '#F59E0B',
     },
     card: {
-      backgroundColor: DARK_CARD,
-      borderRadius: 0,
+      backgroundColor: CARD_BG,
+      borderRadius: 20,
       padding: Spacing.five,
       gap: Spacing.four,
-      borderWidth: 2,
-      borderColor: YELLOW,
+      borderWidth: 1,
+      borderColor: BORDER,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2,
     },
     // Inline server error banner
     errorBanner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.two,
-      backgroundColor: 'rgba(239,68,68,0.12)',
+      backgroundColor: '#FEF2F2',
       borderWidth: 1,
-      borderColor: '#EF4444',
-      borderRadius: 0,
+      borderColor: '#FCA5A5',
+      borderRadius: 12,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
     },
     errorBannerText: {
       flex: 1,
       fontSize: FontSize.xs,
-      color: '#EF4444',
+      color: '#DC2626',
       lineHeight: 18,
       fontWeight: '700',
     },
@@ -718,30 +788,30 @@ function makeStyles(_theme: any) {
     label: {
       fontSize: FontSize.xs,
       fontWeight: '900',
-      color: '#fff',
+      color: TEXT_DARK,
       letterSpacing: 0.5,
     },
     forgotLink: {
       fontSize: FontSize.xs,
       fontWeight: '900',
-      color: YELLOW,
+      color: AMBER_GOLD,
     },
     inputRow: {
       flexDirection: 'row',
       alignItems: 'center',
       borderWidth: 1,
       borderColor: BORDER,
-      borderRadius: 0,
-      backgroundColor: BLACK,
+      borderRadius: 12,
+      backgroundColor: '#F8FAFC',
       paddingHorizontal: Spacing.three,
-      height: 48,
+      height: 50,
     },
     inputError: { borderColor: '#EF4444' },
     inputIcon: { marginRight: Spacing.two },
     input: {
       flex: 1,
       fontSize: FontSize.sm,
-      color: '#fff',
+      color: TEXT_DARK,
       height: '100%',
       fontWeight: '600',
     },
@@ -749,44 +819,50 @@ function makeStyles(_theme: any) {
     otpBoxRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      gap: 8,
-      marginVertical: 8,
+      gap: 6,
+      marginVertical: 4,
     },
     otpBox: {
       flex: 1,
-      height: 52,
-      backgroundColor: BLACK,
+      height: 48,
       borderWidth: 1.5,
       borderColor: BORDER,
-      textAlign: 'center',
-      fontSize: 20,
+      borderRadius: 12,
+      backgroundColor: '#F8FAFC',
+      color: TEXT_DARK,
+      fontSize: 18,
       fontWeight: '900',
-      color: '#fff',
+      textAlign: 'center',
     },
     otpBoxFilled: {
-      borderColor: YELLOW,
-      backgroundColor: DARK_CARD,
+      borderColor: AMBER_GOLD,
+      backgroundColor: '#FEF3C7',
     },
     fieldError: {
-      fontSize: FontSize.xs,
-      color: '#EF4444',
+      fontSize: 11,
+      color: '#DC2626',
       marginTop: 2,
-      fontWeight: '700',
+      fontWeight: '600',
     },
     primaryButton: {
-      backgroundColor: YELLOW,
-      borderRadius: 0,
       height: 50,
+      backgroundColor: PRIMARY_BTN_BG,
+      borderRadius: 14,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: Spacing.two,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 3,
     },
     primaryButtonPressed: { opacity: 0.8 },
-    primaryButtonDisabled: { opacity: 0.7 },
+    primaryButtonDisabled: { opacity: 0.6 },
     primaryButtonText: {
-      color: BLACK,
-      fontSize: FontSize.base,
+      color: '#F59E0B',
+      fontSize: FontSize.sm,
       fontWeight: '900',
       letterSpacing: 0.5,
     },
@@ -795,33 +871,39 @@ function makeStyles(_theme: any) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    registerText: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.6)' },
+    registerText: {
+      fontSize: FontSize.sm,
+      color: TEXT_MUTED,
+    },
     registerLink: {
       fontSize: FontSize.sm,
       fontWeight: '900',
-      color: YELLOW,
+      color: AMBER_GOLD,
     },
     securityNote: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: Spacing.two,
-      paddingHorizontal: Spacing.four,
+      gap: Spacing.three,
+      backgroundColor: '#F8F4EC',
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: '#E3DCCB',
+      padding: Spacing.three,
     },
     securityTitle: {
       fontSize: FontSize.xs,
-      fontWeight: '700',
-      color: 'rgba(255,255,255,0.5)',
+      fontWeight: '800',
+      color: TEXT_DARK,
     },
     securitySub: {
-      fontSize: FontSize.xs,
-      color: 'rgba(255,255,255,0.4)',
+      fontSize: 11,
+      color: TEXT_MUTED,
+      marginTop: 1,
     },
     dividerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
-      marginVertical: 4,
+      gap: Spacing.three,
     },
     dividerLine: {
       flex: 1,
@@ -829,14 +911,15 @@ function makeStyles(_theme: any) {
       backgroundColor: BORDER,
     },
     dividerText: {
-      color: 'rgba(255,255,255,0.4)',
+      color: TEXT_MUTED,
       fontSize: 10,
       fontWeight: '900',
       letterSpacing: 1,
     },
     googleButton: {
-      backgroundColor: BLACK,
-      borderWidth: 1.5,
+      backgroundColor: CARD_BG,
+      borderRadius: 14,
+      borderWidth: 1,
       borderColor: BORDER,
       height: 48,
       flexDirection: 'row',
@@ -844,9 +927,9 @@ function makeStyles(_theme: any) {
       justifyContent: 'center',
       gap: 10,
     },
-    googleButtonDisabled: { opacity: 0.7 },
+    googleButtonDisabled: { opacity: 0.6 },
     googleButtonText: {
-      color: '#fff',
+      color: TEXT_DARK,
       fontSize: FontSize.sm,
       fontWeight: '900',
       letterSpacing: 0.5,

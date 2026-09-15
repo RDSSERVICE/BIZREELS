@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
@@ -87,6 +88,7 @@ export default function RootLayout() {
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <StatusBar style="dark" backgroundColor="#F8FAFC" translucent={false} animated />
           {/* Animated splash runs once on top of everything, then fades out */}
           <AnimatedSplashOverlay />
           <AuthGate />

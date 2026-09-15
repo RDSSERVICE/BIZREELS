@@ -7,7 +7,12 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "bizreel",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
+    "statusBar": {
+      "style": "dark",
+      "backgroundColor": "#F8FAFC",
+      "translucent": false
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "in.bizreels.app"
@@ -15,6 +20,11 @@
     "android": {
       "package": "in.bizreels.app",
       "allowBackup": false,
+      "statusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#F8FAFC",
+        "translucent": false
+      },
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",

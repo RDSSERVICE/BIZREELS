@@ -2,22 +2,39 @@ import { api } from '@/lib/api';
 import type { Listing } from '@/features/search/types';
 
 export async function fetchVendorListings(vendorId?: string): Promise<Listing[]> {
-  const params: any = { my_listings: true, limit: 100 };
-  if (vendorId) params.vendor = vendorId;
+  try {
+    const params: any = { my_listings: true, limit: 100 };
+    if (vendorId) params.vendor = vendorId;
 
-  const { data } = await api.get('/listings', { params });
-  const items = data.data || data.items || data.listings || data || [];
-  const list = Array.isArray(items) ? items : [];
+    const { data } = await api.get('/listings', { params });
+    const rawItems = data.data?.listings || data.data?.items || data.data?.data || data.data || data.items || data.listings || data || [];
+    let list = Array.isArray(rawItems) ? rawItems : [];
 
-  if (vendorId) {
-    return list.filter((item: any) => {
-      const itemVendorId = item.vendor?._id || item.vendor?.id || item.vendor;
-      if (!itemVendorId) return true;
-      return itemVendorId.toString() === vendorId.toString();
-    });
+    if (list.length === 0 && vendorId) {
+      try {
+        const fallbackRes = await api.get(`/vendors/${vendorId}/listings`);
+        const fallbackItems = fallbackRes.data?.items || fallbackRes.data?.data || fallbackRes.data?.listings || fallbackRes.data || [];
+        if (Array.isArray(fallbackItems) && fallbackItems.length > 0) {
+          list = fallbackItems;
+        }
+      } catch (fErr) {
+        // Silent fallback
+      }
+    }
+
+    if (vendorId && list.length > 0) {
+      return list.filter((item: any) => {
+        const itemVendorId = item.vendor?._id || item.vendor?.id || item.vendor;
+        if (!itemVendorId) return true;
+        return itemVendorId.toString() === vendorId.toString();
+      });
+    }
+
+    return list;
+  } catch (err) {
+    console.warn('fetchVendorListings error:', err);
+    return [];
   }
-
-  return list;
 }
 
 export async function createVendorListing(payload: {

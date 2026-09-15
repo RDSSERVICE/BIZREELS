@@ -23,14 +23,16 @@ import { FontSize, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { api } from '@/lib/api';
 
-const GOLD = '#F59E0B';
-const AMBER_LIGHT = '#FBBF24';
-const BLACK = '#0F172A';
-const DARK_CARD = '#1E293B';
-const DARK_SURFACE = '#334155';
-const BORDER = '#334155';
-const BORDER_GOLD = '#F59E0B';
-const TEXT_MUTED = '#94A3B8';
+const GOLD = '#D99A3D';
+const GOLD_ACCENT = '#F59E0B';
+const ESPRESSO = '#241B15';
+const BG_COLOR = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const SURFACE_BG = '#F1F5F9';
+const BORDER = '#E2E8F0';
+const BORDER_GOLD = '#FBBF24';
+const TEXT_MAIN = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 interface CategoryTreeItem {
   id?: string;
@@ -305,41 +307,25 @@ export default function CustomerChooseInterestsScreen() {
       {/* ── 1. HEADER HERO BAR ── */}
       <View style={styles.headerBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={22} color="#FFF" />
+          <Ionicons name="chevron-back" size={22} color={TEXT_MAIN} />
         </TouchableOpacity>
 
         <View style={{ flex: 1 }}>
           <View style={styles.badgeRow}>
             <View style={styles.sparkleBadge}>
-              <Ionicons name="sparkles" size={11} color={BLACK} />
               <Text style={styles.sparkleBadgeText}>PERSONALIZED FEED</Text>
             </View>
           </View>
           <Text style={styles.headerTitle}>Feed Preferences</Text>
           <Text style={styles.headerSub}>Customize Reels, Local Deals & Recommendations</Text>
         </View>
-
-        <TouchableOpacity
-          style={[styles.saveHeaderBtn, saving && { opacity: 0.6 }]}
-          onPress={handleSaveInterests}
-          disabled={saving}
-          activeOpacity={0.8}>
-          {saving ? (
-            <ActivityIndicator size="small" color={BLACK} />
-          ) : (
-            <View style={styles.saveHeaderContent}>
-              <Ionicons name="checkmark-done" size={15} color={BLACK} />
-              <Text style={styles.saveHeaderBtnText}>Save</Text>
-            </View>
-          )}
-        </TouchableOpacity>
       </View>
 
       {/* ── 2. PROGRESS BANNER CARD ── */}
       <View style={styles.progressCard}>
         <View style={styles.progressTopRow}>
           <View style={styles.progressIconWrap}>
-            <Ionicons name="options-outline" size={18} color={GOLD} />
+            <Ionicons name="options-outline" size={18} color="#B45309" />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.progressTitle}>
@@ -369,17 +355,17 @@ export default function CustomerChooseInterestsScreen() {
       {/* ── 3. SEARCH & FILTER TABS ── */}
       <View style={styles.searchFilterSection}>
         <View style={styles.searchRow}>
-          <Ionicons name="search-outline" size={18} color={GOLD} style={styles.searchIcon} />
+          <Ionicons name="search-outline" size={18} color={TEXT_MUTED} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search categories (e.g. AI, Electronics, Fashion)..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor={TEXT_MUTED}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {!!searchQuery && (
             <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+              <Ionicons name="close-circle" size={18} color={TEXT_MUTED} />
             </TouchableOpacity>
           )}
         </View>
@@ -392,7 +378,7 @@ export default function CustomerChooseInterestsScreen() {
             <Ionicons
               name="grid-outline"
               size={12}
-              color={filterMode === 'all' ? BLACK : 'rgba(255,255,255,0.7)'}
+              color={filterMode === 'all' ? GOLD_ACCENT : TEXT_MUTED}
             />
             <Text style={[styles.filterPillText, filterMode === 'all' && styles.filterPillTextActive]}>
               All ({categories.length})
@@ -406,7 +392,7 @@ export default function CustomerChooseInterestsScreen() {
             <Ionicons
               name="checkmark-circle-outline"
               size={12}
-              color={filterMode === 'selected' ? BLACK : 'rgba(255,255,255,0.7)'}
+              color={filterMode === 'selected' ? GOLD_ACCENT : TEXT_MUTED}
             />
             <Text style={[styles.filterPillText, filterMode === 'selected' && styles.filterPillTextActive]}>
               Selected ({selectedInterests.length})
@@ -429,12 +415,12 @@ export default function CustomerChooseInterestsScreen() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {loadingCategories ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={GOLD} />
+            <ActivityIndicator size="large" color={GOLD_ACCENT} />
             <Text style={styles.loadingText}>Fetching Category Catalog...</Text>
           </View>
         ) : filteredCategories.length === 0 ? (
           <View style={styles.emptyWrap}>
-            <Ionicons name="search" size={40} color="rgba(255,255,255,0.3)" />
+            <Ionicons name="search" size={40} color="#CBD5E1" />
             <Text style={styles.emptyTitle}>No matching categories found</Text>
             <Text style={styles.emptySub}>Try searching for another term like "AI", "Mobile" or "Services"</Text>
             <TouchableOpacity style={styles.resetSearchBtn} onPress={() => { setSearchQuery(''); setFilterMode('all'); }}>
@@ -468,7 +454,7 @@ export default function CustomerChooseInterestsScreen() {
                         <Ionicons
                           name={catIconName}
                           size={18}
-                          color={catSelected || selectedSubCount > 0 ? BLACK : GOLD}
+                          color={catSelected || selectedSubCount > 0 ? GOLD_ACCENT : GOLD}
                         />
                       </View>
 
@@ -492,7 +478,7 @@ export default function CustomerChooseInterestsScreen() {
                         <Ionicons
                           name={catSelected ? 'checkmark' : 'add'}
                           size={16}
-                          color={catSelected ? BLACK : GOLD}
+                          color={catSelected ? GOLD_ACCENT : GOLD}
                         />
                       </TouchableOpacity>
 
@@ -505,7 +491,7 @@ export default function CustomerChooseInterestsScreen() {
                           <Ionicons
                             name={isExpanded ? 'chevron-up' : 'chevron-down'}
                             size={18}
-                            color={isExpanded ? GOLD : 'rgba(255,255,255,0.6)'}
+                            color={isExpanded ? '#B45309' : TEXT_MUTED}
                           />
                         </TouchableOpacity>
                       )}
@@ -525,7 +511,7 @@ export default function CustomerChooseInterestsScreen() {
                           <Ionicons
                             name={allSubsSelected ? 'checkmark-circle' : 'checkmark-circle-outline'}
                             size={13}
-                            color={GOLD}
+                            color="#B45309"
                           />
                           <Text style={styles.selectAllSubsText}>
                             {allSubsSelected ? 'Deselect All' : 'Select All'}
@@ -545,7 +531,7 @@ export default function CustomerChooseInterestsScreen() {
                               <Ionicons
                                 name={subSelected ? 'checkmark-circle' : 'add-circle-outline'}
                                 size={14}
-                                color={subSelected ? BLACK : GOLD}
+                                color={subSelected ? GOLD_ACCENT : GOLD}
                               />
                               <Text style={[styles.subChipText, subSelected && styles.subChipTextActive]}>
                                 {sub}
@@ -582,11 +568,11 @@ export default function CustomerChooseInterestsScreen() {
           disabled={saving}
           activeOpacity={0.85}>
           {saving ? (
-            <ActivityIndicator color={BLACK} />
+            <ActivityIndicator color={GOLD_ACCENT} />
           ) : (
             <View style={styles.submitBtnContent}>
               <Text style={styles.submitBtnText}>Save & Apply</Text>
-              <Ionicons name="arrow-forward" size={16} color={BLACK} />
+              <Ionicons name="arrow-forward" size={16} color={GOLD_ACCENT} />
             </View>
           )}
         </TouchableOpacity>
@@ -596,7 +582,7 @@ export default function CustomerChooseInterestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLACK },
+  container: { flex: 1, backgroundColor: BG_COLOR },
 
   /* Header Bar */
   headerBar: {
@@ -604,7 +590,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.four,
     paddingVertical: 14,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     gap: 12,
@@ -613,7 +599,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: DARK_SURFACE,
+    backgroundColor: SURFACE_BG,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
@@ -624,17 +610,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: GOLD,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
-  sparkleBadgeText: { color: BLACK, fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
-  headerTitle: { color: '#FFF', fontSize: 17, fontWeight: '900', letterSpacing: 0.4 },
+  sparkleBadgeText: { color: '#B45309', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  headerTitle: { color: TEXT_MAIN, fontSize: 17, fontWeight: '900', letterSpacing: 0.4 },
   headerSub: { color: TEXT_MUTED, fontSize: 11, fontWeight: '500', marginTop: 1 },
 
   saveHeaderBtn: {
-    backgroundColor: GOLD,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -642,11 +630,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveHeaderContent: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  saveHeaderBtnText: { color: BLACK, fontSize: 12, fontWeight: '900' },
+  saveHeaderBtnText: { color: GOLD_ACCENT, fontSize: 12, fontWeight: '900' },
 
   /* Progress Banner Card */
   progressCard: {
-    backgroundColor: DARK_SURFACE,
+    backgroundColor: CARD_BG,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
     paddingHorizontal: Spacing.four,
@@ -658,39 +646,39 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 10,
-    backgroundColor: 'rgba(245,158,11,0.12)',
+    backgroundColor: '#FEF3C7',
     borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.3)',
+    borderColor: '#FDE68A',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  progressTitle: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+  progressTitle: { color: TEXT_MAIN, fontSize: 12, fontWeight: '800' },
   progressDesc: { color: TEXT_MUTED, fontSize: 10, marginTop: 1 },
   progressCounterPill: {
-    backgroundColor: 'rgba(245,158,11,0.15)',
+    backgroundColor: '#FEF3C7',
     borderWidth: 1,
-    borderColor: BORDER_GOLD,
+    borderColor: '#FDE68A',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  progressCounterText: { color: GOLD, fontSize: 11, fontWeight: '900' },
+  progressCounterText: { color: '#B45309', fontSize: 11, fontWeight: '900' },
 
   progressBarTrack: {
-    height: 5,
-    backgroundColor: BLACK,
+    height: 6,
+    backgroundColor: SURFACE_BG,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: GOLD,
+    backgroundColor: GOLD_ACCENT,
     borderRadius: 3,
   },
 
   /* Search & Filter Section */
   searchFilterSection: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     paddingHorizontal: Spacing.four,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -700,7 +688,7 @@ const styles = StyleSheet.create({
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: BLACK,
+    backgroundColor: SURFACE_BG,
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 12,
@@ -709,22 +697,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   searchIcon: { marginRight: 2 },
-  searchInput: { flex: 1, color: '#FFF', fontSize: 12, fontWeight: '600' },
+  searchInput: { flex: 1, color: TEXT_MAIN, fontSize: 12, fontWeight: '600' },
   filterPillsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: BLACK,
+    backgroundColor: SURFACE_BG,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  filterPillActive: { backgroundColor: GOLD, borderColor: GOLD },
-  filterPillText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '700' },
-  filterPillTextActive: { color: BLACK, fontWeight: '900' },
+  filterPillActive: { backgroundColor: ESPRESSO, borderColor: ESPRESSO },
+  filterPillText: { color: TEXT_MUTED, fontSize: 11, fontWeight: '700' },
+  filterPillTextActive: { color: GOLD_ACCENT, fontWeight: '900' },
   clearAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6 },
   clearAllText: { color: '#EF4444', fontSize: 11, fontWeight: '800' },
 
@@ -732,39 +720,39 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: Spacing.four, paddingBottom: 110 },
   loadingContainer: { paddingVertical: 60, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: '#FFF', fontSize: 12, marginTop: 12, fontWeight: '700' },
+  loadingText: { color: TEXT_MUTED, fontSize: 12, marginTop: 12, fontWeight: '700' },
 
   emptyWrap: { paddingVertical: 50, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  emptyTitle: { color: '#FFF', fontSize: 14, fontWeight: '800', marginTop: 8 },
+  emptyTitle: { color: TEXT_MAIN, fontSize: 14, fontWeight: '800', marginTop: 8 },
   emptySub: { color: TEXT_MUTED, fontSize: 11, textAlign: 'center', maxWidth: 260 },
-  resetSearchBtn: { marginTop: 12, backgroundColor: DARK_SURFACE, borderWidth: 1, borderColor: BORDER_GOLD, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
-  resetSearchText: { color: GOLD, fontSize: 11, fontWeight: '800' },
+  resetSearchBtn: { marginTop: 12, backgroundColor: SURFACE_BG, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 },
+  resetSearchText: { color: '#B45309', fontSize: 11, fontWeight: '800' },
 
   categoriesWrap: { gap: 12 },
   categoryCard: {
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 14,
     padding: 14,
     gap: 10,
   },
-  categoryCardActive: { borderColor: BORDER_GOLD, backgroundColor: DARK_SURFACE },
+  categoryCardActive: { borderColor: BORDER_GOLD, backgroundColor: '#FFFDF9' },
   categoryHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   categorySelectBtn: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: BLACK,
+    backgroundColor: SURFACE_BG,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconCircleActive: { backgroundColor: GOLD, borderColor: GOLD },
-  categoryTitle: { color: '#FFF', fontSize: 13, fontWeight: '800' },
-  categoryTitleActive: { color: GOLD, fontWeight: '900' },
+  iconCircleActive: { backgroundColor: ESPRESSO, borderColor: ESPRESSO },
+  categoryTitle: { color: TEXT_MAIN, fontSize: 13, fontWeight: '800' },
+  categoryTitleActive: { color: '#B45309', fontWeight: '900' },
   subCountText: { color: TEXT_MUTED, fontSize: 10, marginTop: 2, fontWeight: '600' },
 
   actionHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -772,18 +760,18 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: BLACK,
+    backgroundColor: SURFACE_BG,
     borderWidth: 1,
-    borderColor: BORDER_GOLD,
+    borderColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  checkboxBtnActive: { backgroundColor: GOLD },
+  checkboxBtnActive: { backgroundColor: ESPRESSO, borderColor: ESPRESSO },
   expandBtn: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: BLACK,
+    backgroundColor: SURFACE_BG,
     borderWidth: 1,
     borderColor: BORDER,
     alignItems: 'center',
@@ -791,7 +779,7 @@ const styles = StyleSheet.create({
   },
 
   subcategoriesBox: {
-    backgroundColor: BLACK,
+    backgroundColor: SURFACE_BG,
     borderWidth: 1,
     borderColor: BORDER,
     borderRadius: 12,
@@ -799,24 +787,24 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   subHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  subHeaderLabel: { color: 'rgba(255,255,255,0.4)', fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  subHeaderLabel: { color: TEXT_MUTED, fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
   selectAllSubsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 2 },
-  selectAllSubsText: { color: GOLD, fontSize: 10, fontWeight: '800' },
+  selectAllSubsText: { color: '#B45309', fontSize: 10, fontWeight: '800' },
   subWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   subChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderWidth: 1,
     borderColor: BORDER,
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 10,
   },
-  subChipActive: { backgroundColor: GOLD, borderColor: GOLD },
-  subChipText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
-  subChipTextActive: { color: BLACK, fontWeight: '900' },
+  subChipActive: { backgroundColor: ESPRESSO, borderColor: ESPRESSO },
+  subChipText: { color: TEXT_MAIN, fontSize: 11, fontWeight: '600' },
+  subChipTextActive: { color: GOLD_ACCENT, fontWeight: '900' },
 
   /* Floating Bottom Footer */
   footerBar: {
@@ -824,7 +812,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: DARK_CARD,
+    backgroundColor: CARD_BG,
     borderTopWidth: 1,
     borderTopColor: BORDER,
     paddingHorizontal: Spacing.four,
@@ -832,12 +820,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 8,
   },
   footerLeft: { flex: 1 },
-  footerCountText: { color: GOLD, fontSize: 13, fontWeight: '900' },
+  footerCountText: { color: '#B45309', fontSize: 13, fontWeight: '900' },
   footerMinText: { color: TEXT_MUTED, fontSize: 10, marginTop: 2, fontWeight: '500' },
   submitBtn: {
-    backgroundColor: GOLD,
+    backgroundColor: ESPRESSO,
     paddingHorizontal: 18,
     height: 46,
     borderRadius: 12,
@@ -846,5 +839,5 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  submitBtnText: { color: BLACK, fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
+  submitBtnText: { color: GOLD_ACCENT, fontSize: 12, fontWeight: '900', letterSpacing: 0.3 },
 });

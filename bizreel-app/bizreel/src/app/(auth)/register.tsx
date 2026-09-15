@@ -18,7 +18,7 @@ import {
   View,
 } from 'react-native';
 
-import { BrandColors, Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { FontSize, FontWeight, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth/context';
 import { performGoogleAuth } from '@/features/auth/google-auth';
 import { useRegister, useSendOtp } from '@/features/auth/mutations';
@@ -86,7 +86,6 @@ export default function RegisterScreen() {
     control,
     handleSubmit,
     watch,
-    getValues,
     trigger,
     formState: { errors },
   } = useForm<RegisterFormValues>({
@@ -219,14 +218,14 @@ export default function RegisterScreen() {
 
         {/* Logo + heading */}
         <View style={s.headerSection}>
-          <Image
-            source={require('@/assets/android/playstore-icon.png')}
-            style={s.logo}
-            contentFit="contain"
-          />
-          <View style={s.headingRow}>
-            <Text style={s.heading}>{step === 1 ? 'Create Account' : 'Choose Interests'}</Text>
+          <View style={s.logoWrapper}>
+            <Image
+              source={require('@/assets/android/playstore-icon.png')}
+              style={s.logo}
+              contentFit="contain"
+            />
           </View>
+          <Text style={s.heading}>{step === 1 ? 'Create Account' : 'Choose Interests'}</Text>
           <Text style={s.subheading}>
             {step === 1
               ? 'Join BizReels and discover local products, verified vendors & personalized video reels.'
@@ -240,11 +239,7 @@ export default function RegisterScreen() {
           {/* Server error banner */}
           {serverError && (
             <View style={s.errorBanner}>
-              <SymbolView
-                name="exclamationmark.circle.fill"
-                size={16}
-                tintColor={BrandColors.error}
-              />
+              <Ionicons name="alert-circle" size={18} color="#DC2626" />
               <Text style={s.errorBannerText}>{serverError}</Text>
             </View>
           )}
@@ -254,7 +249,7 @@ export default function RegisterScreen() {
             <>
               {/* Join As Role Selection */}
               <View style={s.fieldGroup}>
-                <Text style={s.label}>JOIN AS *</Text>
+                <Text style={s.label}>JOIN AS</Text>
                 <View style={s.roleSelectorRow}>
                   {[
                     { id: 'customer', label: 'Customer', icon: 'bag-handle-outline' },
@@ -270,7 +265,7 @@ export default function RegisterScreen() {
                         <Ionicons
                           name={r.icon as any}
                           size={18}
-                          color={isSelected ? BLACK : YELLOW}
+                          color={isSelected ? '#F59E0B' : AMBER_GOLD}
                         />
                         <Text style={[s.roleCardTitle, isSelected && s.roleCardTitleSelected]}>
                           {r.label}
@@ -289,16 +284,11 @@ export default function RegisterScreen() {
                   name="name"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.name && s.inputError]}>
-                      <SymbolView
-                        name="person"
-                        size={18}
-                        tintColor={BrandColors.primary}
-                        style={s.inputIcon}
-                      />
+                      <Ionicons name="person-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
                         placeholder="Enter your full name"
-                        placeholderTextColor={theme.placeholder}
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="words"
                         autoCorrect={false}
                         returnKeyType="next"
@@ -315,19 +305,19 @@ export default function RegisterScreen() {
 
               {/* Mobile Number */}
               <View style={s.fieldGroup}>
-                <Text style={s.label}>Mobile Number *</Text>
+                <Text style={s.label}>Mobile Number</Text>
                 <Controller
                   control={control}
                   name="phone"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.phone && s.inputError]}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 6 }}>
-                        <Text style={{ color: YELLOW, fontWeight: '900', fontSize: 13 }}>🇮🇳 +91</Text>
+                        <Text style={{ color: AMBER_GOLD, fontWeight: '900', fontSize: 13 }}>🇮🇳 +91</Text>
                       </View>
                       <TextInput
                         style={s.input}
                         placeholder="Enter 10-digit mobile number"
-                        placeholderTextColor={theme.placeholder}
+                        placeholderTextColor="#94A3B8"
                         keyboardType="phone-pad"
                         maxLength={10}
                         returnKeyType="next"
@@ -350,16 +340,11 @@ export default function RegisterScreen() {
                   name="email"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, (errors.email || !!serverError) && s.inputError]}>
-                      <SymbolView
-                        name="envelope"
-                        size={18}
-                        tintColor={BrandColors.primary}
-                        style={s.inputIcon}
-                      />
+                      <Ionicons name="mail-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
                         placeholder="Enter your email address"
-                        placeholderTextColor={theme.placeholder}
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="email-address"
@@ -383,16 +368,11 @@ export default function RegisterScreen() {
                   name="password"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.password && s.inputError]}>
-                      <SymbolView
-                        name="lock"
-                        size={18}
-                        tintColor={BrandColors.primary}
-                        style={s.inputIcon}
-                      />
+                      <Ionicons name="lock-closed-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
                         placeholder="Create a password"
-                        placeholderTextColor={theme.placeholder}
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="none"
                         autoCorrect={false}
                         secureTextEntry={!showPassword}
@@ -411,7 +391,7 @@ export default function RegisterScreen() {
                         <Ionicons
                           name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
-                          color={BrandColors.primary}
+                          color={AMBER_GOLD}
                         />
                       </Pressable>
                     </View>
@@ -424,10 +404,10 @@ export default function RegisterScreen() {
                     const passed = rule.test(passwordValue ?? '');
                     return (
                       <View key={rule.label} style={s.ruleRow}>
-                        <SymbolView
-                          name={passed ? 'checkmark.circle.fill' : 'circle'}
+                        <Ionicons
+                          name={passed ? 'checkmark-circle' : 'ellipse-outline'}
                           size={14}
-                          tintColor={passed ? BrandColors.success : theme.textSecondary}
+                          color={passed ? AMBER_GOLD : TEXT_MUTED}
                         />
                         <Text style={[s.ruleText, passed && s.ruleTextPassed]}>{rule.label}</Text>
                       </View>
@@ -444,16 +424,11 @@ export default function RegisterScreen() {
                   name="confirmPassword"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={[s.inputRow, errors.confirmPassword && s.inputError]}>
-                      <SymbolView
-                        name="lock.fill"
-                        size={18}
-                        tintColor={BrandColors.primary}
-                        style={s.inputIcon}
-                      />
+                      <Ionicons name="lock-closed-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
                         placeholder="Re-enter your password"
-                        placeholderTextColor={theme.placeholder}
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="none"
                         autoCorrect={false}
                         secureTextEntry={!showConfirmPassword}
@@ -472,7 +447,7 @@ export default function RegisterScreen() {
                         <Ionicons
                           name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                           size={18}
-                          color={BrandColors.primary}
+                          color={AMBER_GOLD}
                         />
                       </Pressable>
                     </View>
@@ -491,16 +466,11 @@ export default function RegisterScreen() {
                   name="referralCode"
                   render={({ field: { onChange, onBlur, value } }) => (
                     <View style={s.inputRow}>
-                      <SymbolView
-                        name="gift"
-                        size={18}
-                        tintColor={BrandColors.primary}
-                        style={s.inputIcon}
-                      />
+                      <Ionicons name="gift-outline" size={18} color={AMBER_GOLD} style={s.inputIcon} />
                       <TextInput
                         style={s.input}
                         placeholder="Enter referral / promo code (e.g. BIZ100)"
-                        placeholderTextColor={theme.placeholder}
+                        placeholderTextColor="#94A3B8"
                         autoCapitalize="characters"
                         autoCorrect={false}
                         value={value}
@@ -526,15 +496,11 @@ export default function RegisterScreen() {
                     disabled={isSendingOtp}
                     accessibilityLabel="Verify OTP & Continue to Interests">
                     {isSendingOtp ? (
-                      <ActivityIndicator color={BLACK} />
+                      <ActivityIndicator color="#F59E0B" />
                     ) : (
                       <>
                         <Text style={s.primaryButtonText}>VERIFY OTP & CONTINUE</Text>
-                        <SymbolView
-                          name="shield"
-                          size={18}
-                          tintColor={BLACK}
-                        />
+                        <Ionicons name="shield-checkmark" size={18} color="#F59E0B" />
                       </>
                     )}
                   </Pressable>
@@ -562,7 +528,7 @@ export default function RegisterScreen() {
                 accessibilityLabel="Sign up with Google"
                 accessibilityRole="button">
                 {isGooglePending ? (
-                  <ActivityIndicator color={YELLOW} />
+                  <ActivityIndicator color={AMBER_GOLD} />
                 ) : (
                   <>
                     <Ionicons name="logo-google" size={18} color="#EA4335" />
@@ -589,11 +555,11 @@ export default function RegisterScreen() {
 
               {/* Category & Subcategory Live Keyword Search Bar */}
               <View style={s.searchBarRow}>
-                <Ionicons name="search-outline" size={18} color={YELLOW} style={s.searchIcon} />
+                <Ionicons name="search-outline" size={18} color={AMBER_GOLD} style={s.searchIcon} />
                 <TextInput
                   style={s.searchInput}
                   placeholder="Search categories or subcategories..."
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor="#94A3B8"
                   value={categorySearchQuery}
                   onChangeText={setCategorySearchQuery}
                   autoCapitalize="none"
@@ -601,15 +567,15 @@ export default function RegisterScreen() {
                 />
                 {!!categorySearchQuery && (
                   <TouchableOpacity onPress={() => setCategorySearchQuery('')} style={s.clearSearchBtn}>
-                    <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.5)" />
+                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
                   </TouchableOpacity>
                 )}
               </View>
 
               {loadingCategories ? (
                 <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                  <ActivityIndicator color={YELLOW} />
-                  <Text style={{ color: '#fff', fontSize: FontSize.xs, marginTop: 8 }}>
+                  <ActivityIndicator color={AMBER_GOLD} />
+                  <Text style={{ color: TEXT_MUTED, fontSize: FontSize.xs, marginTop: 8 }}>
                     Fetching categories from database...
                   </Text>
                 </View>
@@ -627,8 +593,8 @@ export default function RegisterScreen() {
                     if (filtered.length === 0) {
                       return (
                         <View style={{ paddingVertical: 24, alignItems: 'center', gap: 6 }}>
-                          <Ionicons name="search-outline" size={28} color={YELLOW} />
-                          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: FontSize.xs, fontWeight: '700' }}>
+                          <Ionicons name="search-outline" size={28} color={AMBER_GOLD} />
+                          <Text style={{ color: TEXT_MUTED, fontSize: FontSize.xs, fontWeight: '700' }}>
                             No categories matching "{categorySearchQuery}"
                           </Text>
                         </View>
@@ -656,7 +622,7 @@ export default function RegisterScreen() {
                               <Ionicons
                                 name={isCatSelected ? 'checkmark' : 'add'}
                                 size={14}
-                                color={isCatSelected ? BLACK : '#fff'}
+                                color={isCatSelected ? '#FFFFFF' : TEXT_DARK}
                               />
                             </TouchableOpacity>
 
@@ -671,7 +637,7 @@ export default function RegisterScreen() {
                               <Ionicons
                                 name={isExpanded ? 'chevron-up' : 'chevron-down'}
                                 size={16}
-                                color="#F59E0B"
+                                color={AMBER_GOLD}
                               />
                             )}
                           </TouchableOpacity>
@@ -689,7 +655,7 @@ export default function RegisterScreen() {
                                     <Ionicons
                                       name={isSubSelected ? 'checkmark-circle' : 'ellipse-outline'}
                                       size={12}
-                                      color={isSubSelected ? BLACK : 'rgba(255,255,255,0.6)'}
+                                      color={isSubSelected ? '#F59E0B' : TEXT_MUTED}
                                     />
                                     <Text style={[s.subText, isSubSelected && s.subTextActive]}>
                                       {sub.name}
@@ -716,17 +682,13 @@ export default function RegisterScreen() {
                 onPress={handleSubmit(onSubmit)}
                 disabled={isPending}>
                 {isPending ? (
-                  <ActivityIndicator color={BLACK} />
+                  <ActivityIndicator color="#F59E0B" />
                 ) : (
                   <>
                     <Text style={s.primaryButtonText}>
                       Create Account ({selectedInterests.length} Selected)
                     </Text>
-                    <SymbolView
-                      name="arrow.right"
-                      size={16}
-                      tintColor={BLACK}
-                    />
+                    <Ionicons name="arrow-forward" size={16} color="#F59E0B" />
                   </>
                 )}
               </Pressable>
@@ -768,15 +730,18 @@ export default function RegisterScreen() {
   );
 }
 
-const YELLOW = '#F59E0B';
-const BLACK = '#0F0F12';
-const DARK_CARD = '#18181C';
-const BORDER = '#2D2D36';
+const BG_LIGHT = '#F8FAFC';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E2E8F0';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
+const AMBER_GOLD = '#D97706';
+const PRIMARY_BTN_BG = '#241B15';
 
 function makeStyles(_theme: any) {
   return StyleSheet.create({
-    flex: { flex: 1, backgroundColor: BLACK },
-    scroll: { flex: 1, backgroundColor: BLACK },
+    flex: { flex: 1, backgroundColor: BG_LIGHT },
+    scroll: { flex: 1, backgroundColor: BG_LIGHT },
     scrollContent: {
       paddingHorizontal: Spacing.four,
       paddingTop: Platform.OS === 'ios' ? 60 : 48,
@@ -784,44 +749,62 @@ function makeStyles(_theme: any) {
       gap: Spacing.four,
     },
     pressed: { opacity: 0.6 },
-    headerSection: { gap: Spacing.two },
-    logo: { width: 52, height: 52, marginBottom: Spacing.one },
-    headingRow: { flexDirection: 'row', alignItems: 'center' },
+    headerSection: { gap: Spacing.two, alignItems: 'center', textAlign: 'center' },
+    logoWrapper: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
+      backgroundColor: 'rgba(217, 119, 6, 0.12)',
+      borderWidth: 1,
+      borderColor: 'rgba(217, 119, 6, 0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 4,
+    },
+    logo: { width: 44, height: 44 },
+    headingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
     heading: {
       fontSize: FontSize['2xl'],
       fontWeight: '900',
-      color: '#fff',
-      letterSpacing: 1,
+      color: TEXT_DARK,
+      letterSpacing: 0.5,
     },
-    sparkle: { fontSize: FontSize.lg, color: YELLOW },
+    sparkle: { fontSize: FontSize.lg, color: AMBER_GOLD },
     subheading: {
-      fontSize: FontSize.sm,
-      color: 'rgba(255,255,255,0.6)',
-      lineHeight: 20,
+      fontSize: FontSize.xs,
+      color: TEXT_MUTED,
+      lineHeight: 18,
+      textAlign: 'center',
+      paddingHorizontal: 12,
     },
     card: {
-      backgroundColor: DARK_CARD,
-      borderRadius: 0,
+      backgroundColor: CARD_BG,
+      borderRadius: 20,
       padding: Spacing.five,
       gap: Spacing.four,
-      borderWidth: 2,
-      borderColor: YELLOW,
+      borderWidth: 1,
+      borderColor: BORDER,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.05,
+      shadowRadius: 10,
+      elevation: 2,
     },
     errorBanner: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: Spacing.two,
-      backgroundColor: 'rgba(239,68,68,0.12)',
+      backgroundColor: '#FEF2F2',
       borderWidth: 1,
-      borderColor: '#EF4444',
-      borderRadius: 0,
+      borderColor: '#FCA5A5',
+      borderRadius: 12,
       paddingHorizontal: Spacing.three,
       paddingVertical: Spacing.two,
     },
     errorBannerText: {
       flex: 1,
       fontSize: FontSize.xs,
-      color: '#EF4444',
+      color: '#DC2626',
       lineHeight: 18,
       fontWeight: '700',
     },
@@ -829,7 +812,7 @@ function makeStyles(_theme: any) {
     label: {
       fontSize: FontSize.xs,
       fontWeight: '900',
-      color: '#fff',
+      color: TEXT_DARK,
       letterSpacing: 0.5,
     },
     inputRow: {
@@ -837,46 +820,51 @@ function makeStyles(_theme: any) {
       alignItems: 'center',
       borderWidth: 1,
       borderColor: BORDER,
-      borderRadius: 0,
-      backgroundColor: BLACK,
+      borderRadius: 12,
+      backgroundColor: '#F8FAFC',
       paddingHorizontal: Spacing.three,
-      height: 48,
+      height: 50,
     },
-    inputError: { borderColor: '#EF4444' },
+    inputError: { borderColor: '#DC2626' },
     inputIcon: { marginRight: Spacing.two },
     input: {
       flex: 1,
       fontSize: FontSize.sm,
-      color: '#fff',
+      color: TEXT_DARK,
       height: '100%',
       fontWeight: FontWeight.semibold,
     },
     eyeButton: { padding: Spacing.one },
     fieldError: {
       fontSize: FontSize.xs,
-      color: '#EF4444',
+      color: '#DC2626',
       marginTop: 2,
       fontWeight: '700',
     },
     rulesList: { gap: Spacing.one, marginTop: Spacing.one },
     ruleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
-    ruleText: { fontSize: FontSize.xs, color: 'rgba(255,255,255,0.4)', fontWeight: '700' },
-    ruleTextPassed: { color: YELLOW },
+    ruleText: { fontSize: FontSize.xs, color: TEXT_MUTED, fontWeight: '700' },
+    ruleTextPassed: { color: AMBER_GOLD },
     primaryButton: {
-      backgroundColor: YELLOW,
-      borderRadius: 0,
+      backgroundColor: PRIMARY_BTN_BG,
+      borderRadius: 14,
       height: 50,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: Spacing.two,
       marginTop: 8,
+      shadowColor: '#0F172A',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 4,
     },
     primaryButtonPressed: { opacity: 0.8 },
-    primaryButtonDisabled: { opacity: 0.7 },
+    primaryButtonDisabled: { opacity: 0.6 },
     primaryButtonText: {
-      color: BLACK,
-      fontSize: FontSize.base,
+      color: '#F59E0B',
+      fontSize: FontSize.sm,
       fontWeight: '900',
       letterSpacing: 0.5,
     },
@@ -886,31 +874,33 @@ function makeStyles(_theme: any) {
       justifyContent: 'space-between',
     },
     interestTitle: {
-      color: YELLOW,
+      color: AMBER_GOLD,
       fontSize: FontSize.sm,
       fontWeight: '900',
       letterSpacing: 1,
     },
     selectedBadge: {
-      backgroundColor: BLACK,
-      paddingHorizontal: 8,
+      backgroundColor: '#FEF3C7',
+      paddingHorizontal: 10,
       paddingVertical: 4,
+      borderRadius: 8,
       borderWidth: 1,
-      borderColor: YELLOW,
+      borderColor: '#FDE68A',
     },
     selectedBadgeText: {
-      color: '#fff',
+      color: AMBER_GOLD,
       fontSize: 10,
       fontWeight: '900',
     },
     interestSub: {
-      color: 'rgba(255,255,255,0.6)',
+      color: TEXT_MUTED,
       fontSize: FontSize.xs,
     },
     catCard: {
-      backgroundColor: BLACK,
+      backgroundColor: '#F8FAFC',
       borderWidth: 1,
       borderColor: BORDER,
+      borderRadius: 12,
       padding: Spacing.two,
     },
     catCardHeader: {
@@ -923,22 +913,24 @@ function makeStyles(_theme: any) {
       height: 22,
       borderWidth: 1,
       borderColor: BORDER,
+      borderRadius: 6,
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: BLACK,
+      backgroundColor: CARD_BG,
     },
     catCheckBtnActive: {
-      backgroundColor: YELLOW,
-      borderColor: YELLOW,
+      backgroundColor: PRIMARY_BTN_BG,
+      borderColor: PRIMARY_BTN_BG,
     },
     catName: {
-      color: '#fff',
+      color: TEXT_DARK,
       fontSize: FontSize.sm,
       fontWeight: '900',
     },
     subCountBadge: {
-      color: YELLOW,
+      color: AMBER_GOLD,
       fontSize: 9,
+      fontWeight: '700',
     },
     subsContainer: {
       flexDirection: 'row',
@@ -955,21 +947,22 @@ function makeStyles(_theme: any) {
       gap: 4,
       paddingHorizontal: 8,
       paddingVertical: 4,
-      backgroundColor: DARK_CARD,
+      backgroundColor: CARD_BG,
       borderWidth: 1,
       borderColor: BORDER,
+      borderRadius: 8,
     },
     subChipActive: {
-      backgroundColor: YELLOW,
-      borderColor: YELLOW,
+      backgroundColor: PRIMARY_BTN_BG,
+      borderColor: PRIMARY_BTN_BG,
     },
     subText: {
-      color: 'rgba(255,255,255,0.7)',
+      color: TEXT_MUTED,
       fontSize: 10,
       fontWeight: '700',
     },
     subTextActive: {
-      color: BLACK,
+      color: '#F59E0B',
       fontWeight: '900',
     },
     backToStep1Btn: {
@@ -977,7 +970,7 @@ function makeStyles(_theme: any) {
       paddingVertical: 8,
     },
     backToStep1Text: {
-      color: 'rgba(255,255,255,0.6)',
+      color: TEXT_MUTED,
       fontSize: FontSize.xs,
       fontWeight: '700',
     },
@@ -986,11 +979,11 @@ function makeStyles(_theme: any) {
       justifyContent: 'center',
       alignItems: 'center',
     },
-    signinText: { fontSize: FontSize.sm, color: 'rgba(255,255,255,0.6)' },
+    signinText: { fontSize: FontSize.sm, color: TEXT_MUTED },
     signinLink: {
       fontSize: FontSize.sm,
       fontWeight: '900',
-      color: YELLOW,
+      color: AMBER_GOLD,
     },
     // Join As Role Selector Styles
     roleSelectorRow: {
@@ -1004,35 +997,36 @@ function makeStyles(_theme: any) {
       alignItems: 'center',
       justifyContent: 'center',
       gap: 6,
-      backgroundColor: BLACK,
+      backgroundColor: '#F8FAFC',
       borderWidth: 1,
       borderColor: BORDER,
       paddingVertical: 10,
-      borderRadius: 0,
+      borderRadius: 12,
     },
     roleCardSelected: {
-      backgroundColor: YELLOW,
-      borderColor: YELLOW,
+      backgroundColor: PRIMARY_BTN_BG,
+      borderColor: PRIMARY_BTN_BG,
     },
     roleCardTitle: {
-      color: '#fff',
+      color: TEXT_DARK,
       fontSize: FontSize.xs,
       fontWeight: '900',
     },
     roleCardTitleSelected: {
-      color: BLACK,
+      color: '#FFFFFF',
       fontWeight: '900',
     },
     secondaryStepBtn: {
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: 10,
+      borderRadius: 12,
       borderWidth: 1,
       borderColor: BORDER,
-      backgroundColor: BLACK,
+      backgroundColor: CARD_BG,
     },
     secondaryStepBtnText: {
-      color: 'rgba(255,255,255,0.7)',
+      color: TEXT_MUTED,
       fontSize: FontSize.xs,
       fontWeight: '900',
       letterSpacing: 0.5,
@@ -1040,12 +1034,12 @@ function makeStyles(_theme: any) {
     searchBarRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: BLACK,
+      backgroundColor: '#F8FAFC',
       borderWidth: 1,
       borderColor: BORDER,
       paddingHorizontal: Spacing.three,
-      height: 44,
-      borderRadius: 0,
+      height: 46,
+      borderRadius: 12,
       marginVertical: Spacing.two,
     },
     searchIcon: {
@@ -1053,7 +1047,7 @@ function makeStyles(_theme: any) {
     },
     searchInput: {
       flex: 1,
-      color: '#fff',
+      color: TEXT_DARK,
       fontSize: FontSize.xs,
       fontWeight: '700',
       height: '100%',
@@ -1073,14 +1067,15 @@ function makeStyles(_theme: any) {
       backgroundColor: BORDER,
     },
     dividerText: {
-      color: 'rgba(255,255,255,0.4)',
+      color: TEXT_MUTED,
       fontSize: 10,
       fontWeight: '900',
       letterSpacing: 1,
     },
     googleButton: {
-      backgroundColor: BLACK,
-      borderWidth: 1.5,
+      backgroundColor: CARD_BG,
+      borderRadius: 14,
+      borderWidth: 1,
       borderColor: BORDER,
       height: 48,
       flexDirection: 'row',
@@ -1088,12 +1083,13 @@ function makeStyles(_theme: any) {
       justifyContent: 'center',
       gap: 10,
     },
-    googleButtonDisabled: { opacity: 0.7 },
+    googleButtonDisabled: { opacity: 0.6 },
     googleButtonText: {
-      color: '#fff',
-      fontSize: FontSize.sm,
+      color: TEXT_DARK,
+      fontSize: FontSize.xs,
       fontWeight: '900',
       letterSpacing: 0.5,
     },
   });
 }
+

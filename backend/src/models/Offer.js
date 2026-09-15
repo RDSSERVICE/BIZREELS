@@ -41,7 +41,7 @@ const offerSchema = new mongoose.Schema({
     default: ['customer'],
     required: true
   },
-  discountType: { type: String, enum: ['percentage', 'fixed', 'up_to', null], default: null },
+  discountType: { type: String, enum: ['percentage', 'percent', 'fixed', 'up_to', null], default: null },
   discountValue: { type: Number, default: null },
   minOrderAmount: { type: Number, default: 0 },
   maxDiscountLimit: { type: Number, default: null },
@@ -80,6 +80,24 @@ const offerSchema = new mongoose.Schema({
   isDeleted: { type: Boolean, default: false, index: true }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
+});
+
+// Pre-validate hook to ensure required fields have defaults and normalized values
+offerSchema.pre('validate', function () {
+  if (!this.description || !String(this.description).trim()) {
+    this.description = this.title ? `${String(this.title).trim()} - Promotional offer` : 'Promotional offer';
+  }
+  if (this.discountType === 'percent') {
+    this.discountType = 'percentage';
+  }
+  if (this.status && typeof this.status === 'string') {
+    const s = this.status.toLowerCase();
+    if (s === 'active') this.status = 'Active';
+    else if (s === 'disabled') this.status = 'Disabled';
+    else if (s === 'draft') this.status = 'Draft';
+    else if (s === 'scheduled') this.status = 'Scheduled';
+    else if (s === 'expired') this.status = 'Expired';
+  }
 });
 
 // Calculate duration and transition status on save

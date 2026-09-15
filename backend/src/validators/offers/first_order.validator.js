@@ -4,7 +4,7 @@ const Joi = require('joi');
  * Validator for category: 'first_order'
  */
 const firstOrderConfigSchema = Joi.object({
-  discountType: Joi.string().valid('fixed', 'percent').required(),
+  discountType: Joi.string().valid('fixed', 'percent', 'percentage').required(),
   discountValue: Joi.number().min(0).required(),
   minOrderAmount: Joi.number().min(0).default(0),
   maxBenefit: Joi.number().min(0).allow(null).default(null),

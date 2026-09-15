@@ -62,7 +62,21 @@ const reelSchema = new Schema(
     },
     postPurpose: {
       type: String,
-      enum: ['General Promotion', 'Offer / Discount', 'Announcement', 'GENERAL', 'OFFER', 'ANNOUNCEMENT'],
+      enum: [
+        'General Promotion',
+        'Offer / Discount',
+        'Announcement',
+        'New Launch',
+        'New Service Launch',
+        'New Arrival',
+        'Flash Sale',
+        'Grand Opening',
+        'Special Event',
+        'Business Update',
+        'GENERAL',
+        'OFFER',
+        'ANNOUNCEMENT'
+      ],
       default: 'General Promotion',
     },
     targetListing: {

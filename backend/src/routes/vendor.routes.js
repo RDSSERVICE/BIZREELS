@@ -491,26 +491,36 @@ router.get('/ifsc-lookup/:ifsc', catchAsync(async (req, res) => {
   }
 }));
 
-router.get('/:user_id', optionalAuth, catchAsync(async (req, res) => {
-  const { user_id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(user_id)) {
+const resolveVendorUserId = (userIdParam, req) => {
+  if (userIdParam === 'me') {
+    const uid = req.user?._id?.toString() || req.userId;
+    if (!uid) throw ApiError.unauthorized('Authentication required');
+    return uid;
+  }
+  if (!mongoose.Types.ObjectId.isValid(userIdParam)) {
     throw ApiError.badRequest('Invalid user id');
   }
+  return userIdParam;
+};
 
-  const u = await User.findOne({ _id: user_id, is_deleted: { $ne: true } });
+router.get('/:user_id', optionalAuth, catchAsync(async (req, res) => {
+  const { user_id } = req.params;
+  const targetUserId = resolveVendorUserId(user_id, req);
+
+  const u = await User.findOne({ _id: targetUserId, is_deleted: { $ne: true } });
   if (!u) {
     throw ApiError.notFound('User not found');
   }
 
-  const followersCount = await followService.followersCount(user_id);
+  const followersCount = await followService.followersCount(targetUserId);
   const viewerId = req.user?._id?.toString() || req.userId || null;
   let following = false;
-  if (viewerId && viewerId !== user_id) {
-    following = await followService.isFollowing(viewerId, user_id);
+  if (viewerId && viewerId !== targetUserId) {
+    following = await followService.isFollowing(viewerId, targetUserId);
   }
 
   const listingsCount = await Listing.countDocuments({
-    vendor_id: user_id,
+    vendor_id: targetUserId,
     is_deleted: { $ne: true },
     status: 'active',
   });
@@ -537,11 +547,9 @@ router.get('/:user_id', optionalAuth, catchAsync(async (req, res) => {
 
 router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
   const { user_id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(user_id)) {
-    throw ApiError.badRequest('Invalid user id');
-  }
+  const targetUserId = resolveVendorUserId(user_id, req);
 
-  const u = await User.findOne({ _id: user_id, is_deleted: { $ne: true } });
+  const u = await User.findOne({ _id: targetUserId, is_deleted: { $ne: true } });
   if (!u) {
     throw ApiError.notFound('Vendor user not found');
   }
@@ -685,23 +693,28 @@ router.get('/:user_id/profile', optionalAuth, catchAsync(async (req, res) => {
   });
 }));
 
-router.get('/:user_id/listings', catchAsync(async (req, res) => {
-  const { user_id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(user_id)) {
-    throw ApiError.badRequest('Invalid user id');
+router.get(['/me/listings', '/listings'], optionalAuth, catchAsync(async (req, res) => {
+  const vendorId = req.user?._id?.toString() || req.userId;
+  if (!vendorId) {
+    throw ApiError.unauthorized('Authentication required to fetch vendor listings');
   }
-
-  const items = await listingService.listByVendor(user_id, false);
-  res.json({ items });
+  const items = await listingService.listByVendor(vendorId, false);
+  res.json({ success: true, items, listings: items, data: items });
 }));
 
-router.get('/:user_id/followers/count', catchAsync(async (req, res) => {
+router.get('/:user_id/listings', optionalAuth, catchAsync(async (req, res) => {
   const { user_id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(user_id)) {
-    throw ApiError.badRequest('Invalid user id');
-  }
+  const targetUserId = resolveVendorUserId(user_id, req);
 
-  const count = await followService.followersCount(user_id);
+  const items = await listingService.listByVendor(targetUserId, false);
+  res.json({ success: true, items, listings: items, data: items });
+}));
+
+router.get('/:user_id/followers/count', optionalAuth, catchAsync(async (req, res) => {
+  const { user_id } = req.params;
+  const targetUserId = resolveVendorUserId(user_id, req);
+
+  const count = await followService.followersCount(targetUserId);
   res.json({ count });
 }));
 

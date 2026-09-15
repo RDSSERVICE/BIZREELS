@@ -102,10 +102,24 @@ const optionalAuth = async (req, res, next) => {
       throw errorToThrow;
     }
     const userId = payload ? (payload.sub || payload.userId) : null;
-    if (!userId) {
-      throw ApiError.unauthorized('Invalid token payload');
+    if (userId) {
+      req.userId = userId;
+      req.user = { _id: userId, id: userId };
+      try {
+        const cacheKey = `user:auth:${userId}`;
+        let cachedUser = await cache.getCache(cacheKey);
+        if (cachedUser) {
+          req.user = cachedUser;
+        } else {
+          const userDoc = await User.findById(userId)
+            .select('-password -__v -creatorProfile -vendorProfile -customerProfile -followers -following')
+            .lean();
+          if (userDoc) {
+            req.user = userDoc;
+          }
+        }
+      } catch (_) {}
     }
-    req.userId = userId;
     next();
   } catch (error) {
     next(error);

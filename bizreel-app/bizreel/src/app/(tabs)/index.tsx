@@ -7,6 +7,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -266,6 +267,7 @@ export default function ReelsFeedScreen() {
 
   return (
     <View style={styles.container}>
+      <StatusBar style="light" animated />
       {/* Top Overlay Actions: Search, Cart, Logout */}
       {!searchOpen ? (
         <View style={[styles.headerActions, { top: insets.top + 12 }]}>

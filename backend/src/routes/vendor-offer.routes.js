@@ -11,7 +11,7 @@ const { validateOfferConfig } = require('../validators/offers');
 const router = express.Router();
 
 // ── GET /vendors/me/offers — List vendor's offers ─────────────
-router.get('/me/offers', requireAuth, catchAsync(async (req, res) => {
+router.get(['/', '/me/offers', '/offers'], requireAuth, catchAsync(async (req, res) => {
   const vendorId = req.user._id;
   const { category, status, page = 1, limit = 50 } = req.query;
   const skip = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
@@ -60,7 +60,7 @@ router.get('/me/offers', requireAuth, catchAsync(async (req, res) => {
 }));
 
 // ── GET /vendors/me/offers/categories — Category definitions ──
-router.get('/me/offers/categories', requireAuth, catchAsync(async (req, res) => {
+router.get(['/categories', '/me/offers/categories', '/offers/categories'], requireAuth, catchAsync(async (req, res) => {
   res.json({
     success: true,
     data: OFFER_CATEGORIES,
@@ -69,7 +69,7 @@ router.get('/me/offers/categories', requireAuth, catchAsync(async (req, res) => 
 }));
 
 // ── POST /vendors/me/offers — Create offer ────────────────────
-router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
+router.post(['/', '/me/offers', '/offers'], requireAuth, catchAsync(async (req, res) => {
   const {
     category, offerName, title, description, config,
     startTime, endTime, code, priority, image, terms,
@@ -96,7 +96,8 @@ router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
   }
 
   const validatedCfg = configValidation.value || {};
-  const derivedDiscountType = discountType || validatedCfg.discountType || validatedCfg.couponType || validatedCfg.cashbackType || (validatedCfg.cashbackValue ? 'percent' : null);
+  const rawType = discountType || validatedCfg.discountType || validatedCfg.couponType || validatedCfg.cashbackType || (validatedCfg.cashbackValue ? 'percentage' : null);
+  const derivedDiscountType = rawType === 'percent' ? 'percentage' : rawType;
   const derivedDiscountValue = discountValue != null ? Number(discountValue) : (validatedCfg.discountValue != null ? Number(validatedCfg.discountValue) : (validatedCfg.cashbackValue != null ? Number(validatedCfg.cashbackValue) : null));
   const derivedMinOrderAmount = minOrderAmount != null ? Number(minOrderAmount) : Number(validatedCfg.minOrderAmount || validatedCfg.minOrderValue || validatedCfg.minPurchaseAmount || validatedCfg.minPurchase || 0);
   const derivedMaxDiscountLimit = maxDiscountLimit ? Number(maxDiscountLimit) : (validatedCfg.maxDiscountLimit ? Number(validatedCfg.maxDiscountLimit) : null);
@@ -108,7 +109,7 @@ router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
     isVendorOffer: true,
     config: validatedCfg,
     title: String(title).trim(),
-    description: String(description || '').trim(),
+    description: String(description || title || 'Promotional Offer').trim(),
     code: code ? String(code).trim().toUpperCase() : undefined,
     targetRoles: targetRoles || ['customer'],
     discountType: derivedDiscountType,
@@ -194,7 +195,7 @@ router.post('/me/offers', requireAuth, catchAsync(async (req, res) => {
 }));
 
 // ── PUT /vendors/me/offers/:offerId — Update offer ────────────
-router.put('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
+router.put(['/:offerId', '/me/offers/:offerId', '/offers/:offerId'], requireAuth, catchAsync(async (req, res) => {
   const { offerId } = req.params;
   const offer = await Offer.findOne({
     _id: offerId,
@@ -232,7 +233,7 @@ router.put('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
   if (description !== undefined) offer.description = description;
   if (code !== undefined) offer.code = code ? String(code).trim().toUpperCase() : null;
   if (targetRoles !== undefined) offer.targetRoles = targetRoles;
-  if (discountType !== undefined) offer.discountType = discountType;
+  if (discountType !== undefined) offer.discountType = discountType === 'percent' ? 'percentage' : discountType;
   if (discountValue !== undefined) offer.discountValue = discountValue != null ? Number(discountValue) : null;
   if (minOrderAmount !== undefined) offer.minOrderAmount = Number(minOrderAmount);
   if (maxDiscountLimit !== undefined) offer.maxDiscountLimit = maxDiscountLimit ? Number(maxDiscountLimit) : null;
@@ -258,7 +259,7 @@ router.put('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
 }));
 
 // ── DELETE /vendors/me/offers/:offerId — Soft delete ──────────
-router.delete('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) => {
+router.delete(['/:offerId', '/me/offers/:offerId', '/offers/:offerId'], requireAuth, catchAsync(async (req, res) => {
   const { offerId } = req.params;
   const offer = await Offer.findOne({
     _id: offerId,
@@ -276,7 +277,7 @@ router.delete('/me/offers/:offerId', requireAuth, catchAsync(async (req, res) =>
 }));
 
 // ── POST /vendors/me/offers/:offerId/duplicate — Duplicate ────
-router.post('/me/offers/:offerId/duplicate', requireAuth, catchAsync(async (req, res) => {
+router.post(['/:offerId/duplicate', '/me/offers/:offerId/duplicate', '/offers/:offerId/duplicate'], requireAuth, catchAsync(async (req, res) => {
   const { offerId } = req.params;
   const source = await Offer.findOne({
     _id: offerId,
@@ -316,7 +317,7 @@ router.post('/me/offers/:offerId/duplicate', requireAuth, catchAsync(async (req,
 }));
 
 // ── PATCH /vendors/me/offers/:offerId/status — Toggle status ──
-router.patch('/me/offers/:offerId/status', requireAuth, catchAsync(async (req, res) => {
+router.patch(['/:offerId/status', '/me/offers/:offerId/status', '/offers/:offerId/status'], requireAuth, catchAsync(async (req, res) => {
   const { offerId } = req.params;
   const { status } = req.body;
   const offer = await Offer.findOne({
@@ -339,7 +340,7 @@ router.patch('/me/offers/:offerId/status', requireAuth, catchAsync(async (req, r
 }));
 
 // ── POST /vendors/me/offers/:offerId/validate-coupon — Validate
-router.post('/me/offers/:offerId/validate-coupon', catchAsync(async (req, res) => {
+router.post(['/:offerId/validate-coupon', '/me/offers/:offerId/validate-coupon', '/offers/:offerId/validate-coupon'], catchAsync(async (req, res) => {
   const { offerId } = req.params;
   const { couponCode, customerId } = req.body;
 

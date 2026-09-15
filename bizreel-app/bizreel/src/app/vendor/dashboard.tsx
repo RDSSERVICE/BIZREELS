@@ -304,7 +304,7 @@ export default function VendorDashboardScreen() {
 
               <TouchableOpacity
                 style={styles.ctaDarkBtn}
-                onPress={() => router.push('/vendor/offers' as any)}>
+                onPress={() => router.push('/vendor/offers/create' as any)}>
                 <Ionicons name="pricetag-outline" size={15} color={GOLD} />
                 <Text style={styles.ctaDarkBtnText}>+ OFFER</Text>
               </TouchableOpacity>

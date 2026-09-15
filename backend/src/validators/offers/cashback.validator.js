@@ -5,7 +5,7 @@ const Joi = require('joi');
  * NOTE: Cashback settlement method flagged for product decision.
  */
 const cashbackConfigSchema = Joi.object({
-  cashbackType: Joi.string().valid('fixed', 'percent').required(),
+  cashbackType: Joi.string().valid('fixed', 'percent', 'percentage').required(),
   cashbackValue: Joi.number().min(0).required(),
   minPurchase: Joi.number().min(0).default(0),
   maxCashback: Joi.number().min(0).allow(null).default(null),

@@ -115,23 +115,7 @@ export default function VendorOffersScreen() {
   });
 
   const handleOpenCreateModal = () => {
-    setEditingOfferId(null);
-    setCategory('discount');
-    setOfferName(OFFER_CATEGORIES.discount.offerNames[0]);
-    setTitle('');
-    setDescription('');
-    setCouponCode(generateCouponCode());
-    setStartDate(getNowDate());
-    setEndDate(getNextWeekDate());
-    setSelectedProductIds([]);
-    setDiscountType('percent');
-    setDiscountValue('15');
-    setBuyQty('1');
-    setGetQty('1');
-    setMinOrderVal('0');
-    setMaxDiscountLimit('');
-    setStep(1);
-    setModalVisible(true);
+    router.push('/vendor/offers/create');
   };
 
   const handleOpenEditModal = (item: any) => {

@@ -88,8 +88,33 @@ export const tokenStore = {
 
   setItem: (key: string, value: string): void => {
     _tokenCache[key] = value;
-    // Persist securely in background — no await needed
-    SecureStore.setItemAsync(key, value).catch(() => {});
+
+    // SecureStore Android Keystore has 2048 bytes limit
+    let safeValue = value;
+    if (key === 'userProfile' && value.length > 1800) {
+      try {
+        const parsed = JSON.parse(value);
+        const trimmed = {
+          _id: parsed._id || parsed.id,
+          id: parsed.id || parsed._id,
+          email: parsed.email,
+          phone: parsed.phone || parsed.mobileNumber,
+          name: parsed.name || parsed.full_name,
+          role: parsed.role,
+          roles: parsed.roles,
+          vendorProfile: parsed.vendorProfile ? {
+            _id: parsed.vendorProfile._id,
+            shop_name: parsed.vendorProfile.shop_name,
+            business_name: parsed.vendorProfile.business_name,
+            is_onboarded: parsed.vendorProfile.is_onboarded,
+            store_category: parsed.vendorProfile.store_category,
+          } : undefined,
+        };
+        safeValue = JSON.stringify(trimmed);
+      } catch {}
+    }
+
+    SecureStore.setItemAsync(key, safeValue).catch(() => {});
   },
 
   removeItem: (key: string): void => {

@@ -53,7 +53,8 @@ function validateOfferConfig(category, config) {
 
   const { error, value } = schema.validate(config || {}, {
     abortEarly: false,
-    stripUnknown: true,
+    allowUnknown: true,
+    stripUnknown: false,
   });
 
   if (error) {
@@ -61,7 +62,7 @@ function validateOfferConfig(category, config) {
     return { valid: false, error: messages };
   }
 
-  return { valid: true, value };
+  return { valid: true, value: { ...(config || {}), ...(value || {}) } };
 }
 
 module.exports = {

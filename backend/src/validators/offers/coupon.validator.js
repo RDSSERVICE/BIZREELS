@@ -6,7 +6,7 @@ const Joi = require('joi');
 const couponConfigSchema = Joi.object({
   couponCode: Joi.string().uppercase().trim().min(3).max(20).required()
     .messages({ 'any.required': 'Coupon code is required' }),
-  couponType: Joi.string().valid('fixed', 'percent').required(),
+  couponType: Joi.string().valid('fixed', 'percent', 'percentage').required(),
   minOrderAmount: Joi.number().min(0).default(0),
   maxDiscountLimit: Joi.number().min(0).allow(null).default(null),
   usagePerCustomer: Joi.number().integer().min(1).default(1),
